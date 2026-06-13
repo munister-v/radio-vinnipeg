@@ -80,6 +80,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
   const [nickDraft, setNickDraft] = useState(user.nickname)
   const lastIdRef = useRef(0)
   const listEndRef = useRef<HTMLDivElement>(null)
+  const composerInputRef = useRef<HTMLInputElement>(null)
   const pollRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -122,6 +123,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
   useEffect(() => {
     if (chatOpen) {
       listEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      window.setTimeout(() => composerInputRef.current?.focus(), 280)
     }
   }, [messages, chatOpen])
 
@@ -259,10 +261,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
           <div className="broadcast-intro">
             <div className="section-kicker"><span>01</span> Незалежний живий ефір</div>
             <h1>Radio<br />Vinnipeg</h1>
-            <p>
-              Відкрите радіо, де слухач може стати голосом ефіру.
-              Без реєстрації. Просто в браузері.
-            </p>
+            <p>Відкрите радіо, де слухач може стати голосом ефіру</p>
           </div>
           <div className="frequency" aria-label="Частота Radio Vinnipeg">
             <span>ON AIR</span>
@@ -353,6 +352,11 @@ export default function RadioPage({ user, onUserChange }: Props) {
             </div>
             <button type="button" onClick={closeChat} aria-label="Закрити чат">×</button>
           </header>
+          <div className="chat-context">
+            <span>LIVE CHANNEL / 01</span>
+            <strong>Розмова навколо ефіру</strong>
+            <p>Коментуйте почуте або запропонуйте тему для відкритого мікрофона.</p>
+          </div>
           <div className="chat-presence">
             <span><i />{online.length} слухачів онлайн</span>
             <div>
@@ -364,7 +368,11 @@ export default function RadioPage({ user, onUserChange }: Props) {
           <div className="chat-card">
             <div className="messages">
               {messages.length === 0 && (
-                <div className="messages-empty">Тиша в чаті. Почніть розмову.</div>
+                <div className="messages-empty">
+                  <span aria-hidden>RV / 01</span>
+                  <strong>Чат ще мовчить</strong>
+                  <p>Напишіть перше повідомлення або запропонуйте тему для ефіру.</p>
+                </div>
               )}
               {messages.map((m) => (
                 <div key={m.id} className={`message ${m.user_id === user.id ? 'mine' : ''}`}>
@@ -388,13 +396,18 @@ export default function RadioPage({ user, onUserChange }: Props) {
             {error && <div className="error banner">{error}</div>}
 
             <form className="composer" onSubmit={handleSend}>
-              <input
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder={`Напишіть як ${user.nickname}…`}
-                maxLength={1000}
-                tabIndex={chatOpen ? 0 : -1}
-              />
+              <div className="composer-field">
+                <input
+                  ref={composerInputRef}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder={`Напишіть як ${user.nickname}…`}
+                  aria-label="Повідомлення в чат ефіру"
+                  maxLength={1000}
+                  tabIndex={chatOpen ? 0 : -1}
+                />
+                <span>{draft.length} / 1000</span>
+              </div>
               <button type="submit" disabled={sending || !draft.trim()}>
                 <span>Надіслати</span>
                 <b aria-hidden>↗</b>
