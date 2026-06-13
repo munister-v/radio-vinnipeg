@@ -16,6 +16,32 @@ function Equalizer({ active }: { active: boolean }) {
   )
 }
 
+function SettingsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  )
+}
+
+function SignalDeck({ active, label }: { active: boolean; label: string }) {
+  return (
+    <div className={`signal-deck ${active ? 'is-active' : ''}`} aria-label={label}>
+      <div className="signal-deck-meta">
+        <span>SIGNAL / WEBRTC</span>
+        <strong>{active ? 'LIVE' : 'STANDBY'}</strong>
+      </div>
+      <div className="signal-bars" aria-hidden>
+        {Array.from({ length: 22 }).map((_, index) => (
+          <i key={index} style={{ animationDelay: `${index * 0.045}s` }} />
+        ))}
+      </div>
+      <div className="signal-scale" aria-hidden><span>−40</span><span>−20</span><span>−10</span><span>0 dB</span></div>
+    </div>
+  )
+}
+
 export default function VoicePanel({ user }: Props) {
   const settings = useSettings()
   const { members, joined, micOn, connecting, error, speaking, join, leave, toggleMic } =
@@ -82,10 +108,12 @@ export default function VoicePanel({ user }: Props) {
               className="settings-gear"
               onClick={() => setSettingsOpen((v) => !v)}
               title="Налаштування"
+              aria-label="Налаштування звуку"
               aria-expanded={settingsOpen}
-            >⚙</button>
+            ><SettingsIcon /></button>
           </div>
         </div>
+        <SignalDeck active={micOn || speakers.length > 0} label="Живий аудіосигнал розмови" />
 
         {settingsOpen && (
           <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} />
@@ -111,11 +139,11 @@ export default function VoicePanel({ user }: Props) {
               onTouchStart={(e) => { e.preventDefault(); pttStart() }}
               onTouchEnd={pttEnd}
             >
-              {pttHeld ? '🎙 Говорите…' : '🎙 Тримайте PTT'}
+              {pttHeld ? 'Говорите наживо…' : 'Тримайте PTT'}
             </button>
           ) : (
             <button className={`btn btn-ghost ${micOn ? 'active' : ''}`} onClick={toggleMic}>
-              {micOn ? '🎙 Вимкнути мікрофон' : '🎙 Увімкнути мікрофон'}
+              {micOn ? 'Вимкнути мікрофон' : 'Увімкнути мікрофон'}
             </button>
           )}
           <button className="btn btn-outline" onClick={leave}>Вийти з розмови</button>
@@ -123,7 +151,7 @@ export default function VoicePanel({ user }: Props) {
         <ul className="air-members" aria-label="Учасники розмови">
           <li className={`${micOn ? '' : 'muted-mic'} ${speaking ? 'speaking' : ''}`}>
             <span className="dot" style={{ background: user.color }} />
-            ви {micOn ? '🎙' : '🔇'}
+            ви <small>{micOn ? 'MIC' : 'MUTE'}</small>
           </li>
           {members.map((m) => (
             <li
@@ -131,7 +159,7 @@ export default function VoicePanel({ user }: Props) {
               className={`${m.mic_on ? '' : 'muted-mic'} ${m.speaking ? 'speaking' : ''}`}
             >
               <span className="dot" style={{ background: m.color }} />
-              {m.nickname} {m.mic_on ? '🎙' : '🔇'}
+              {m.nickname} <small>{m.mic_on ? 'MIC' : 'MUTE'}</small>
             </li>
           ))}
         </ul>
@@ -148,11 +176,12 @@ export default function VoicePanel({ user }: Props) {
           <span className="air-status live">У розмові · {members.length} {plural(members.length)}</span>
           <Equalizer active={members.some((m) => m.speaking)} />
         </div>
+        <SignalDeck active={members.some((m) => m.speaking)} label="Аудіосигнал поточної розмови" />
         <h2 className="air-title">Розмова триває</h2>
         <p className="air-sub">{members.map((m) => m.nickname).join(', ')}</p>
         <div className="air-actions">
           <button className="btn btn-primary" onClick={join} disabled={connecting}>
-            {connecting ? 'Підключення…' : '▶ Приєднатися'}
+            {connecting ? 'Підключення…' : 'Приєднатися до ефіру'}
           </button>
         </div>
         <ul className="air-members" aria-label="Учасники розмови">
@@ -174,13 +203,14 @@ export default function VoicePanel({ user }: Props) {
       <div className="air-top">
         <span className="air-status">Тиша в ефірі</span>
       </div>
+      <SignalDeck active={false} label="Ефір очікує на першу розмову" />
       <h2 className="air-title">Зараз тут нікого немає</h2>
       <p className="air-sub">
         Приєднайтесь до групової розмови — слухати можна без мікрофона, говорити лише за бажанням.
       </p>
       <div className="air-actions">
         <button className="btn btn-primary" onClick={join} disabled={connecting}>
-          {connecting ? 'Підключення…' : '🎙 Розпочати розмову'}
+          {connecting ? 'Підключення…' : 'Розпочати живий ефір'}
         </button>
       </div>
       {error && <div className="air-error">{error}</div>}
