@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS broadcasts (
     title TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'live',   -- live | ended
     started_at TEXT NOT NULL DEFAULT (datetime('now')),
+    last_heartbeat TEXT NOT NULL DEFAULT (datetime('now')),
     ended_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_broadcasts_room ON broadcasts(room_id, status);

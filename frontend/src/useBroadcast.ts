@@ -4,6 +4,7 @@ import {
   getBroadcastConfig,
   getBroadcastListeners,
   getLiveBroadcast,
+  getToken,
   leaveBroadcast,
   listenBroadcast,
   pollBroadcastSignals,
@@ -365,6 +366,26 @@ export function useBroadcast(myUserId: number | null) {
     for (const track of stream.getAudioTracks()) track.enabled = !next
     setMuted(next)
   }, [muted])
+
+  // Ведучий закрив вкладку / перейшов на іншу — одразу завершуємо ефір на
+  // сервері (не чекаючи heartbeat-таймауту), щоб слухачі не лишались "в порожньому ефірі".
+  useEffect(() => {
+    const handlePageHide = () => {
+      const bid = broadcastIdRef.current
+      if (roleRef.current !== 'host' || !bid) return
+      const token = getToken()
+      fetch(`/api/broadcasts/${bid}/stop`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        keepalive: true,
+      }).catch(() => {})
+    }
+    window.addEventListener('pagehide', handlePageHide)
+    return () => window.removeEventListener('pagehide', handlePageHide)
+  }, [])
 
   useEffect(() => {
     return () => {

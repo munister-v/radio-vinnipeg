@@ -26,11 +26,16 @@ def _room_id(conn) -> int:
     return row['id']
 
 
+# Якщо ведучий не подавав "признак життя" довше цього часу — ефір вважається
+# зависшим (закрита вкладка без коректного stop) і автоматично завершується.
+_HEARTBEAT_TIMEOUT = "20 seconds"
+
+
 def _live_broadcast(conn, room_id: int):
-    return conn.execute(
+    row = conn.execute(
         """
-        SELECT b.id, b.host_user_id, b.title, b.started_at, u.nickname AS host_nickname,
-               u.color AS host_color
+        SELECT b.id, b.host_user_id, b.title, b.started_at, b.last_heartbeat,
+               u.nickname AS host_nickname, u.color AS host_color
         FROM broadcasts b
         JOIN users u ON u.id = b.host_user_id
         WHERE b.room_id = %s AND b.status = 'live'
@@ -38,6 +43,20 @@ def _live_broadcast(conn, room_id: int):
         """,
         (room_id,),
     ).fetchone()
+    if not row:
+        return None
+
+    stale = conn.execute(
+        f"SELECT datetime('now') > datetime(%s, '+{_HEARTBEAT_TIMEOUT}') AS stale",
+        (row['last_heartbeat'],),
+    ).fetchone()
+    if stale and stale['stale']:
+        conn.execute(
+            "UPDATE broadcasts SET status='ended', ended_at=datetime('now') WHERE id=%s",
+            (row['id'],),
+        )
+        return None
+    return row
 
 
 def _listener_count(conn, broadcast_id: int) -> int:
@@ -192,8 +211,22 @@ def leave(broadcast_id: int):
 @broadcast_bp.get('/<int:broadcast_id>/listeners')
 @auth_required
 def listeners(broadcast_id: int):
-    """Ведучий опитує цей ендпоінт, щоб дізнатись про нових слухачів."""
+    """Ведучий опитує цей ендпоінт, щоб дізнатись про нових слухачів.
+
+    Водночас цей запит слугує heartbeat-ом ведучого: якщо він припинить
+    опитування (закриє вкладку), ефір автоматично завершиться по таймауту.
+    """
+    me_id = int(g.current_user['id'])
     with get_connection() as conn:
+        bc = conn.execute(
+            "SELECT host_user_id FROM broadcasts WHERE id = %s AND status = 'live'",
+            (broadcast_id,),
+        ).fetchone()
+        if bc and int(bc['host_user_id']) == me_id:
+            conn.execute(
+                "UPDATE broadcasts SET last_heartbeat = datetime('now') WHERE id = %s",
+                (broadcast_id,),
+            )
         out = _active_listeners(conn, broadcast_id)
     return jsonify({'ok': True, 'data': out})
 
