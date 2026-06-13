@@ -164,6 +164,11 @@ export function useCall(myUserId: number) {
     setError(null)
     setConnecting(true)
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError('Цей браузер не підтримує доступ до мікрофона. Відкрийте сайт у Safari/Chrome (не у вбудованому браузері застосунку).')
+        return
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       localStreamRef.current = stream
 
@@ -192,9 +197,19 @@ export function useCall(myUserId: number) {
       signalTimerRef.current = window.setInterval(pollSignals, SIGNAL_POLL_MS)
       await refreshActive()
     } catch (err) {
-      if (err instanceof ApiError) setError(err.message)
-      else if (err instanceof DOMException) setError('Не вдалося отримати доступ до мікрофона.')
-      else setError('Не вдалося приєднатись до дзвінка.')
+      if (err instanceof ApiError) {
+        setError(err.message)
+      } else if (err instanceof DOMException) {
+        if (err.name === 'NotAllowedError') {
+          setError('Доступ до мікрофона заблоковано. Дозволь мікрофон для цього сайту в налаштуваннях браузера і спробуй ще раз.')
+        } else if (err.name === 'NotFoundError') {
+          setError('Мікрофон не знайдено на цьому пристрої.')
+        } else {
+          setError('Не вдалося отримати доступ до мікрофона.')
+        }
+      } else {
+        setError('Не вдалося приєднатись до дзвінка.')
+      }
       if (localStreamRef.current) {
         for (const t of localStreamRef.current.getTracks()) t.stop()
         localStreamRef.current = null

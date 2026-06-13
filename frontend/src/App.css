@@ -29,10 +29,12 @@
 }
 
 .brand-text {
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  font-size: 14px;
-  color: var(--blue);
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  font-size: 18px;
+  color: var(--sage-dark);
+  white-space: nowrap;
 }
 
 /* ── Join screen ──────────────────────────────────────────────────────── */
@@ -155,16 +157,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 14px 20px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
+  flex-wrap: wrap;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   font-size: 13px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .online-count {
@@ -204,6 +210,26 @@
   }
   .online-list {
     display: none;
+  }
+  .chat-header {
+    padding: 10px 14px;
+  }
+  .brand-text {
+    font-size: 16px;
+  }
+  .header-right {
+    gap: 8px;
+    font-size: 12px;
+  }
+  .messages {
+    padding: 14px;
+    gap: 10px;
+  }
+  .message {
+    max-width: 86%;
+  }
+  .composer {
+    padding: 10px 14px;
   }
 }
 
@@ -517,5 +543,33 @@
 .call-error {
   width: 100%;
   font-size: 12px;
-  color: #b91c1c;
+  color: var(--red);
+}
+
+@media (max-width: 720px) {
+  .call-bar {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+  .call-bar-info {
+    font-size: 12px;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .call-bar-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .call-bar-actions {
+    flex: 0 0 auto;
+  }
+  .call-btn {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+  .call-bar-members {
+    width: 100%;
+  }
 }
