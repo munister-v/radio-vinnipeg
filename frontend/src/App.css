@@ -54,9 +54,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--gold);
+  color: var(--gold-soft);
   font-size: 18px;
-  box-shadow: 0 0 18px rgba(217, 164, 65, 0.18);
+  box-shadow: 0 0 18px rgba(180, 154, 114, 0.18);
   flex-shrink: 0;
 }
 
@@ -162,19 +162,23 @@
   flex-wrap: wrap;
 }
 
-/* Live / hosting → Red Room velvet curtains */
+/* Live / hosting → Red Room velvet curtains (harmonised red family) */
 .air-onair, .air-host {
   color: #f3e7d0;
   background-color: var(--burgundy);
-  background-image: repeating-linear-gradient(90deg, #651624 0px, #7a1e2f 16px, #54101c 34px);
-  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.55), 0 10px 34px rgba(120, 22, 38, 0.3);
+  background-image: repeating-linear-gradient(90deg, #8e2027 0px, #a8262f 16px, #6e171d 34px);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.5), 0 10px 34px rgba(214, 58, 66, 0.22);
 }
 
-/* Silent → quiet dark card */
+/* Silent → forest-green card (signature surface of main site) */
 .air-silent {
-  background: var(--bg-elev);
-  border: 1px solid var(--line);
+  background: var(--forest);
+  border: 1px solid var(--line-warm);
   box-shadow: var(--shadow);
+}
+
+.air-silent .air-badge {
+  color: var(--text-2);
 }
 
 .air-main {
@@ -289,8 +293,8 @@
 
 .air-btn.play {
   background: var(--gold);
-  color: #2a1209;
-  box-shadow: 0 6px 22px rgba(217, 164, 65, 0.4);
+  color: #211a10;
+  box-shadow: 0 6px 22px rgba(180, 154, 114, 0.32);
 }
 
 .air-btn.play:hover:not(:disabled) { background: var(--gold-soft); }
@@ -347,7 +351,7 @@
   height: 8px;
   background: var(--gold-soft);
   border-radius: 3px;
-  box-shadow: 0 0 8px rgba(232, 200, 121, 0.6);
+  box-shadow: 0 0 8px rgba(212, 186, 138, 0.5);
 }
 
 .eq.on span {
@@ -456,8 +460,8 @@
 }
 
 .message.mine .message-bubble {
-  background: #3a1620;
-  color: #f3dcd2;
+  background: var(--forest);
+  color: #f0ead9;
   border-radius: 15px 15px 5px 15px;
 }
 
@@ -524,7 +528,7 @@
   padding: 0 22px;
   font-weight: 600;
   font-size: 14px;
-  color: #2a1209;
+  color: #211a10;
   cursor: pointer;
   transition: background 0.15s ease;
 }

@@ -1,36 +1,42 @@
 :root {
-  /* "Vinnipeg Nights" — тёмная тема: ночной канадский лес + Twin Peaks Red Room */
-  --bg:           #0d100e;   /* near-black pine */
-  --bg-elev:      #141a16;   /* cards */
-  --bg-elev-2:    #1e2620;   /* bubbles, inputs */
-  --surface:      #141a16;
-  --surface-2:    #1e2620;
+  /* Гармонізовано з munister.com.ua: near-black шари, лісовий зелений,
+     пісочно-золоті акценти, червоний акцент, Cormorant + JetBrains Mono. */
+  --bg:           #050505;
+  --bg-elev:      #0d0d0d;   /* cards */
+  --bg-elev-2:    #161616;   /* bubbles, inputs */
+  --surface:      #0d0d0d;
+  --surface-2:    #161616;
 
-  --text:         #ece2cf;   /* aged cream */
-  --text-2:       #b9b3a3;
-  --muted:        #7f8478;   /* grey-green */
-  --line:         rgba(255, 255, 255, 0.06);
+  --text:         #ede2cf;   /* cream */
+  --text-2:       #d4c4b5;   /* sand */
+  --muted:        #8a8a8a;
+  --line:         rgba(255, 255, 255, 0.07);
   --line-2:       rgba(255, 255, 255, 0.10);
+  --line-warm:    rgba(212, 196, 181, 0.22);
 
-  /* Red Room velvet */
-  --burgundy:        #7a1e2f;
-  --burgundy-deep:   #54101c;
-  --burgundy-bright: #8e2433;
-  --red-glow:        #f0795a;
+  /* Forest green (signature surface on main site) */
+  --forest:      #1e3226;
+  --forest-2:    #1c2f22;
+  --pine:        #1e3226;
+  --pine-2:      #16241b;
 
-  /* Warm lamp gold */
-  --gold:        #d9a441;
-  --gold-soft:   #e8c879;
+  /* Red accent (on-air) — main site red family */
+  --burgundy:        #b02a33;
+  --burgundy-deep:   #6e171d;
+  --burgundy-bright: #d63a42;
+  --red-glow:        #e8554d;
 
-  /* Forest + accents */
-  --pine:        #16201a;
-  --pine-2:      #203026;
+  /* Warm sand / gold */
+  --gold:        #b49a72;
+  --gold-soft:   #d4ba8a;
+
+  /* Nick dot accents */
   --blue:        #8aa6c0;
   --sage:        #8fae84;
 
   --radius-sm:   10px;
-  --radius:      16px;
-  --radius-lg:   20px;
+  --radius:      14px;
+  --radius-lg:   16px;
   --shadow:      0 8px 26px rgba(0, 0, 0, 0.45);
   --shadow-lg:   0 16px 56px rgba(0, 0, 0, 0.6);
 
@@ -66,5 +72,5 @@ input, button {
 }
 
 a {
-  color: var(--gold);
+  color: var(--gold-soft);
 }
