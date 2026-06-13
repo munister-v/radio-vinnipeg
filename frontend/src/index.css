@@ -1,46 +1,47 @@
 :root {
-  /* Editorial "Poruch" palette — warm paper, sage + terracotta accents */
-  --paper:        #f4f0e7;
-  --paper-light:  #fbf9f4;
-  --paper-soft:   #ece5d8;
-  --ink:          #252722;
-  --ink-soft:     #54574f;
-  --muted:        #7d7e75;
-  --line:         #ddd5c7;
-  --sage:         #667b61;
-  --sage-dark:    #42523f;
-  --sage-soft:    #e2e8dc;
-  --terracotta:       #b86f54;
-  --terracotta-dark:  #8e4e39;
-  --terracotta-soft:  #f1ddd3;
-  --white:        #fffdf8;
+  /* "Поруч" bold editorial palette — cream paper, mustard + terracotta + ink */
+  --cream:        #f5f1e6;
+  --cream-soft:   #ece5d3;
+  --ink:          #161614;
+  --ink-soft:     #4d4a40;
+  --muted:        #8a8576;
+  --line:         #d9d2c0;
+  --mustard:      #f3c83e;
+  --mustard-soft: #faf0c4;
+  --mustard-dark: #d6ad22;
+  --terracotta:       #e8836a;
+  --terracotta-dark:  #c5613f;
+  --terracotta-soft:  #f7ddd3;
+  --sage:         #7c8a6e;
+  --white:        #ffffff;
   --red:          #c1503a;
   --green:        #4f7a55;
 
   /* Aliases used throughout the app's component styles */
-  --bg:           var(--paper);
+  --bg:           var(--cream);
   --surface:      var(--white);
-  --surface-2:    var(--paper-soft);
+  --surface-2:    var(--mustard-soft);
   --border:       var(--line);
   --border-soft:  var(--line);
   --text:         var(--ink);
   --text-2:       var(--ink-soft);
-  --blue:         var(--sage);
-  --blue-hover:   var(--sage-dark);
-  --blue-light:   var(--sage-soft);
-  --blue-dim:     var(--sage-soft);
+  --blue:         var(--ink);
+  --blue-hover:   #000000;
+  --blue-light:   var(--mustard-soft);
+  --blue-dim:     var(--mustard-soft);
   --gold:         var(--terracotta);
   --sand-light:   var(--terracotta-soft);
+  --sage-dark:    var(--ink);
 
-  --radius-xs:    8px;
-  --radius-sm:    12px;
-  --radius:       18px;
-  --radius-lg:    28px;
-  --shadow:       0 8px 24px rgba(44,45,39,.07);
-  --shadow-lg:    0 30px 80px rgba(44,45,39,.16);
+  --radius-xs:    4px;
+  --radius-sm:    8px;
+  --radius:       10px;
+  --radius-lg:    18px;
+  --shadow:       0 6px 18px rgba(22,22,20,.08);
+  --shadow-lg:    0 24px 60px rgba(22,22,20,.18);
 
   --font:         'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-serif:   'Cormorant Garamond', Georgia, serif;
+  --font-serif:   'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono:    'JetBrains Mono', 'Courier New', monospace;
 
   font-family: var(--font);
@@ -67,5 +68,5 @@ input, button {
 }
 
 a {
-  color: var(--sage-dark);
+  color: var(--ink);
 }

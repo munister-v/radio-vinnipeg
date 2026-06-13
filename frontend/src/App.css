@@ -15,25 +15,26 @@
 }
 
 .brand-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--blue);
-  box-shadow: 0 0 0 4px var(--blue-dim);
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--mustard);
+  border: 2px solid var(--ink);
   animation: pulse 2.4s ease-in-out infinite;
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(0.8); }
+  50% { opacity: 0.55; transform: scale(0.85); }
 }
 
 .brand-text {
-  font-family: var(--font-serif);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  font-size: 18px;
-  color: var(--sage-dark);
+  font-family: var(--font);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 16px;
+  color: var(--ink);
   white-space: nowrap;
 }
 
@@ -52,7 +53,7 @@
   width: 100%;
   max-width: 420px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--ink);
   border-radius: var(--radius-lg);
   padding: 32px;
   box-shadow: var(--shadow-lg);
@@ -64,8 +65,10 @@
 
 .join-card h1 {
   margin: 0 0 8px;
-  font-size: 28px;
-  line-height: 1.2;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
   color: var(--text);
 }
 
@@ -86,13 +89,16 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 13px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--text-2);
 }
 
 .join-card input {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 11px 12px;
   color: var(--text);
@@ -102,25 +108,28 @@
 }
 
 .join-card input:focus {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px var(--blue-dim);
+  border-color: var(--ink);
+  box-shadow: none;
 }
 
 .join-card button[type='submit'] {
   margin-top: 6px;
-  background: var(--blue);
-  border: none;
+  background: var(--mustard);
+  border: 2px solid var(--ink);
   border-radius: var(--radius-sm);
   padding: 13px;
-  font-weight: 700;
-  font-size: 15px;
-  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  color: var(--ink);
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .join-card button[type='submit']:hover:not(:disabled) {
-  background: var(--blue-hover);
+  background: var(--mustard-dark);
 }
 
 .join-card button[type='submit']:disabled {
@@ -159,7 +168,7 @@
   justify-content: space-between;
   gap: 10px;
   padding: 14px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--ink);
   background: var(--surface);
   flex-wrap: wrap;
 }
@@ -169,12 +178,16 @@
   align-items: center;
   gap: 12px;
   font-size: 13px;
+  font-family: var(--font-mono);
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
 .online-count {
   color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 12px;
 }
 
 .me {
@@ -183,18 +196,22 @@
 
 .link-btn {
   background: none;
-  border: 1px solid var(--border);
-  color: var(--text-2);
+  border: 2px solid var(--ink);
+  color: var(--ink);
   border-radius: var(--radius-sm);
   padding: 6px 12px;
   cursor: pointer;
-  font-size: 13px;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .link-btn:hover {
-  color: var(--blue);
-  border-color: var(--blue);
+  color: var(--white);
+  background: var(--ink);
 }
 
 .chat-main {
@@ -269,7 +286,7 @@
 .message-bubble {
   position: relative;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--ink);
   border-radius: var(--radius);
   padding: 9px 14px;
   font-size: 14px;
@@ -280,8 +297,8 @@
 }
 
 .message.mine .message-bubble {
-  background: var(--blue-light);
-  border-color: var(--blue-dim);
+  background: var(--mustard-soft);
+  border-color: var(--ink);
 }
 
 .message-bubble.deleted {
@@ -322,6 +339,7 @@
 .online-list h3 {
   margin: 0 0 12px;
   font-size: 12px;
+  font-family: var(--font-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-2);
@@ -371,7 +389,7 @@
 .composer input {
   flex: 1;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 11px 14px;
   color: var(--text);
@@ -381,24 +399,27 @@
 }
 
 .composer input:focus {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px var(--blue-dim);
+  border-color: var(--ink);
+  box-shadow: none;
 }
 
 .composer button {
-  background: var(--blue);
-  border: none;
+  background: var(--mustard);
+  border: 2px solid var(--ink);
   border-radius: var(--radius-sm);
   padding: 0 20px;
-  font-weight: 700;
-  font-size: 14px;
-  color: #ffffff;
+  font-weight: 800;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  color: var(--ink);
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .composer button:hover:not(:disabled) {
-  background: var(--blue-hover);
+  background: var(--mustard-dark);
 }
 
 .composer button:disabled {
@@ -414,7 +435,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 20px;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 2px solid var(--ink);
   background: var(--surface-2);
   flex-wrap: wrap;
 }
@@ -431,8 +452,9 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: var(--blue-light);
-  color: var(--blue);
+  background: var(--white);
+  border: 2px solid var(--ink);
+  color: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -441,13 +463,17 @@
 }
 
 .call-bar-icon.live {
-  background: var(--blue);
-  color: #fff;
+  background: var(--terracotta);
+  color: var(--ink);
   animation: pulse 2s ease-in-out infinite;
 }
 
 .call-bar-title {
-  font-weight: 700;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-family: var(--font-mono);
   color: var(--text);
 }
 
@@ -463,7 +489,7 @@
   align-items: center;
   gap: 6px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--ink);
   border-radius: 999px;
   padding: 4px 10px 4px 6px;
   font-size: 12px;
@@ -478,8 +504,8 @@
 }
 
 .call-chip.me {
-  border-color: var(--blue-dim);
-  background: var(--blue-light);
+  border-color: var(--ink);
+  background: var(--mustard-soft);
 }
 
 .call-chip.muted {
@@ -496,43 +522,46 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: none;
+  border: 2px solid var(--ink);
   border-radius: var(--radius-sm);
   padding: 8px 16px;
-  font-weight: 700;
-  font-size: 13px;
+  font-weight: 800;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
   cursor: pointer;
   transition: background 0.15s ease, opacity 0.15s ease;
 }
 
 .call-btn.join {
-  background: var(--blue);
-  color: #fff;
+  background: var(--ink);
+  color: var(--white);
 }
 
 .call-btn.join:hover:not(:disabled) {
-  background: var(--blue-hover);
+  background: #000000;
 }
 
 .call-btn.leave {
-  background: var(--red);
-  color: #fff;
+  background: var(--terracotta);
+  color: var(--ink);
 }
 
 .call-btn.leave:hover:not(:disabled) {
-  background: #dc2626;
+  background: var(--terracotta-dark);
+  color: var(--white);
 }
 
 .call-btn.mute {
   background: var(--surface);
-  border: 1px solid var(--border);
   color: var(--text);
 }
 
 .call-btn.mute.active {
-  background: var(--sand-light);
-  border-color: var(--gold);
-  color: #6b5328;
+  background: var(--mustard);
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 .call-btn:disabled {
