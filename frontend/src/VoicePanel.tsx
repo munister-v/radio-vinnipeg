@@ -14,78 +14,99 @@ function Equalizer({ active }: { active: boolean }) {
 }
 
 export default function VoicePanel({ user }: Props) {
-  const { members, joined, micOn, connecting, error, join, leave, toggleMic } = useVoice(user.id)
+  const { members, joined, micOn, connecting, error, speaking, join, leave, toggleMic } =
+    useVoice(user.id)
 
-  const speakers = members.filter((m) => m.mic_on)
+  const speakers = members.filter((m) => m.speaking)
   const total = members.length + (joined ? 1 : 0)
 
+  // ── Ви в розмові ──────────────────────────────────────────────────────────
   if (joined) {
+    const speakerNames = speakers.map((m) => m.nickname)
+    if (micOn && speaking) speakerNames.push('ви')
     return (
-      <section className="air air-call">
-        <div className="air-main">
-          <div className="air-badge live">
-            Ви в розмові · {total} {plural(total)}
-          </div>
-          <h2 className="air-title">Канадська ніч</h2>
-          <p className="air-sub">
-            {speakers.length > 0
-              ? `говорить: ${speakers.map((m) => m.nickname).join(', ')}${micOn ? ', ви' : ''}`
-              : micOn ? 'ви говорите' : 'натисніть мікрофон, щоб сказати слово'}
-          </p>
+      <section className="air air-live">
+        <div className="air-top">
+          <span className="air-status live">Ви в розмові · {total} {plural(total)}</span>
+          <Equalizer active={micOn || speakers.length > 0} />
         </div>
-        <Equalizer active={micOn || speakers.length > 0} />
+        <h2 className="air-title">Радіорозмова наживо</h2>
+        <p className="air-sub">
+          {speakerNames.length > 0
+            ? `Говорить: ${speakerNames.join(', ')}`
+            : micOn
+              ? 'Мікрофон увімкнено — говоріть, вас чують'
+              : 'Слухаєте. Натисніть мікрофон, щоб сказати слово'}
+        </p>
         <div className="air-actions">
-          <button className={`air-btn ghost ${micOn ? 'active' : ''}`} onClick={toggleMic}>
-            {micOn ? '🎙️ Вимкнути мікрофон' : '🎙️ Увімкнути мікрофон'}
+          <button className={`btn btn-ghost ${micOn ? 'active' : ''}`} onClick={toggleMic}>
+            {micOn ? '🎙 Вимкнути мікрофон' : '🎙 Увімкнути мікрофон'}
           </button>
-          <button className="air-btn stop" onClick={leave}>Вийти з розмови</button>
+          <button className="btn btn-outline" onClick={leave}>Вийти з розмови</button>
         </div>
-        {members.length > 0 && (
-          <ul className="air-members" aria-label="Учасники розмови">
-            {members.map((m) => (
-              <li key={m.user_id} className={m.mic_on ? 'speaking' : ''}>
-                <span className="dot" style={{ background: m.color }} />
-                {m.nickname}
-              </li>
-            ))}
-          </ul>
-        )}
+        <ul className="air-members" aria-label="Учасники розмови">
+          <li className={`${micOn ? '' : 'muted-mic'} ${speaking ? 'speaking' : ''}`}>
+            <span className="dot" style={{ background: user.color }} />
+            ви {micOn ? '🎙' : '🔇'}
+          </li>
+          {members.map((m) => (
+            <li
+              key={m.user_id}
+              className={`${m.mic_on ? '' : 'muted-mic'} ${m.speaking ? 'speaking' : ''}`}
+            >
+              <span className="dot" style={{ background: m.color }} />
+              {m.nickname} {m.mic_on ? '🎙' : '🔇'}
+            </li>
+          ))}
+        </ul>
         {error && <div className="air-error">{error}</div>}
       </section>
     )
   }
 
+  // ── Розмова триває (ще не приєднались) ───────────────────────────────────
   if (members.length > 0) {
     return (
-      <section className="air air-onair">
-        <div className="air-main">
-          <div className="air-badge live">
+      <section className="air air-idle">
+        <div className="air-top">
+          <span className="air-status live">
             У розмові · {members.length} {plural(members.length)}
-          </div>
-          <h2 className="air-title">Розмова триває</h2>
-          <p className="air-sub">{members.map((m) => m.nickname).join(', ')}</p>
+          </span>
+          <Equalizer active={members.some((m) => m.speaking)} />
         </div>
-        <Equalizer active={members.some((m) => m.mic_on)} />
+        <h2 className="air-title">Розмова триває</h2>
+        <p className="air-sub">{members.map((m) => m.nickname).join(', ')}</p>
         <div className="air-actions">
-          <button className="air-btn play" onClick={join} disabled={connecting}>
+          <button className="btn btn-primary" onClick={join} disabled={connecting}>
             {connecting ? 'Підключення…' : '▶ Приєднатися'}
           </button>
         </div>
+        <ul className="air-members" aria-label="Учасники розмови">
+          {members.map((m) => (
+            <li key={m.user_id} className={m.speaking ? 'speaking' : ''}>
+              <span className="dot" style={{ background: m.color }} />
+              {m.nickname}
+            </li>
+          ))}
+        </ul>
         {error && <div className="air-error">{error}</div>}
       </section>
     )
   }
 
+  // ── Тиша ─────────────────────────────────────────────────────────────────
   return (
-    <section className="air air-silent">
-      <div className="air-main">
-        <div className="air-badge">Тиша в ефірі</div>
-        <h2 className="air-title">Зараз тут нікого немає</h2>
-        <p className="air-sub">приєднайтесь до розмови — слухати можна без мікрофона, говорити лише за бажанням</p>
+    <section className="air air-idle">
+      <div className="air-top">
+        <span className="air-status">Тиша в ефірі</span>
       </div>
+      <h2 className="air-title">Зараз тут нікого немає</h2>
+      <p className="air-sub">
+        Приєднайтесь до групової розмови — слухати можна без мікрофона, говорити лише за бажанням.
+      </p>
       <div className="air-actions">
-        <button className="air-btn play" onClick={join} disabled={connecting}>
-          {connecting ? 'Підключення…' : '🎙️ Приєднатися'}
+        <button className="btn btn-primary" onClick={join} disabled={connecting}>
+          {connecting ? 'Підключення…' : '🎙 Розпочати розмову'}
         </button>
       </div>
       {error && <div className="air-error">{error}</div>}

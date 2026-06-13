@@ -30,3 +30,9 @@ sudo nginx -t && sudo systemctl reload nginx
 
 echo "✅ Готово. Якщо DNS вже вказує на цей сервер, запусти:"
 echo "   sudo certbot --nginx -d radio.munister.com.ua"
+echo ""
+echo "🎙  Щоб групові дзвінки з'єднувались між будь-якими мережами (мобільний"
+echo "    інтернет, фаєрволи), один раз постав TURN-сервер:"
+echo "       sudo bash deploy/install-coturn.sh"
+echo "    і встав надруковані MESSENGER_TURN_* у .env, потім:"
+echo "       sudo systemctl restart radio-vinnipeg"

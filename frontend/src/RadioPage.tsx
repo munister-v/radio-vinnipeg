@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   ApiError,
   deleteMessage,
@@ -125,60 +125,67 @@ export default function RadioPage({ user, onUserChange }: Props) {
 
   return (
     <div className="radio-shell">
-      <header className="chat-header">
-        <div className="brand">
-          <span className="brand-mark">☾</span>
-          <div className="brand-titles">
-            <span className="brand-eyebrow">RADIO · NIGHT</span>
-            <span className="brand-text">Vinnipeg Nights</span>
+      <header className="topbar">
+        <div className="topbar-inner">
+          <div className="brand">
+            <span className="brand-mark" aria-hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none" />
+                <path d="M7.5 7.5a6 6 0 0 0 0 9" />
+                <path d="M16.5 7.5a6 6 0 0 1 0 9" />
+                <path d="M4.7 4.7a10 10 0 0 0 0 14.6" />
+                <path d="M19.3 4.7a10 10 0 0 1 0 14.6" />
+              </svg>
+            </span>
+            <div className="brand-titles">
+              <span className="brand-eyebrow">Живий ефір</span>
+              <span className="brand-name">Radio Vinnipeg</span>
+            </div>
           </div>
-        </div>
-        <div className="header-right">
-          <span className="online-count">{online.length} онлайн</span>
-          {editingNick ? (
-            <form className="nick-edit" onSubmit={handleRename}>
-              <input
-                value={nickDraft}
-                onChange={(e) => setNickDraft(e.target.value)}
-                maxLength={24}
-                autoFocus
-                onBlur={handleRename}
-              />
-            </form>
-          ) : (
-            <button
-              className="nick-chip"
-              onClick={() => {
-                setNickDraft(user.nickname)
-                setEditingNick(true)
-              }}
-              title="Змінити нік"
-            >
-              <span className="dot" style={{ background: user.color }} />
-              <span style={{ color: user.color }}>{user.nickname}</span>
-              <span className="nick-edit-icon">✎</span>
-            </button>
-          )}
+          <div className="topbar-right">
+            <span className="online-pill"><span className="dot-live" />{online.length} онлайн</span>
+            {editingNick ? (
+              <form className="nick-edit" onSubmit={handleRename}>
+                <input
+                  value={nickDraft}
+                  onChange={(e) => setNickDraft(e.target.value)}
+                  maxLength={24}
+                  autoFocus
+                  onBlur={handleRename}
+                />
+              </form>
+            ) : (
+              <button
+                className="nick-chip"
+                onClick={() => {
+                  setNickDraft(user.nickname)
+                  setEditingNick(true)
+                }}
+                title="Змінити нік"
+              >
+                <span className="dot" style={{ background: user.color }} />
+                <span>{user.nickname}</span>
+                <span className="nick-edit-icon">✎</span>
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      <div className="chevron" />
+      <section className="hero">
+        <div className="hero-inner">
+          <span className="hero-badge">Живий ефір</span>
+          <h1 className="hero-title">Radio<br />Vinnipeg</h1>
+          <p className="hero-lead">Відкрите живе радіо з груповими розмовами та чатом — без реєстрації, прямо в браузері</p>
+        </div>
+      </section>
 
-      <div className="radio-body">
+      <main className="page">
         <VoicePanel user={user} />
 
-        <div className="pines" aria-hidden>
-          <span style={{ '--pw': '11px', '--ph': '22px' } as CSSProperties} />
-          <span style={{ '--pw': '14px', '--ph': '30px' } as CSSProperties} />
-          <span style={{ '--pw': '9px', '--ph': '18px' } as CSSProperties} />
-          <span style={{ '--pw': '15px', '--ph': '34px' } as CSSProperties} />
-          <span style={{ '--pw': '10px', '--ph': '20px' } as CSSProperties} />
-          <span style={{ '--pw': '13px', '--ph': '26px' } as CSSProperties} />
-          <span style={{ '--pw': '9px', '--ph': '16px' } as CSSProperties} />
-        </div>
-
-        <main className="chat-main">
-          <div className="chat-col">
+        <section className="chat-area">
+          <div className="chat-card">
             <div className="messages">
               {messages.length === 0 && (
                 <div className="messages-empty">Тиша в чаті. Напишіть перші 👋</div>
@@ -186,7 +193,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
               {messages.map((m) => (
                 <div key={m.id} className={`message ${m.user_id === user.id ? 'mine' : ''}`}>
                   <div className="message-meta">
-                    <span className="message-author" style={{ color: m.color }}>{m.nickname}</span>
+                    <span className="message-author" style={{ color: m.user_id === user.id ? undefined : m.color }}>{m.nickname}</span>
                     <span className="message-time">{formatTime(m.created_at)}</span>
                   </div>
                   <div className={`message-bubble ${m.is_deleted ? 'deleted' : ''}`}>
@@ -217,7 +224,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
             </form>
           </div>
 
-          <aside className="online-list">
+          <aside className="online-card">
             <h3>Слухачі онлайн</h3>
             <ul>
               {online.map((u, i) => (
@@ -229,8 +236,8 @@ export default function RadioPage({ user, onUserChange }: Props) {
               {online.length === 0 && <li className="dim">Поки нікого немає</li>}
             </ul>
           </aside>
-        </main>
-      </div>
+        </section>
+      </main>
     </div>
   )
 }

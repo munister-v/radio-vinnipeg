@@ -13,8 +13,10 @@ import {
   type CallMember,
 } from './api'
 
-const SIGNAL_POLL_MS = 1500
+const SIGNAL_POLL_MS = 1000
 const MEMBERS_POLL_MS = 2500
+const SPEAK_TICK_MS = 180
+const SPEAK_THRESHOLD = 0.02 // RMS поріг «хтось говорить»
 
 export type VoiceMember = CallMember & { speaking?: boolean }
 
@@ -26,14 +28,29 @@ type PeerEntry = {
   ignoreOffer: boolean
 }
 
+type AnalyserEntry = {
+  analyser: AnalyserNode
+  source: MediaStreamAudioSourceNode
+  data: Uint8Array<ArrayBuffer>
+}
+
 /**
- * Групова розмова (mesh, perfect negotiation). Приєднатися можна без
- * мікрофона — лише слухати; мікрофон увімкнути може будь-хто за бажанням.
+ * Групова розмова (mesh WebRTC, perfect negotiation).
+ *
+ * Принципи (щоб дзвінок надійно з'єднувався):
+ *  • На кожну пару — РІВНО один ініціатор: учасник із більшим id робить offer,
+ *    із меншим — лише відповідає. Це усуває «glare» (зустрічні offer-и) і
+ *    подвійні m-line, через які з'єднання раніше зривалось.
+ *  • Канонічна perfect negotiation на setLocalDescription() без аргументів —
+ *    браузер сам формує offer/answer і коректно робить rollback у ввічливого.
+ *  • Приєднатися можна без мікрофона (лише слухати). Мікрофон вмикається будь-
+ *    коли: ми змінюємо напрям транспондера → renegotiation, і нас починають чути.
  */
 export function useVoice(myUserId: number | null) {
   const [members, setMembers] = useState<VoiceMember[]>([])
   const [joined, setJoined] = useState(false)
   const [micOn, setMicOn] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,18 +62,110 @@ export function useVoice(myUserId: number | null) {
   const pendingIceRef = useRef<Map<number, RTCIceCandidateInit[]>>(new Map())
   const iceServersRef = useRef<RTCIceServer[]>([{ urls: 'stun:stun.l.google.com:19302' }])
   const afterIdRef = useRef(0)
+  const serverMembersRef = useRef<CallMember[]>([])
   const signalTimerRef = useRef<number | null>(null)
   const membersTimerRef = useRef<number | null>(null)
 
+  // Визначення активності голосу (Web Audio).
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const analysersRef = useRef<Map<number, AnalyserEntry>>(new Map())
+  const speakingRef = useRef<Map<number, boolean>>(new Map())
+  const speakTimerRef = useRef<number | null>(null)
+
+  // ── Список учасників: серверні дані + локальний прапорець «говорить» ──────
+  const applyMembers = useCallback(() => {
+    const list = serverMembersRef.current.map((m) => ({
+      ...m,
+      speaking: !!speakingRef.current.get(m.user_id),
+    }))
+    setMembers(list)
+  }, [])
+
+  // ── Аналіз гучності ──────────────────────────────────────────────────────
+  const ensureAudioCtx = useCallback((): AudioContext | null => {
+    if (!audioCtxRef.current) {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (Ctx) audioCtxRef.current = new Ctx()
+    }
+    audioCtxRef.current?.resume?.().catch(() => {})
+    return audioCtxRef.current
+  }, [])
+
+  const detachAnalyser = useCallback((key: number) => {
+    const a = analysersRef.current.get(key)
+    if (!a) return
+    try { a.source.disconnect() } catch { /* ignore */ }
+    try { a.analyser.disconnect() } catch { /* ignore */ }
+    analysersRef.current.delete(key)
+    speakingRef.current.delete(key)
+  }, [])
+
+  const attachAnalyser = useCallback((key: number, stream: MediaStream) => {
+    const ctx = ensureAudioCtx()
+    if (!ctx || !stream.getAudioTracks().length) return
+    detachAnalyser(key)
+    try {
+      const source = ctx.createMediaStreamSource(stream)
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 512
+      source.connect(analyser)
+      analysersRef.current.set(key, {
+        analyser,
+        source,
+        data: new Uint8Array(new ArrayBuffer(analyser.fftSize)),
+      })
+    } catch { /* ignore */ }
+  }, [ensureAudioCtx, detachAnalyser])
+
+  const speakTick = useCallback(() => {
+    let changed = false
+    for (const [key, a] of analysersRef.current) {
+      a.analyser.getByteTimeDomainData(a.data)
+      let sum = 0
+      for (let i = 0; i < a.data.length; i++) {
+        const v = (a.data[i] - 128) / 128
+        sum += v * v
+      }
+      const rms = Math.sqrt(sum / a.data.length)
+      const isSpeaking = rms > SPEAK_THRESHOLD
+      if (speakingRef.current.get(key) !== isSpeaking) {
+        speakingRef.current.set(key, isSpeaking)
+        changed = true
+      }
+    }
+    if (changed) {
+      // Локальний стан «говорить» — окремо від аналізаторів (щоб не заважати AEC)
+      setSpeaking(micOnRef.current)
+      applyMembers()
+    }
+  }, [applyMembers])
+
+  // ── Транспондер аудіо (їх завжди рівно один на з'єднання) ─────────────────
+  const audioTransceiver = (pc: RTCPeerConnection): RTCRtpTransceiver | undefined =>
+    pc.getTransceivers().find((t) => t.receiver.track?.kind === 'audio')
+
+  const applyMicToTransceiver = useCallback((tr: RTCRtpTransceiver) => {
+    const track = localStreamRef.current?.getAudioTracks()[0] ?? null
+    if (micOnRef.current && track) {
+      tr.sender.replaceTrack(track).catch(() => {})
+      tr.direction = 'sendrecv'
+    } else {
+      tr.sender.replaceTrack(null).catch(() => {})
+      tr.direction = 'recvonly'
+    }
+  }, [])
+
+  // ── Життєвий цикл peer-з'єднань ───────────────────────────────────────────
   const cleanupPeer = useCallback((userId: number) => {
     const entry = peersRef.current.get(userId)
     if (!entry) return
-    entry.pc.close()
+    try { entry.pc.close() } catch { /* ignore */ }
     entry.audio.srcObject = null
     entry.audio.remove()
     peersRef.current.delete(userId)
     pendingIceRef.current.delete(userId)
-  }, [])
+    detachAnalyser(userId)
+  }, [detachAnalyser])
 
   const cleanupAll = useCallback(() => {
     for (const [userId] of peersRef.current) cleanupPeer(userId)
@@ -64,123 +173,143 @@ export function useVoice(myUserId: number | null) {
       for (const t of localStreamRef.current.getTracks()) t.stop()
       localStreamRef.current = null
     }
-  }, [cleanupPeer])
+  }, [cleanupPeer, detachAnalyser])
 
   const flushPendingIce = useCallback(async (userId: number, pc: RTCPeerConnection) => {
     const queued = pendingIceRef.current.get(userId)
     if (!queued?.length) return
     pendingIceRef.current.delete(userId)
     for (const cand of queued) {
-      try {
-        await pc.addIceCandidate(cand)
-      } catch {
-        // ignore
-      }
+      try { await pc.addIceCandidate(cand) } catch { /* ignore */ }
     }
   }, [])
 
-  // Один аудіо-transceiver на з'єднання: sendrecv (з треком, якщо мікрофон
-  // увімкнено) або recvonly (лише слухати). Перемикання мікрофона змінює
-  // direction/трек цього ж transceiver-а — це викликає renegotiation.
-  const createPeer = useCallback((peerId: number) => {
-    if (peersRef.current.has(peerId) || !myUserId) return
-    const cid = callIdRef.current
-    if (!cid) return
+  const createPeer = useCallback(
+    (peerId: number, opts: { initiator: boolean }): PeerEntry | undefined => {
+      const existing = peersRef.current.get(peerId)
+      if (existing) return existing
+      if (!myUserId || !callIdRef.current) return undefined
 
-    const polite = myUserId < peerId
-    const pc = new RTCPeerConnection({ iceServers: iceServersRef.current })
-    const audio = document.createElement('audio')
-    audio.autoplay = true
-    ;(audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true
-    audio.setAttribute('playsinline', '')
-    audio.style.display = 'none'
-    document.body.appendChild(audio)
+      const polite = myUserId < peerId // менший id — ввічливий, лише відповідає
+      const pc = new RTCPeerConnection({ iceServers: iceServersRef.current })
+      const audio = document.createElement('audio')
+      audio.autoplay = true
+      ;(audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true
+      audio.setAttribute('playsinline', '')
+      audio.style.display = 'none'
+      document.body.appendChild(audio)
 
-    const entry: PeerEntry = { pc, audio, polite, makingOffer: false, ignoreOffer: false }
-    peersRef.current.set(peerId, entry)
+      const entry: PeerEntry = { pc, audio, polite, makingOffer: false, ignoreOffer: false }
+      peersRef.current.set(peerId, entry)
 
-    pc.ontrack = (e) => {
-      audio.srcObject = e.streams[0]
-      audio.play().catch(() => {})
-    }
-    pc.onicecandidate = (e) => {
-      if (e.candidate && callIdRef.current) {
-        sendCallSignal(callIdRef.current, peerId, 'ice', e.candidate.toJSON()).catch(() => {})
+      pc.ontrack = (e) => {
+        const [stream] = e.streams
+        if (!stream) return
+        audio.srcObject = stream
+        audio.play().catch(() => {})
+        attachAnalyser(peerId, stream)
       }
-    }
-    pc.onnegotiationneeded = async () => {
-      try {
-        entry.makingOffer = true
-        const offer = await pc.createOffer()
-        if (pc.signalingState !== 'stable') return
-        await pc.setLocalDescription(offer)
-        if (callIdRef.current) {
-          await sendCallSignal(callIdRef.current, peerId, 'offer', pc.localDescription)
+      pc.onicecandidate = (e) => {
+        if (e.candidate && callIdRef.current) {
+          sendCallSignal(callIdRef.current, peerId, 'ice', e.candidate.toJSON()).catch(() => {})
         }
+      }
+      pc.onnegotiationneeded = async () => {
+        try {
+          entry.makingOffer = true
+          await pc.setLocalDescription()
+          if (callIdRef.current && pc.localDescription) {
+            await sendCallSignal(
+              callIdRef.current,
+              peerId,
+              pc.localDescription.type as 'offer' | 'answer',
+              pc.localDescription,
+            )
+          }
+        } catch { /* ignore */ } finally {
+          entry.makingOffer = false
+        }
+      }
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+          // Самовідновлення: прибираємо peer; pollMembers відтворить його з
+          // правильною роллю, якщо учасник усе ще в розмові.
+          cleanupPeer(peerId)
+        }
+      }
+
+      // Ініціатор одразу створює транспондер → onnegotiationneeded → offer.
+      // Відповідач нічого не додає: транспондер з'явиться з offer-а ініціатора.
+      if (opts.initiator) {
+        const track = localStreamRef.current?.getAudioTracks()[0]
+        if (track && micOnRef.current) pc.addTransceiver(track, { direction: 'sendrecv' })
+        else pc.addTransceiver('audio', { direction: 'recvonly' })
+      }
+      return entry
+    },
+    [myUserId, attachAnalyser, cleanupPeer],
+  )
+
+  // Хто кого ініціює: більший id → ініціатор.
+  const ensurePeer = useCallback(
+    (peerId: number) => {
+      if (!myUserId || peersRef.current.has(peerId)) return
+      createPeer(peerId, { initiator: myUserId > peerId })
+    },
+    [myUserId, createPeer],
+  )
+
+  const handleDescription = useCallback(
+    async (fromId: number, description: RTCSessionDescriptionInit) => {
+      let entry = peersRef.current.get(fromId)
+      if (!entry) {
+        // Offer прийшов раніше, ніж ми створили peer → ми відповідач.
+        entry = createPeer(fromId, { initiator: false })
+      }
+      if (!entry) return
+      const { pc } = entry
+
+      const isOffer = description.type === 'offer'
+      const offerCollision = isOffer && (entry.makingOffer || pc.signalingState !== 'stable')
+      entry.ignoreOffer = !entry.polite && offerCollision
+      if (entry.ignoreOffer) return
+
+      try {
+        await pc.setRemoteDescription(description) // ввічливий тут сам робить rollback
       } catch {
-        // ignore
-      } finally {
-        entry.makingOffer = false
+        return
       }
-    }
-    pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-        cleanupPeer(peerId)
+      await flushPendingIce(fromId, pc)
+
+      if (isOffer) {
+        const tr = audioTransceiver(pc)
+        if (tr) applyMicToTransceiver(tr) // відобразити наш стан мікрофона у відповіді
+        await pc.setLocalDescription()
+        if (callIdRef.current && pc.localDescription) {
+          await sendCallSignal(
+            callIdRef.current,
+            fromId,
+            pc.localDescription.type as 'offer' | 'answer',
+            pc.localDescription,
+          ).catch(() => {})
+        }
       }
-    }
-
-    if (localStreamRef.current) {
-      pc.addTrack(localStreamRef.current.getAudioTracks()[0], localStreamRef.current)
-    } else {
-      pc.addTransceiver('audio', { direction: 'recvonly' })
-    }
-  }, [myUserId, cleanupPeer])
-
-  const handleOffer = useCallback(async (fromId: number, offer: RTCSessionDescriptionInit) => {
-    if (!peersRef.current.has(fromId)) createPeer(fromId)
-    const entry = peersRef.current.get(fromId)
-    if (!entry) return
-    const { pc } = entry
-
-    const offerCollision = entry.makingOffer || pc.signalingState !== 'stable'
-    entry.ignoreOffer = !entry.polite && offerCollision
-    if (entry.ignoreOffer) return
-
-    if (offerCollision) {
-      await Promise.all([
-        pc.setLocalDescription({ type: 'rollback' }),
-        pc.setRemoteDescription(offer),
-      ])
-    } else {
-      await pc.setRemoteDescription(offer)
-    }
-    await flushPendingIce(fromId, pc)
-    const answer = await pc.createAnswer()
-    await pc.setLocalDescription(answer)
-    if (callIdRef.current) {
-      await sendCallSignal(callIdRef.current, fromId, 'answer', pc.localDescription).catch(() => {})
-    }
-  }, [createPeer, flushPendingIce])
-
-  const handleAnswer = useCallback(async (fromId: number, answer: RTCSessionDescriptionInit) => {
-    const entry = peersRef.current.get(fromId)
-    if (!entry) return
-    await entry.pc.setRemoteDescription(answer)
-    await flushPendingIce(fromId, entry.pc)
-  }, [flushPendingIce])
+    },
+    [createPeer, flushPendingIce, applyMicToTransceiver],
+  )
 
   const handleIce = useCallback(async (fromId: number, cand: RTCIceCandidateInit) => {
     const entry = peersRef.current.get(fromId)
-    if (entry) {
-      try {
-        await entry.pc.addIceCandidate(cand)
-      } catch (err) {
-        if (!entry.ignoreOffer) throw err
-      }
-    } else {
+    if (!entry || !entry.pc.remoteDescription) {
       const q = pendingIceRef.current.get(fromId) ?? []
       q.push(cand)
       pendingIceRef.current.set(fromId, q)
+      return
+    }
+    try {
+      await entry.pc.addIceCandidate(cand)
+    } catch {
+      // Кандидати, що приходять під час ігнорованого offer-у, можна відкинути.
     }
   }, [])
 
@@ -193,85 +322,74 @@ export function useVoice(myUserId: number | null) {
         afterIdRef.current = sig.id
         const from = sig.from_user_id
         let payload: unknown = null
+        try { payload = JSON.parse(sig.payload) } catch { payload = sig.payload }
         try {
-          payload = JSON.parse(sig.payload)
-        } catch {
-          payload = sig.payload
-        }
-
-        try {
-          if (sig.signal_type === 'offer') {
-            await handleOffer(from, payload as RTCSessionDescriptionInit)
-          } else if (sig.signal_type === 'answer') {
-            await handleAnswer(from, payload as RTCSessionDescriptionInit)
+          if (sig.signal_type === 'offer' || sig.signal_type === 'answer') {
+            await handleDescription(from, payload as RTCSessionDescriptionInit)
           } else if (sig.signal_type === 'ice') {
             await handleIce(from, payload as RTCIceCandidateInit)
           } else if (sig.signal_type === 'bye') {
             cleanupPeer(from)
           }
-        } catch {
-          // ignore single-signal failures
-        }
+        } catch { /* ignore single-signal failures */ }
       }
-    } catch {
-      // ignore transient poll errors
-    }
-  }, [handleOffer, handleAnswer, handleIce, cleanupPeer])
+    } catch { /* ignore transient poll errors */ }
+  }, [handleDescription, handleIce, cleanupPeer])
 
   const pollMembers = useCallback(async () => {
     const cid = callIdRef.current
     if (!cid || !joinedRef.current) return
     try {
       const list = await getCallMembers(cid)
-      setMembers(list)
+      serverMembersRef.current = list
+      applyMembers()
       const ids = new Set(list.map((m) => m.user_id))
-      for (const m of list) {
-        if (!peersRef.current.has(m.user_id)) createPeer(m.user_id)
-      }
+      for (const m of list) ensurePeer(m.user_id)
       for (const peerId of [...peersRef.current.keys()]) {
         if (!ids.has(peerId)) cleanupPeer(peerId)
       }
-    } catch {
-      // ignore
-    }
-  }, [createPeer, cleanupPeer])
+    } catch { /* ignore */ }
+  }, [applyMembers, ensurePeer, cleanupPeer])
 
   const loadIceServers = useCallback(async () => {
     try {
       const cfg = await getCallConfig()
       if (cfg.ice_servers?.length) iceServersRef.current = cfg.ice_servers
-    } catch {
-      // keep default STUN
-    }
+    } catch { /* keep default STUN */ }
   }, [])
 
   const startTimers = useCallback(() => {
     if (signalTimerRef.current) window.clearInterval(signalTimerRef.current)
     if (membersTimerRef.current) window.clearInterval(membersTimerRef.current)
+    if (speakTimerRef.current) window.clearInterval(speakTimerRef.current)
     signalTimerRef.current = window.setInterval(pollSignals, SIGNAL_POLL_MS)
     membersTimerRef.current = window.setInterval(pollMembers, MEMBERS_POLL_MS)
-  }, [pollSignals, pollMembers])
+    speakTimerRef.current = window.setInterval(speakTick, SPEAK_TICK_MS)
+  }, [pollSignals, pollMembers, speakTick])
 
   const stopTimers = useCallback(() => {
-    if (signalTimerRef.current) { window.clearInterval(signalTimerRef.current); signalTimerRef.current = null }
-    if (membersTimerRef.current) { window.clearInterval(membersTimerRef.current); membersTimerRef.current = null }
+    for (const ref of [signalTimerRef, membersTimerRef, speakTimerRef]) {
+      if (ref.current) { window.clearInterval(ref.current); ref.current = null }
+    }
   }, [])
 
-  // Початковий стан: чи є активна розмова і скільки в ній людей (без приєднання).
+  // Стан розмови до приєднання (скільки людей уже всередині).
   const refreshActive = useCallback(async () => {
     try {
       const data = await getActiveCall()
       if (data) {
         callIdRef.current = data.call_id
-        if (!joinedRef.current) setMembers(data.members)
+        if (!joinedRef.current) {
+          serverMembersRef.current = data.members
+          applyMembers()
+        }
       } else if (!joinedRef.current) {
         callIdRef.current = null
-        setMembers([])
+        serverMembersRef.current = []
+        applyMembers()
       }
-    } catch {
-      // ignore
-    }
-  }, [])
+    } catch { /* ignore */ }
+  }, [applyMembers])
 
   useEffect(() => {
     refreshActive()
@@ -285,21 +403,26 @@ export function useVoice(myUserId: number | null) {
     setError(null)
     setConnecting(true)
     try {
+      ensureAudioCtx() // розблокувати аудіо в межах кліку користувача
       await loadIceServers()
       const res = await apiJoinCall()
       callIdRef.current = res.call_id
       afterIdRef.current = 0
       joinedRef.current = true
       setJoined(true)
-      setMembers(res.members)
-      for (const m of res.members) createPeer(m.user_id)
+      serverMembersRef.current = res.members
+      applyMembers()
+      for (const m of res.members) ensurePeer(m.user_id)
       startTimers()
+      // Не чекаємо на інтервали — одразу підхоплюємо сигнали/учасників.
+      pollMembers()
+      pollSignals()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не вдалося приєднатись до розмови.')
     } finally {
       setConnecting(false)
     }
-  }, [loadIceServers, createPeer, startTimers])
+  }, [ensureAudioCtx, loadIceServers, applyMembers, ensurePeer, startTimers, pollMembers, pollSignals])
 
   const leave = useCallback(async () => {
     const cid = callIdRef.current
@@ -312,6 +435,10 @@ export function useVoice(myUserId: number | null) {
     micOnRef.current = false
     setJoined(false)
     setMicOn(false)
+    setSpeaking(false)
+    setError(null)
+    speakingRef.current.clear()
+    serverMembersRef.current = []
     setMembers([])
     if (cid) {
       try { await apiLeaveCall(cid) } catch { /* ignore */ }
@@ -330,19 +457,28 @@ export function useVoice(myUserId: number | null) {
           setError('Цей браузер не підтримує мікрофон.')
           return
         }
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        const stream = await navigator.mediaDevices.getUserMedia({
+          // Використовуємо ideal: щоб AEC/NS/AGC застосовувались навіть якщо
+          // пристрій не підтримує exact. Mono (channelCount:1) знижує луну.
+          audio: {
+            echoCancellation: { ideal: true },
+            noiseSuppression: { ideal: true },
+            autoGainControl: { ideal: true },
+            channelCount: { ideal: 1 },
+            sampleRate: { ideal: 48000 },
+          },
+        })
         localStreamRef.current = stream
-        const track = stream.getAudioTracks()[0]
+        micOnRef.current = true
+        // НЕ підключаємо локальний мікрофон до Web Audio — це заважає браузерному AEC.
+        // Стан «говорить» для себе = micOn.
+        setSpeaking(true)
         for (const [, entry] of peersRef.current) {
-          const transceiver = entry.pc.getTransceivers().find((t) => t.receiver.track.kind === 'audio')
-          if (transceiver) {
-            await transceiver.sender.replaceTrack(track)
-            transceiver.direction = 'sendrecv'
-          } else {
-            entry.pc.addTrack(track, stream)
-          }
+          const tr = audioTransceiver(entry.pc)
+          if (tr) applyMicToTransceiver(tr) // → renegotiation через onnegotiationneeded
         }
       } catch (err) {
+        micOnRef.current = false
         if (err instanceof DOMException && err.name === 'NotAllowedError') {
           setError('Доступ до мікрофона заблоковано. Дозвольте мікрофон у налаштуваннях браузера.')
         } else if (err instanceof DOMException && err.name === 'NotFoundError') {
@@ -353,26 +489,25 @@ export function useVoice(myUserId: number | null) {
         return
       }
     } else {
-      const stream = localStreamRef.current
+      micOnRef.current = false
       for (const [, entry] of peersRef.current) {
-        const transceiver = entry.pc.getTransceivers().find((t) => t.receiver.track.kind === 'audio')
-        if (transceiver) {
-          await transceiver.sender.replaceTrack(null)
-          transceiver.direction = 'recvonly'
-        }
+        const tr = audioTransceiver(entry.pc)
+        if (tr) applyMicToTransceiver(tr)
       }
+      const stream = localStreamRef.current
       if (stream) {
         for (const t of stream.getTracks()) t.stop()
         localStreamRef.current = null
       }
+      setSpeaking(false)
     }
 
-    micOnRef.current = next
     setMicOn(next)
+    setError(null)
     setCallMic(cid, next).catch(() => {})
-  }, [])
+  }, [attachAnalyser, detachAnalyser, applyMicToTransceiver])
 
-  // Ведучий закрив вкладку — повідомляємо сервер, щоб нас прибрали зі списку.
+  // Користувач закрив вкладку — повідомляємо сервер, щоб його прибрали зі списку.
   useEffect(() => {
     const handlePageHide = () => {
       const cid = callIdRef.current
@@ -395,8 +530,10 @@ export function useVoice(myUserId: number | null) {
     return () => {
       stopTimers()
       cleanupAll()
+      audioCtxRef.current?.close?.().catch(() => {})
+      audioCtxRef.current = null
     }
   }, [stopTimers, cleanupAll])
 
-  return { members, joined, micOn, connecting, error, join, leave, toggleMic }
+  return { members, joined, micOn, connecting, error, speaking, join, leave, toggleMic }
 }
