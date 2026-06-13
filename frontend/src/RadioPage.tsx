@@ -11,7 +11,7 @@ import {
   type ChatMessage,
   type User,
 } from './api'
-import BroadcastPanel from './BroadcastPanel'
+import VoicePanel from './VoicePanel'
 
 type Props = {
   user: User
@@ -165,7 +165,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
       <div className="chevron" />
 
       <div className="radio-body">
-        <BroadcastPanel user={user} />
+        <VoicePanel user={user} />
 
         <div className="pines" aria-hidden>
           <span style={{ '--pw': '11px', '--ph': '22px' } as CSSProperties} />

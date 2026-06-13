@@ -1,4 +1,9 @@
-"""Сигналінг для групового голосового чату слухачів (mesh WebRTC)."""
+"""Сигналінг для групової розмови слухачів (mesh WebRTC, perfect negotiation).
+
+Приєднатися до розмови може будь-хто — без мікрофона (тільки слухати).
+Мікрофон увімкнути може будь-хто за бажанням (push-to-talk стиль),
+ніхто не зобов'язаний говорити.
+"""
 from __future__ import annotations
 
 import json
@@ -7,11 +12,15 @@ from flask import Blueprint, g, jsonify, request
 
 from ..config import MESSENGER_ICE_SERVERS
 from ..database import get_connection
-from .helpers import api_error, auth_required
+from .helpers import api_error, auth_optional, auth_required
 
 call_bp = Blueprint('calls', __name__, url_prefix='/api/calls')
 
 _ROOM_SLUG = 'lounge'
+
+# Якщо учасник не подавав "признак життя" довше цього часу — вважаємо,
+# що він закрив вкладку без коректного leave, і прибираємо його зі списку.
+_HEARTBEAT_TIMEOUT = "20 seconds"
 
 
 def _room_id(conn) -> int:
@@ -27,10 +36,21 @@ def _active_call(conn, room_id: int):
     ).fetchone()
 
 
+def _cleanup_stale(conn, call_id: int) -> None:
+    conn.execute(
+        f"""
+        UPDATE call_members SET state='left', left_at=datetime('now'), updated_at=datetime('now')
+        WHERE call_id = %s AND state = 'joined'
+          AND datetime('now') > datetime(last_heartbeat, '+{_HEARTBEAT_TIMEOUT}')
+        """,
+        (call_id,),
+    )
+
+
 def _members(conn, call_id: int) -> list[dict]:
     rows = conn.execute(
         """
-        SELECT cm.user_id, cm.state, cm.joined_at, u.nickname, u.color
+        SELECT cm.user_id, cm.state, cm.mic_on, cm.joined_at, u.nickname, u.color
         FROM call_members cm
         JOIN users u ON u.id = cm.user_id
         WHERE cm.call_id = %s AND cm.state = 'joined'
@@ -54,30 +74,35 @@ def _end_call_if_empty(conn, call_id: int) -> None:
 
 
 @call_bp.get('/config')
-@auth_required
+@auth_optional
 def call_config():
     return jsonify({'ok': True, 'data': {'ice_servers': MESSENGER_ICE_SERVERS}})
 
 
 @call_bp.get('/active')
-@auth_required
+@auth_optional
 def active_call():
-    me_id = int(g.current_user['id'])
+    me = getattr(g, 'current_user', None)
+    me_id = int(me['id']) if me else None
     with get_connection() as conn:
         room_id = _room_id(conn)
         call = _active_call(conn, room_id)
         if not call:
             return jsonify({'ok': True, 'data': None})
+        _cleanup_stale(conn, call['id'])
         members = _members(conn, call['id'])
-        my_state = conn.execute(
-            "SELECT state FROM call_members WHERE call_id=%s AND user_id=%s",
-            (call['id'], me_id),
-        ).fetchone()
+        joined = False
+        if me_id is not None:
+            my_state = conn.execute(
+                "SELECT state FROM call_members WHERE call_id=%s AND user_id=%s",
+                (call['id'], me_id),
+            ).fetchone()
+            joined = bool(my_state and my_state['state'] == 'joined')
     return jsonify({'ok': True, 'data': {
         'call_id': call['id'],
         'created_at': call['created_at'],
         'members': members,
-        'joined': bool(my_state and my_state['state'] == 'joined'),
+        'joined': joined,
     }})
 
 
@@ -104,17 +129,19 @@ def join_call():
         ).fetchone()
         if existing:
             conn.execute(
-                "UPDATE call_members SET state='joined', joined_at=datetime('now'), "
-                "left_at=NULL, updated_at=datetime('now') WHERE call_id=%s AND user_id=%s",
+                "UPDATE call_members SET state='joined', mic_on=0, joined_at=datetime('now'), "
+                "left_at=NULL, last_heartbeat=datetime('now'), updated_at=datetime('now') "
+                "WHERE call_id=%s AND user_id=%s",
                 (call_id, me_id),
             )
         else:
             conn.execute(
-                "INSERT INTO call_members (call_id, user_id, state, joined_at, updated_at) "
-                "VALUES (%s, %s, 'joined', datetime('now'), datetime('now'))",
+                "INSERT INTO call_members (call_id, user_id, state, mic_on, joined_at, last_heartbeat, updated_at) "
+                "VALUES (%s, %s, 'joined', 0, datetime('now'), datetime('now'), datetime('now'))",
                 (call_id, me_id),
             )
 
+        _cleanup_stale(conn, call_id)
         members = [m for m in _members(conn, call_id) if int(m['user_id']) != me_id]
     return jsonify({'ok': True, 'data': {'call_id': call_id, 'members': members}})
 
@@ -133,11 +160,34 @@ def leave_call(call_id: int):
     return jsonify({'ok': True})
 
 
+@call_bp.put('/<int:call_id>/mic')
+@auth_required
+def set_mic(call_id: int):
+    me_id = int(g.current_user['id'])
+    data = request.get_json(silent=True) or {}
+    on = 1 if data.get('on') else 0
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE call_members SET mic_on=%s, updated_at=datetime('now') "
+            "WHERE call_id=%s AND user_id=%s AND state='joined'",
+            (on, call_id, me_id),
+        )
+    return jsonify({'ok': True})
+
+
 @call_bp.get('/<int:call_id>/members')
 @auth_required
 def call_members(call_id: int):
+    """Учасник опитує цей ендпоінт, щоб дізнатись про інших — водночас це heartbeat."""
+    me_id = int(g.current_user['id'])
     with get_connection() as conn:
-        out = _members(conn, call_id)
+        conn.execute(
+            "UPDATE call_members SET last_heartbeat=datetime('now') "
+            "WHERE call_id=%s AND user_id=%s AND state='joined'",
+            (call_id, me_id),
+        )
+        _cleanup_stale(conn, call_id)
+        out = [m for m in _members(conn, call_id) if int(m['user_id']) != me_id]
     return jsonify({'ok': True, 'data': out})
 
 

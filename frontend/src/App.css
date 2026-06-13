@@ -162,8 +162,8 @@
   flex-wrap: wrap;
 }
 
-/* Live / hosting → Red Room velvet curtains (harmonised red family) */
-.air-onair, .air-host {
+/* Live / у розмові → Red Room velvet curtains (harmonised red family) */
+.air-onair, .air-call {
   color: #f3e7d0;
   background-color: var(--burgundy);
   background-image: repeating-linear-gradient(90deg, #8e2027 0px, #a8262f 16px, #6e171d 34px);
@@ -198,7 +198,7 @@
   margin-bottom: 14px;
 }
 
-.air-onair .air-badge, .air-host .air-badge {
+.air-onair .air-badge, .air-call .air-badge {
   color: #e7a98f;
 }
 
@@ -233,7 +233,7 @@
   word-break: break-word;
 }
 
-.air-onair .air-title, .air-host .air-title {
+.air-onair .air-title, .air-call .air-title {
   color: #f7ecd7;
   text-shadow: 0 2px 18px rgba(0, 0, 0, 0.4);
 }
@@ -246,7 +246,7 @@
   color: var(--text-2);
 }
 
-.air-onair .air-sub, .air-host .air-sub {
+.air-onair .air-sub, .air-call .air-sub {
   color: #e4b39e;
 }
 
@@ -334,6 +334,43 @@
 .air-silent .air-error {
   color: var(--red-glow);
   background: var(--bg-elev-2);
+}
+
+/* Учасники розмови */
+.air-members {
+  flex-basis: 100%;
+  width: 100%;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.air-members li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #f0c0a8;
+}
+
+.air-members li.speaking {
+  color: #f7ecd7;
+  font-weight: 600;
+}
+
+.air-members .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.air-members li.speaking .dot {
+  box-shadow: 0 0 8px currentColor;
+  animation: pulse 1.4s ease-in-out infinite;
 }
 
 /* Equalizer */

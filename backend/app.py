@@ -9,7 +9,6 @@ from flask_cors import CORS
 from .config import CORS_ORIGINS, STATION_NAME
 from .database import init_db
 from .routes.auth_routes import auth_bp
-from .routes.broadcast_routes import broadcast_bp
 from .routes.call_routes import call_bp
 from .routes.chat_routes import chat_bp
 
@@ -25,7 +24,6 @@ def create_app() -> Flask:
     init_db()
 
     app.register_blueprint(auth_bp)
-    app.register_blueprint(broadcast_bp)
     app.register_blueprint(call_bp)
     app.register_blueprint(chat_bp)
 

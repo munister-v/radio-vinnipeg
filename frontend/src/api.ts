@@ -112,28 +112,24 @@ export async function fetchOnline() {
   return request<{ nickname: string; color: string }[]>('/chat/online')
 }
 
-// ── Broadcast (живий ефір) ───────────────────────────────────────────────────
+// ── Розмова (груповий голосовий чат, mesh) ────────────────────────────────────
 
-export type LiveBroadcast = {
-  broadcast_id: number
-  title: string
-  host_user_id: number
-  host_nickname: string
-  host_color: string
-  started_at: string
-  listener_count: number
-  is_host: boolean
-  is_listening: boolean
-} | null
-
-export type BroadcastListener = {
+export type CallMember = {
   user_id: number
   nickname: string
   color: string
+  mic_on: boolean
   joined_at: string
 }
 
-export type BroadcastSignal = {
+export type ActiveCall = {
+  call_id: number
+  created_at: string
+  members: CallMember[]
+  joined: boolean
+} | null
+
+export type CallSignal = {
   id: number
   from_user_id: number
   signal_type: 'offer' | 'answer' | 'ice' | 'bye'
@@ -141,54 +137,47 @@ export type BroadcastSignal = {
   created_at: string
 }
 
-export async function getBroadcastConfig() {
-  return request<{ ice_servers: RTCIceServer[] }>('/broadcasts/config')
+export async function getCallConfig() {
+  return request<{ ice_servers: RTCIceServer[] }>('/calls/config')
 }
 
-export async function getLiveBroadcast() {
-  return request<LiveBroadcast>('/broadcasts/live')
+export async function getActiveCall() {
+  return request<ActiveCall>('/calls/active')
 }
 
-export async function startBroadcast(title: string) {
-  return request<{ broadcast_id: number }>('/broadcasts/start', {
-    method: 'POST',
-    body: JSON.stringify({ title }),
+export async function joinCall() {
+  return request<{ call_id: number; members: CallMember[] }>('/calls/join', { method: 'POST' })
+}
+
+export async function leaveCall(callId: number) {
+  return request<void>(`/calls/${callId}/leave`, { method: 'PUT' })
+}
+
+export async function setCallMic(callId: number, on: boolean) {
+  return request<void>(`/calls/${callId}/mic`, {
+    method: 'PUT',
+    body: JSON.stringify({ on }),
   })
 }
 
-export async function stopBroadcast(broadcastId: number) {
-  return request<void>(`/broadcasts/${broadcastId}/stop`, { method: 'PUT' })
+export async function getCallMembers(callId: number) {
+  return request<CallMember[]>(`/calls/${callId}/members`)
 }
 
-export async function listenBroadcast(broadcastId: number) {
-  return request<{ host_user_id: number }>(`/broadcasts/${broadcastId}/listen`, {
-    method: 'POST',
-    body: JSON.stringify({}),
-  })
-}
-
-export async function leaveBroadcast(broadcastId: number) {
-  return request<void>(`/broadcasts/${broadcastId}/leave`, { method: 'PUT' })
-}
-
-export async function getBroadcastListeners(broadcastId: number) {
-  return request<BroadcastListener[]>(`/broadcasts/${broadcastId}/listeners`)
-}
-
-export async function sendBroadcastSignal(
-  broadcastId: number,
+export async function sendCallSignal(
+  callId: number,
   toUserId: number,
   signalType: 'offer' | 'answer' | 'ice' | 'bye',
   payload: unknown,
 ) {
-  return request<void>(`/broadcasts/${broadcastId}/signals`, {
+  return request<void>(`/calls/${callId}/signals`, {
     method: 'POST',
     body: JSON.stringify({ to_user_id: toUserId, signal_type: signalType, payload }),
   })
 }
 
-export async function pollBroadcastSignals(broadcastId: number, afterId: number) {
-  return request<BroadcastSignal[]>(`/broadcasts/${broadcastId}/signals?after_id=${afterId}`)
+export async function pollCallSignals(callId: number, afterId: number) {
+  return request<CallSignal[]>(`/calls/${callId}/signals?after_id=${afterId}`)
 }
 
 export { ApiError }
