@@ -9,7 +9,7 @@
   --danger: #bd2d24;
   --font: "Inter Tight", "Arial Narrow", Arial, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --page-width: 1440px;
+  --page-width: 1600px;
   font-family: var(--font);
   color: var(--ink);
   color-scheme: light;
