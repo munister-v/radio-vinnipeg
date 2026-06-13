@@ -25,6 +25,23 @@ function SettingsIcon() {
   )
 }
 
+function SignalDeck({ active, label }: { active: boolean; label: string }) {
+  return (
+    <div className={`signal-deck ${active ? 'is-active' : ''}`} aria-label={label}>
+      <div className="signal-deck-meta">
+        <span>SIGNAL / WEBRTC</span>
+        <strong>{active ? 'LIVE' : 'STANDBY'}</strong>
+      </div>
+      <div className="signal-bars" aria-hidden>
+        {Array.from({ length: 22 }).map((_, index) => (
+          <i key={index} style={{ animationDelay: `${index * 0.045}s` }} />
+        ))}
+      </div>
+      <div className="signal-scale" aria-hidden><span>−40</span><span>−20</span><span>−10</span><span>0 dB</span></div>
+    </div>
+  )
+}
+
 export default function VoicePanel({ user }: Props) {
   const settings = useSettings()
   const { members, joined, micOn, connecting, error, speaking, join, leave, toggleMic } =
@@ -96,6 +113,7 @@ export default function VoicePanel({ user }: Props) {
             ><SettingsIcon /></button>
           </div>
         </div>
+        <SignalDeck active={micOn || speakers.length > 0} label="Живий аудіосигнал розмови" />
 
         {settingsOpen && (
           <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} />
@@ -158,6 +176,7 @@ export default function VoicePanel({ user }: Props) {
           <span className="air-status live">У розмові · {members.length} {plural(members.length)}</span>
           <Equalizer active={members.some((m) => m.speaking)} />
         </div>
+        <SignalDeck active={members.some((m) => m.speaking)} label="Аудіосигнал поточної розмови" />
         <h2 className="air-title">Розмова триває</h2>
         <p className="air-sub">{members.map((m) => m.nickname).join(', ')}</p>
         <div className="air-actions">
@@ -184,6 +203,7 @@ export default function VoicePanel({ user }: Props) {
       <div className="air-top">
         <span className="air-status">Тиша в ефірі</span>
       </div>
+      <SignalDeck active={false} label="Ефір очікує на першу розмову" />
       <h2 className="air-title">Зараз тут нікого немає</h2>
       <p className="air-sub">
         Приєднайтесь до групової розмови — слухати можна без мікрофона, говорити лише за бажанням.

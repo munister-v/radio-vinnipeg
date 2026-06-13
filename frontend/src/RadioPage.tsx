@@ -20,6 +20,13 @@ type Props = {
 
 const POLL_INTERVAL_MS = 3000
 
+const stationSlots = [
+  { start: 0, end: 8, label: 'Нічний відкритий ефір', note: 'Тиха розмова без заданої теми' },
+  { start: 8, end: 12, label: 'Ранковий сигнал', note: 'Початок дня разом зі слухачами' },
+  { start: 12, end: 18, label: 'Денна розмова', note: 'Вільний мікрофон і живі включення' },
+  { start: 18, end: 24, label: 'Вечірній відкритий мікрофон', note: 'Головний розмовний слот станції' },
+]
+
 function formatTime(iso: string): string {
   const normalized = iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z'
   const d = new Date(normalized)
@@ -27,10 +34,45 @@ function formatTime(iso: string): string {
   return d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })
 }
 
+function StationClock() {
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const hour = now.getHours()
+  const slotIndex = stationSlots.findIndex((slot) => hour >= slot.start && hour < slot.end)
+  const activeIndex = slotIndex === -1 ? 0 : slotIndex
+  const active = stationSlots[activeIndex]
+  const next = stationSlots[(activeIndex + 1) % stationSlots.length]
+  const elapsed = now.getHours() + now.getMinutes() / 60 - active.start
+  const progress = Math.min(100, Math.max(0, (elapsed / (active.end - active.start)) * 100))
+
+  return (
+    <section className="station-clock" aria-label="Поточний ритм станції">
+      <div className="station-clock-now">
+        <span>Зараз / {now.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}</span>
+        <h2>{active.label}</h2>
+        <p>{active.note}</p>
+      </div>
+      <div className="station-progress" aria-label={`Поточний слот завершено на ${Math.round(progress)} відсотків`}>
+        <i style={{ transform: `scaleX(${progress / 100})` }} />
+      </div>
+      <div className="station-clock-next">
+        <span>Далі / {String(active.end % 24).padStart(2, '0')}:00</span>
+        <strong>{next.label}</strong>
+      </div>
+    </section>
+  )
+}
+
 export default function RadioPage({ user, onUserChange }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [online, setOnline] = useState<{ nickname: string; color: string }[]>([])
   const [chatOpen, setChatOpen] = useState(false)
+  const [lastReadId, setLastReadId] = useState(0)
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
@@ -48,7 +90,10 @@ export default function RadioPage({ user, onUserChange }: Props) {
         const initial = await fetchMessages()
         if (cancelled) return
         setMessages(initial)
-        if (initial.length) lastIdRef.current = initial[initial.length - 1].id
+        if (initial.length) {
+          lastIdRef.current = initial[initial.length - 1].id
+          setLastReadId(initial[initial.length - 1].id)
+        }
       } catch (err) {
         if (err instanceof ApiError) setError(err.message)
       }
@@ -75,17 +120,23 @@ export default function RadioPage({ user, onUserChange }: Props) {
   }, [])
 
   useEffect(() => {
-    if (chatOpen) listEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (chatOpen) {
+      listEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [messages, chatOpen])
 
   useEffect(() => {
     if (!chatOpen) return
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setChatOpen(false)
+      if (event.key === 'Escape') {
+        const latestId = messages.at(-1)?.id
+        if (latestId) setLastReadId(latestId)
+        setChatOpen(false)
+      }
     }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [chatOpen])
+  }, [chatOpen, messages])
 
   async function handleSend(e: FormEvent) {
     e.preventDefault()
@@ -133,6 +184,20 @@ export default function RadioPage({ user, onUserChange }: Props) {
     }
   }
 
+  const openChat = () => {
+    const latestId = messages.at(-1)?.id
+    if (latestId) setLastReadId(latestId)
+    setChatOpen(true)
+  }
+
+  const closeChat = () => {
+    const latestId = messages.at(-1)?.id
+    if (latestId) setLastReadId(latestId)
+    setChatOpen(false)
+  }
+
+  const unreadCount = chatOpen ? 0 : messages.filter((message) => message.id > lastReadId).length
+
   return (
     <div className="radio-shell">
       <header className="topbar">
@@ -155,8 +220,9 @@ export default function RadioPage({ user, onUserChange }: Props) {
           </a>
           <nav className="topbar-nav" aria-label="Головна навігація">
             <a href="#air">Ефір</a>
+            <a href="#schedule">Розклад</a>
             <a href="#about">Про радіо</a>
-            <button type="button" onClick={() => setChatOpen(true)}>Чат</button>
+            <button type="button" onClick={openChat}>Чат</button>
           </nav>
           <div className="topbar-right">
             <span className="online-pill"><span className="dot-live" />Ефір відкрито · {online.length}</span>
@@ -218,8 +284,26 @@ export default function RadioPage({ user, onUserChange }: Props) {
           <span>NO REGISTRATION</span>
         </div>
 
+        <section className="schedule-section" id="schedule">
+          <div className="schedule-heading">
+            <div className="section-kicker"><span>02</span> Ритм станції</div>
+            <h2>Зараз.<br />Далі.</h2>
+          </div>
+          <StationClock />
+          <ol className="schedule-grid">
+            {stationSlots.map((slot, index) => (
+              <li key={slot.start}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <time>{String(slot.start).padStart(2, '0')}:00</time>
+                <h3>{slot.label}</h3>
+                <p>{slot.note}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
         <section className="radio-manifesto" id="about">
-          <div className="section-kicker"><span>02</span> Радіо як спільний простір</div>
+          <div className="section-kicker"><span>03</span> Радіо як спільний простір</div>
           <h2>Не плейлист.<br />Живі люди.</h2>
           <div className="manifesto-copy">
             <p>Слухайте розмову наживо або долучайтеся з мікрофоном, коли маєте що сказати.</p>
@@ -235,7 +319,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
       <button
         className="chat-launcher"
         type="button"
-        onClick={() => setChatOpen(true)}
+        onClick={openChat}
         aria-expanded={chatOpen}
         aria-controls="radio-chat"
       >
@@ -246,18 +330,28 @@ export default function RadioPage({ user, onUserChange }: Props) {
           </svg>
         </span>
         <span><small>MESSENGER</small>Відкрити чат</span>
-        <b>{messages.length}</b>
+        <b aria-label={`${unreadCount} непрочитаних повідомлень`}>{unreadCount}</b>
       </button>
 
+      <aside className="mobile-air-dock" aria-label="Швидкий доступ до ефіру">
+        <a href="#air">
+          <span><i />ON AIR</span>
+          <strong>Radio Vinnipeg</strong>
+        </a>
+        <button type="button" onClick={openChat} aria-label="Відкрити чат">
+          Чат{unreadCount > 0 ? ` · ${unreadCount}` : ''}
+        </button>
+      </aside>
+
       <div className={`chat-layer ${chatOpen ? 'is-open' : ''}`} aria-hidden={!chatOpen}>
-        <button className="chat-scrim" type="button" onClick={() => setChatOpen(false)} aria-label="Закрити чат" />
+        <button className="chat-scrim" type="button" onClick={closeChat} aria-label="Закрити чат" />
         <section className="chat-drawer" id="radio-chat" role="dialog" aria-modal="true" aria-label="Чат Radio Vinnipeg">
           <header className="chat-header">
             <div>
               <span>RADIO VINNIPEG / MESSENGER</span>
               <h2>Чат ефіру</h2>
             </div>
-            <button type="button" onClick={() => setChatOpen(false)} aria-label="Закрити чат">×</button>
+            <button type="button" onClick={closeChat} aria-label="Закрити чат">×</button>
           </header>
           <div className="chat-presence">
             <span><i />{online.length} слухачів онлайн</span>
