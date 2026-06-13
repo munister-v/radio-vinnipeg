@@ -202,11 +202,12 @@ export function useVoice(myUserId: number | null) {
       peersRef.current.set(peerId, entry)
 
       pc.ontrack = (e) => {
-        // e.streams порожній коли addTransceiver без явного stream —
-        // тоді ліпимо stream вручну з треку, інакше аудіо не грало б взагалі.
         const stream = e.streams[0] ?? new MediaStream([e.track])
+        console.log(`[voice] ontrack peer=${peerId} streams=${e.streams.length} kind=${e.track.kind} readyState=${e.track.readyState}`)
         audio.srcObject = stream
-        audio.play().catch(() => {})
+        audio.play()
+          .then(() => console.log(`[voice] audio.play() OK peer=${peerId}`))
+          .catch((err) => console.error(`[voice] audio.play() FAIL peer=${peerId}`, err))
         attachAnalyser(peerId, stream)
       }
       pc.onicecandidate = (e) => {
@@ -214,11 +215,22 @@ export function useVoice(myUserId: number | null) {
           sendCallSignal(callIdRef.current, peerId, 'ice', e.candidate.toJSON()).catch(() => {})
         }
       }
+      pc.oniceconnectionstatechange = () => {
+        console.log(`[voice] ICE peer=${peerId} => ${pc.iceConnectionState}`)
+      }
+      pc.onconnectionstatechange = () => {
+        console.log(`[voice] conn peer=${peerId} => ${pc.connectionState}`)
+        if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+          cleanupPeer(peerId)
+        }
+      }
       pc.onnegotiationneeded = async () => {
+        console.log(`[voice] negotiationneeded peer=${peerId} initiator=${opts.initiator}`)
         try {
           entry.makingOffer = true
           await pc.setLocalDescription()
           if (callIdRef.current && pc.localDescription) {
+            console.log(`[voice] sending ${pc.localDescription.type} to peer=${peerId}`)
             await sendCallSignal(
               callIdRef.current,
               peerId,
@@ -226,15 +238,10 @@ export function useVoice(myUserId: number | null) {
               pc.localDescription,
             )
           }
-        } catch { /* ignore */ } finally {
+        } catch (err) {
+          console.error(`[voice] negotiation error peer=${peerId}`, err)
+        } finally {
           entry.makingOffer = false
-        }
-      }
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-          // Самовідновлення: прибираємо peer; pollMembers відтворить його з
-          // правильною роллю, якщо учасник усе ще в розмові.
-          cleanupPeer(peerId)
         }
       }
 
@@ -262,9 +269,9 @@ export function useVoice(myUserId: number | null) {
 
   const handleDescription = useCallback(
     async (fromId: number, description: RTCSessionDescriptionInit) => {
+      console.log(`[voice] handleDescription from=${fromId} type=${description.type}`)
       let entry = peersRef.current.get(fromId)
       if (!entry) {
-        // Offer прийшов раніше, ніж ми створили peer → ми відповідач.
         entry = createPeer(fromId, { initiator: false })
       }
       if (!entry) return
@@ -273,20 +280,23 @@ export function useVoice(myUserId: number | null) {
       const isOffer = description.type === 'offer'
       const offerCollision = isOffer && (entry.makingOffer || pc.signalingState !== 'stable')
       entry.ignoreOffer = !entry.polite && offerCollision
-      if (entry.ignoreOffer) return
+      if (entry.ignoreOffer) { console.log(`[voice] ignoring offer from=${fromId} (collision)`); return }
 
       try {
-        await pc.setRemoteDescription(description) // ввічливий тут сам робить rollback
-      } catch {
+        await pc.setRemoteDescription(description)
+      } catch (err) {
+        console.error(`[voice] setRemoteDescription failed from=${fromId}`, err)
         return
       }
       await flushPendingIce(fromId, pc)
 
       if (isOffer) {
         const tr = audioTransceiver(pc)
-        if (tr) applyMicToTransceiver(tr) // відобразити наш стан мікрофона у відповіді
+        console.log(`[voice] answering offer from=${fromId} transceiver=${tr ? tr.direction : 'none'}`)
+        if (tr) applyMicToTransceiver(tr)
         await pc.setLocalDescription()
         if (callIdRef.current && pc.localDescription) {
+          console.log(`[voice] sending answer to=${fromId}`)
           await sendCallSignal(
             callIdRef.current,
             fromId,
