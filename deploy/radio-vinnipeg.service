@@ -11,8 +11,8 @@ After=network.target
 
 [Service]
 Type=notify
-User=www-data
-Group=www-data
+User=root
+Group=root
 WorkingDirectory=/opt/radio-vinnipeg
 Environment="PATH=/opt/radio-vinnipeg/.venv/bin"
 EnvironmentFile=/opt/radio-vinnipeg/.env
