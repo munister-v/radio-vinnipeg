@@ -1,4 +1,7 @@
+import { useEffect, useRef, useState } from 'react'
 import type { User } from './api'
+import SettingsPanel from './SettingsPanel'
+import { useSettings } from './useSettings'
 import { useVoice } from './useVoice'
 
 type Props = { user: User }
@@ -14,13 +17,58 @@ function Equalizer({ active }: { active: boolean }) {
 }
 
 export default function VoicePanel({ user }: Props) {
+  const settings = useSettings()
   const { members, joined, micOn, connecting, error, speaking, join, leave, toggleMic } =
-    useVoice(user.id)
+    useVoice(user.id, { volume: settings.volume, micDeviceId: settings.micDeviceId })
+
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [pttHeld, setPttHeld] = useState(false)
+  const pttBusyRef = useRef(false)
 
   const speakers = members.filter((m) => m.speaking)
   const total = members.length + (joined ? 1 : 0)
 
-  // ── Ви в розмові ──────────────────────────────────────────────────────────
+  // ── PTT: Space (клавіатура) ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!joined || !settings.pttMode) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || e.repeat) return
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      e.preventDefault()
+      if (!pttBusyRef.current && !micOn) {
+        pttBusyRef.current = true
+        setPttHeld(true)
+        toggleMic().finally(() => { pttBusyRef.current = false })
+      }
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return
+      if (pttHeld && micOn) {
+        setPttHeld(false)
+        toggleMic()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [joined, settings.pttMode, micOn, pttHeld, toggleMic])
+
+  // PTT: тримати кнопку
+  const pttStart = () => {
+    if (!micOn && !pttBusyRef.current) {
+      pttBusyRef.current = true
+      setPttHeld(true)
+      toggleMic().finally(() => { pttBusyRef.current = false })
+    }
+  }
+  const pttEnd = () => {
+    if (micOn) { setPttHeld(false); toggleMic() }
+  }
+
+  // ── Ви в розмові ─────────────────────────────────────────────────────────
   if (joined) {
     const speakerNames = speakers.map((m) => m.nickname)
     if (micOn && speaking) speakerNames.push('ви')
@@ -28,20 +76,48 @@ export default function VoicePanel({ user }: Props) {
       <section className="air air-live">
         <div className="air-top">
           <span className="air-status live">Ви в розмові · {total} {plural(total)}</span>
-          <Equalizer active={micOn || speakers.length > 0} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Equalizer active={micOn || speakers.length > 0} />
+            <button
+              className="settings-gear"
+              onClick={() => setSettingsOpen((v) => !v)}
+              title="Налаштування"
+              aria-expanded={settingsOpen}
+            >⚙</button>
+          </div>
         </div>
+
+        {settingsOpen && (
+          <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} />
+        )}
+
         <h2 className="air-title">Радіорозмова наживо</h2>
         <p className="air-sub">
           {speakerNames.length > 0
             ? `Говорить: ${speakerNames.join(', ')}`
             : micOn
               ? 'Мікрофон увімкнено — говоріть, вас чують'
-              : 'Слухаєте. Натисніть мікрофон, щоб сказати слово'}
+              : settings.pttMode
+                ? 'Тримайте Space або кнопку нижче щоб говорити'
+                : 'Слухаєте. Натисніть мікрофон, щоб сказати слово'}
         </p>
         <div className="air-actions">
-          <button className={`btn btn-ghost ${micOn ? 'active' : ''}`} onClick={toggleMic}>
-            {micOn ? '🎙 Вимкнути мікрофон' : '🎙 Увімкнути мікрофон'}
-          </button>
+          {settings.pttMode ? (
+            <button
+              className={`btn btn-ghost ptt-btn ${pttHeld ? 'active' : ''}`}
+              onMouseDown={pttStart}
+              onMouseUp={pttEnd}
+              onMouseLeave={pttEnd}
+              onTouchStart={(e) => { e.preventDefault(); pttStart() }}
+              onTouchEnd={pttEnd}
+            >
+              {pttHeld ? '🎙 Говорите…' : '🎙 Тримайте PTT'}
+            </button>
+          ) : (
+            <button className={`btn btn-ghost ${micOn ? 'active' : ''}`} onClick={toggleMic}>
+              {micOn ? '🎙 Вимкнути мікрофон' : '🎙 Увімкнути мікрофон'}
+            </button>
+          )}
           <button className="btn btn-outline" onClick={leave}>Вийти з розмови</button>
         </div>
         <ul className="air-members" aria-label="Учасники розмови">
@@ -64,14 +140,12 @@ export default function VoicePanel({ user }: Props) {
     )
   }
 
-  // ── Розмова триває (ще не приєднались) ───────────────────────────────────
+  // ── Розмова триває ────────────────────────────────────────────────────────
   if (members.length > 0) {
     return (
       <section className="air air-idle">
         <div className="air-top">
-          <span className="air-status live">
-            У розмові · {members.length} {plural(members.length)}
-          </span>
+          <span className="air-status live">У розмові · {members.length} {plural(members.length)}</span>
           <Equalizer active={members.some((m) => m.speaking)} />
         </div>
         <h2 className="air-title">Розмова триває</h2>

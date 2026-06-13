@@ -690,6 +690,191 @@
 
 .online-card .dim { color: var(--muted); }
 
+/* ── Settings gear ──────────────────────────────────────────────────────── */
+
+.settings-gear {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  color: #fff;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+.settings-gear:hover { background: rgba(255, 255, 255, 0.28); }
+.air-idle .settings-gear {
+  background: var(--sage-wash);
+  border-color: var(--line);
+  color: var(--ink-2);
+}
+.air-idle .settings-gear:hover { background: var(--sage-tint); }
+
+/* ── Settings panel ──────────────────────────────────────────────────────── */
+
+.settings-panel {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.air-idle .settings-panel {
+  background: var(--bg-soft);
+  border-color: var(--line);
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+.air-idle .settings-header { color: var(--muted); }
+
+.settings-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: inherit;
+  padding: 0 2px;
+  opacity: 0.7;
+}
+.settings-close:hover { opacity: 1; }
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: default;
+}
+
+.settings-toggle-row { align-items: flex-start; }
+
+.settings-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.air-idle .settings-label { color: var(--ink); }
+
+.settings-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.55);
+}
+.air-idle .settings-hint { color: var(--muted); }
+
+.settings-volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-volume input[type=range] {
+  width: 120px;
+  accent-color: #fff;
+  cursor: pointer;
+}
+.air-idle .settings-volume input[type=range] { accent-color: var(--sage); }
+
+.settings-vol-val {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 34px;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.85);
+}
+.air-idle .settings-vol-val { color: var(--ink-2); }
+
+.settings-select-wrap {
+  position: relative;
+}
+
+.settings-select {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+  max-width: 180px;
+  outline: none;
+}
+.air-idle .settings-select {
+  background: var(--surface);
+  border-color: var(--line-2);
+  color: var(--ink);
+}
+
+/* Toggle switch */
+.toggle-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  width: 44px;
+  height: 26px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+}
+.toggle-btn.on {
+  background: #fff;
+  border-color: #fff;
+}
+.air-idle .toggle-btn { background: var(--line-2); border-color: var(--line-2); }
+.air-idle .toggle-btn.on { background: var(--sage); border-color: var(--sage); }
+
+.toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.toggle-btn.on .toggle-knob {
+  transform: translateX(18px);
+  background: var(--sage-deep);
+}
+.air-idle .toggle-knob { background: #fff; }
+.air-idle .toggle-btn.on .toggle-knob { background: #fff; transform: translateX(18px); }
+
+/* PTT button — більший, помітний */
+.ptt-btn {
+  min-width: 180px;
+  font-size: 15px;
+  padding: 15px 28px;
+  transition: transform 0.08s ease, background 0.1s ease, box-shadow 0.1s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ptt-btn.active {
+  transform: scale(0.97);
+}
+
 /* ── Mobile ─────────────────────────────────────────────────────────────── */
 
 @media (max-width: 760px) {

@@ -46,7 +46,7 @@ type AnalyserEntry = {
  *  • Приєднатися можна без мікрофона (лише слухати). Мікрофон вмикається будь-
  *    коли: ми змінюємо напрям транспондера → renegotiation, і нас починають чути.
  */
-export function useVoice(myUserId: number | null) {
+export function useVoice(myUserId: number | null, opts?: { volume?: number; micDeviceId?: string }) {
   const [members, setMembers] = useState<VoiceMember[]>([])
   const [joined, setJoined] = useState(false)
   const [micOn, setMicOn] = useState(false)
@@ -65,12 +65,26 @@ export function useVoice(myUserId: number | null) {
   const serverMembersRef = useRef<CallMember[]>([])
   const signalTimerRef = useRef<number | null>(null)
   const membersTimerRef = useRef<number | null>(null)
+  const volumeRef = useRef<number>(opts?.volume ?? 1)
+  const micDeviceIdRef = useRef<string>(opts?.micDeviceId ?? '')
 
   // Визначення активності голосу (Web Audio).
   const audioCtxRef = useRef<AudioContext | null>(null)
   const analysersRef = useRef<Map<number, AnalyserEntry>>(new Map())
   const speakingRef = useRef<Map<number, boolean>>(new Map())
   const speakTimerRef = useRef<number | null>(null)
+
+  // ── Синхронізуємо volume/deviceId з opts без перестворення peers ────────────
+  useEffect(() => {
+    volumeRef.current = opts?.volume ?? 1
+    for (const [, { audio }] of peersRef.current) {
+      audio.volume = volumeRef.current
+    }
+  }, [opts?.volume])
+
+  useEffect(() => {
+    micDeviceIdRef.current = opts?.micDeviceId ?? ''
+  }, [opts?.micDeviceId])
 
   // ── Список учасників: серверні дані + локальний прапорець «говорить» ──────
   const applyMembers = useCallback(() => {
@@ -193,6 +207,7 @@ export function useVoice(myUserId: number | null) {
       const pc = new RTCPeerConnection({ iceServers: iceServersRef.current })
       const audio = document.createElement('audio')
       audio.autoplay = true
+      audio.volume = volumeRef.current
       ;(audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true
       audio.setAttribute('playsinline', '')
       audio.style.display = 'none'
@@ -203,11 +218,8 @@ export function useVoice(myUserId: number | null) {
 
       pc.ontrack = (e) => {
         const stream = e.streams[0] ?? new MediaStream([e.track])
-        console.log(`[voice] ontrack peer=${peerId} streams=${e.streams.length} kind=${e.track.kind} readyState=${e.track.readyState}`)
         audio.srcObject = stream
-        audio.play()
-          .then(() => console.log(`[voice] audio.play() OK peer=${peerId}`))
-          .catch((err) => console.error(`[voice] audio.play() FAIL peer=${peerId}`, err))
+        audio.play().catch(() => {})
         attachAnalyser(peerId, stream)
       }
       pc.onicecandidate = (e) => {
@@ -215,22 +227,16 @@ export function useVoice(myUserId: number | null) {
           sendCallSignal(callIdRef.current, peerId, 'ice', e.candidate.toJSON()).catch(() => {})
         }
       }
-      pc.oniceconnectionstatechange = () => {
-        console.log(`[voice] ICE peer=${peerId} => ${pc.iceConnectionState}`)
-      }
       pc.onconnectionstatechange = () => {
-        console.log(`[voice] conn peer=${peerId} => ${pc.connectionState}`)
         if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
           cleanupPeer(peerId)
         }
       }
       pc.onnegotiationneeded = async () => {
-        console.log(`[voice] negotiationneeded peer=${peerId} initiator=${opts.initiator}`)
         try {
           entry.makingOffer = true
           await pc.setLocalDescription()
           if (callIdRef.current && pc.localDescription) {
-            console.log(`[voice] sending ${pc.localDescription.type} to peer=${peerId}`)
             await sendCallSignal(
               callIdRef.current,
               peerId,
@@ -238,9 +244,7 @@ export function useVoice(myUserId: number | null) {
               pc.localDescription,
             )
           }
-        } catch (err) {
-          console.error(`[voice] negotiation error peer=${peerId}`, err)
-        } finally {
+        } catch { /* ignore */ } finally {
           entry.makingOffer = false
         }
       }
@@ -269,34 +273,26 @@ export function useVoice(myUserId: number | null) {
 
   const handleDescription = useCallback(
     async (fromId: number, description: RTCSessionDescriptionInit) => {
-      console.log(`[voice] handleDescription from=${fromId} type=${description.type}`)
       let entry = peersRef.current.get(fromId)
-      if (!entry) {
-        entry = createPeer(fromId, { initiator: false })
-      }
+      if (!entry) entry = createPeer(fromId, { initiator: false })
       if (!entry) return
       const { pc } = entry
 
       const isOffer = description.type === 'offer'
       const offerCollision = isOffer && (entry.makingOffer || pc.signalingState !== 'stable')
       entry.ignoreOffer = !entry.polite && offerCollision
-      if (entry.ignoreOffer) { console.log(`[voice] ignoring offer from=${fromId} (collision)`); return }
+      if (entry.ignoreOffer) return
 
       try {
         await pc.setRemoteDescription(description)
-      } catch (err) {
-        console.error(`[voice] setRemoteDescription failed from=${fromId}`, err)
-        return
-      }
+      } catch { return }
       await flushPendingIce(fromId, pc)
 
       if (isOffer) {
         const tr = audioTransceiver(pc)
-        console.log(`[voice] answering offer from=${fromId} transceiver=${tr ? tr.direction : 'none'}`)
         if (tr) applyMicToTransceiver(tr)
         await pc.setLocalDescription()
         if (callIdRef.current && pc.localDescription) {
-          console.log(`[voice] sending answer to=${fromId}`)
           await sendCallSignal(
             callIdRef.current,
             fromId,
@@ -469,14 +465,13 @@ export function useVoice(myUserId: number | null) {
           return
         }
         const stream = await navigator.mediaDevices.getUserMedia({
-          // Використовуємо ideal: щоб AEC/NS/AGC застосовувались навіть якщо
-          // пристрій не підтримує exact. Mono (channelCount:1) знижує луну.
           audio: {
             echoCancellation: { ideal: true },
             noiseSuppression: { ideal: true },
             autoGainControl: { ideal: true },
             channelCount: { ideal: 1 },
             sampleRate: { ideal: 48000 },
+            ...(micDeviceIdRef.current ? { deviceId: { ideal: micDeviceIdRef.current } } : {}),
           },
         })
         localStreamRef.current = stream
@@ -516,7 +511,7 @@ export function useVoice(myUserId: number | null) {
     setMicOn(next)
     setError(null)
     setCallMic(cid, next).catch(() => {})
-  }, [attachAnalyser, detachAnalyser, applyMicToTransceiver])
+  }, [applyMicToTransceiver])
 
   // Користувач закрив вкладку — повідомляємо сервер, щоб його прибрали зі списку.
   useEffect(() => {
