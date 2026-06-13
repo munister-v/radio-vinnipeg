@@ -38,3 +38,40 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_messages_room_id ON messages(room_id, id);
+
+-- Груповий голосовий дзвінок у кімнаті (один активний на кімнату).
+CREATE TABLE IF NOT EXISTS calls (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+    caller_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    started_at TEXT,
+    ended_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_calls_room ON calls(room_id, status);
+
+-- Учасники дзвінка (mesh WebRTC).
+CREATE TABLE IF NOT EXISTS call_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    call_id INTEGER NOT NULL REFERENCES calls(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    state TEXT NOT NULL DEFAULT 'joined',
+    joined_at TEXT,
+    left_at TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(call_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_call_members_call ON call_members(call_id, state);
+
+-- WebRTC сигнали (offer/answer/ice/bye) для встановлення з'єднань між учасниками.
+CREATE TABLE IF NOT EXISTS call_signals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    call_id INTEGER NOT NULL REFERENCES calls(id) ON DELETE CASCADE,
+    from_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    to_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    signal_type TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_call_signals_call ON call_signals(call_id, id);

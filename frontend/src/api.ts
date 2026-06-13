@@ -97,4 +97,62 @@ export async function fetchOnline() {
   return request<{ nickname: string; color: string }[]>('/chat/online')
 }
 
+export type CallMember = {
+  user_id: number
+  nickname: string
+  color: string
+  state: string
+  joined_at: string
+}
+
+export type ActiveCall = {
+  call_id: number
+  created_at: string
+  members: CallMember[]
+  joined: boolean
+} | null
+
+export type CallSignal = {
+  id: number
+  from_user_id: number
+  signal_type: 'offer' | 'answer' | 'ice' | 'bye'
+  payload: string
+  created_at: string
+}
+
+export async function getCallConfig() {
+  return request<{ ice_servers: RTCIceServer[] }>('/calls/config')
+}
+
+export async function getActiveCall() {
+  return request<ActiveCall>('/calls/active')
+}
+
+export async function joinCall() {
+  return request<{ call_id: number; members: CallMember[] }>('/calls/join', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+}
+
+export async function leaveCall(callId: number) {
+  return request<void>(`/calls/${callId}/leave`, { method: 'PUT' })
+}
+
+export async function sendCallSignal(
+  callId: number,
+  toUserId: number,
+  signalType: 'offer' | 'answer' | 'ice' | 'bye',
+  payload: unknown,
+) {
+  return request<void>(`/calls/${callId}/signals`, {
+    method: 'POST',
+    body: JSON.stringify({ to_user_id: toUserId, signal_type: signalType, payload }),
+  })
+}
+
+export async function pollCallSignals(callId: number, afterId: number) {
+  return request<CallSignal[]>(`/calls/${callId}/signals?after_id=${afterId}`)
+}
+
 export { ApiError }

@@ -11,6 +11,7 @@ import {
   type ChatMessage,
   type User,
 } from './api'
+import CallBar from './CallBar'
 
 type Props = {
   user: User
@@ -133,6 +134,8 @@ export default function ChatRoom({ user, onLeave }: Props) {
           <button className="link-btn" onClick={handleLeave}>Вийти</button>
         </div>
       </header>
+
+      <CallBar user={user} />
 
       <main className="chat-main">
         <div className="messages">
