@@ -146,12 +146,11 @@ export function useVoice(myUserId: number | null) {
 
   const applyMicToTransceiver = useCallback((tr: RTCRtpTransceiver) => {
     const track = localStreamRef.current?.getAudioTracks()[0] ?? null
-    if (micOnRef.current && track) {
-      tr.sender.replaceTrack(track).catch(() => {})
+    // Завжди sendrecv — обидва peer-и мають чути один одного незалежно від стану мікрофона.
+    // Мовчання = null track, а не direction:'recvonly' (recvonly ламає двосторонній аудіо).
+    tr.sender.replaceTrack(track).catch(() => {})
+    if (tr.direction !== 'sendrecv' && tr.direction !== 'sendonly') {
       tr.direction = 'sendrecv'
-    } else {
-      tr.sender.replaceTrack(null).catch(() => {})
-      tr.direction = 'recvonly'
     }
   }, [])
 
@@ -239,11 +238,12 @@ export function useVoice(myUserId: number | null) {
       }
 
       // Ініціатор одразу створює транспондер → onnegotiationneeded → offer.
-      // Відповідач нічого не додає: транспондер з'явиться з offer-а ініціатора.
+      // ЗАВЖДИ sendrecv: лише так обидві сторони можуть отримати аудіо одна від одної.
+      // Якщо мікрофон вимкнено, трек = null (тиша), але напрям залишається sendrecv.
       if (opts.initiator) {
-        const track = localStreamRef.current?.getAudioTracks()[0]
-        if (track && micOnRef.current) pc.addTransceiver(track, { direction: 'sendrecv' })
-        else pc.addTransceiver('audio', { direction: 'recvonly' })
+        const track = localStreamRef.current?.getAudioTracks()[0] ?? null
+        if (track) pc.addTransceiver(track, { direction: 'sendrecv' })
+        else pc.addTransceiver('audio', { direction: 'sendrecv' })
       }
       return entry
     },
