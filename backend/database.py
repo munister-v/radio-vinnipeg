@@ -1,0 +1,54 @@
+"""Модуль роботи з БД (SQLite)."""
+from __future__ import annotations
+
+import sqlite3
+from contextlib import contextmanager
+from typing import Iterator
+
+from .config import DATABASE_PATH, SCHEMA_PATH, STATION_NAME
+
+
+def dict_factory(cursor: sqlite3.Cursor, row: tuple) -> dict:
+    """Повертає рядок SQLite у вигляді словника."""
+    return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
+
+
+@contextmanager
+def get_connection() -> Iterator[sqlite3.Connection]:
+    """Підключення до SQLite. Параметри запитів передаються через %s
+    (стиль psycopg2) для сумісності з кодом, перенесеним з Army Bank,
+    тож тут конвертуємо %s -> ? перед виконанням."""
+    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = dict_factory
+    conn.execute('PRAGMA foreign_keys = ON;')
+    wrapped = _ConnWrapper(conn)
+    try:
+        yield wrapped
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+class _ConnWrapper:
+    """Тонка обгортка над sqlite3.Connection: підтримує плейсхолдери %s."""
+
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self._conn = conn
+
+    def execute(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
+        return self._conn.execute(sql.replace('%s', '?'), params)
+
+
+def init_db() -> None:
+    """Створює таблиці (якщо не існують) та базову кімнату чату."""
+    with get_connection() as conn:
+        schema_sql = SCHEMA_PATH.read_text(encoding='utf-8')
+        conn._conn.executescript(schema_sql)
+        conn.execute(
+            'INSERT OR IGNORE INTO rooms (slug, title) VALUES (%s, %s)',
+            ('lounge', f'{STATION_NAME} · Lounge'),
+        )

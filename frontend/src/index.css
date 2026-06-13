@@ -1,0 +1,40 @@
+:root {
+  --bg: #0b0f1d;
+  --bg-soft: #11172b;
+  --panel: #161d35;
+  --border: #232c4a;
+  --text: #e8ecff;
+  --text-dim: #8b93b8;
+  --accent: #ff7ad9;
+  --accent-2: #7c9bff;
+  --accent-3: #ffd166;
+  --radius: 14px;
+
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(124, 155, 255, 0.18), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(255, 122, 217, 0.14), transparent 60%),
+    var(--bg);
+  color: var(--text);
+}
+
+input, button {
+  font-family: inherit;
+}
+
+a {
+  color: var(--accent-2);
+}
