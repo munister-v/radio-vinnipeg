@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import {
   ApiError,
   deleteMessage,
@@ -127,8 +127,11 @@ export default function RadioPage({ user, onUserChange }: Props) {
     <div className="radio-shell">
       <header className="chat-header">
         <div className="brand">
-          <span className="brand-dot" />
-          <span className="brand-text">VINNIPEG NIGHTS</span>
+          <span className="brand-mark">☾</span>
+          <div className="brand-titles">
+            <span className="brand-eyebrow">RADIO · NIGHT</span>
+            <span className="brand-text">Vinnipeg Nights</span>
+          </div>
         </div>
         <div className="header-right">
           <span className="online-count">{online.length} онлайн</span>
@@ -159,8 +162,20 @@ export default function RadioPage({ user, onUserChange }: Props) {
         </div>
       </header>
 
+      <div className="chevron" />
+
       <div className="radio-body">
         <BroadcastPanel user={user} />
+
+        <div className="pines" aria-hidden>
+          <span style={{ '--pw': '11px', '--ph': '22px' } as CSSProperties} />
+          <span style={{ '--pw': '14px', '--ph': '30px' } as CSSProperties} />
+          <span style={{ '--pw': '9px', '--ph': '18px' } as CSSProperties} />
+          <span style={{ '--pw': '15px', '--ph': '34px' } as CSSProperties} />
+          <span style={{ '--pw': '10px', '--ph': '20px' } as CSSProperties} />
+          <span style={{ '--pw': '13px', '--ph': '26px' } as CSSProperties} />
+          <span style={{ '--pw': '9px', '--ph': '16px' } as CSSProperties} />
+        </div>
 
         <main className="chat-main">
           <div className="chat-col">

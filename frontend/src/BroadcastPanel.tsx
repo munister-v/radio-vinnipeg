@@ -28,13 +28,11 @@ export default function BroadcastPanel({ user }: Props) {
     return (
       <section className="air air-host">
         <div className="air-main">
-          <div className="air-badge live">● В ЕФІРІ</div>
+          <div className="air-badge live">
+            Ви в ефірі · {live?.listener_count ?? 0} {plural(live?.listener_count ?? 0)}
+          </div>
           <h2 className="air-title">{live?.title || 'Ваш ефір'}</h2>
-          <p className="air-sub">
-            Ви ведете ефір як <b style={{ color: user.color }}>{user.nickname}</b>
-            {' · '}
-            {live?.listener_count ?? 0} {plural(live?.listener_count ?? 0)}
-          </p>
+          <p className="air-sub">наживо як {user.nickname}</p>
         </div>
         <Equalizer active={!muted} />
         <div className="air-actions">
@@ -53,13 +51,11 @@ export default function BroadcastPanel({ user }: Props) {
     return (
       <section className="air air-onair">
         <div className="air-main">
-          <div className="air-badge live">● В ЕФІРІ</div>
+          <div className="air-badge live">
+            Зараз в ефірі · {live.listener_count} {plural(live.listener_count)}
+          </div>
           <h2 className="air-title">{live.title || 'Нічний ефір'}</h2>
-          <p className="air-sub">
-            Веде <b style={{ color: live.host_color }}>{live.host_nickname}</b>
-            {' · '}
-            {live.listener_count} {plural(live.listener_count)}
-          </p>
+          <p className="air-sub">веде {live.host_nickname}</p>
         </div>
         <Equalizer active={isListener} />
         <div className="air-actions">
@@ -80,9 +76,9 @@ export default function BroadcastPanel({ user }: Props) {
   return (
     <section className="air air-silent">
       <div className="air-main">
-        <div className="air-badge">○ ТИША В ЕФІРІ</div>
+        <div className="air-badge">Тиша в ефірі</div>
         <h2 className="air-title">Зараз ніхто не вещає</h2>
-        <p className="air-sub">Запустіть свій ефір — слухачі почують вас наживо, мікрофон їм не потрібен.</p>
+        <p className="air-sub">запустіть свій ефір — слухачі почують вас наживо, мікрофон їм не потрібен</p>
       </div>
       <div className="air-start">
         <input

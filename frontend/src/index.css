@@ -1,51 +1,45 @@
 :root {
-  /* "Поруч" bold editorial palette — cream paper, mustard + terracotta + ink */
-  --cream:        #f5f1e6;
-  --cream-soft:   #ece5d3;
-  --ink:          #161614;
-  --ink-soft:     #4d4a40;
-  --muted:        #8a8576;
-  --line:         #d9d2c0;
-  --mustard:      #f3c83e;
-  --mustard-soft: #faf0c4;
-  --mustard-dark: #d6ad22;
-  --terracotta:       #e8836a;
-  --terracotta-dark:  #c5613f;
-  --terracotta-soft:  #f7ddd3;
-  --sage:         #7c8a6e;
-  --white:        #ffffff;
-  --red:          #c1503a;
-  --green:        #4f7a55;
+  /* "Vinnipeg Nights" — тёмная тема: ночной канадский лес + Twin Peaks Red Room */
+  --bg:           #0d100e;   /* near-black pine */
+  --bg-elev:      #141a16;   /* cards */
+  --bg-elev-2:    #1e2620;   /* bubbles, inputs */
+  --surface:      #141a16;
+  --surface-2:    #1e2620;
 
-  /* Aliases used throughout the app's component styles */
-  --bg:           var(--cream);
-  --surface:      var(--white);
-  --surface-2:    var(--mustard-soft);
-  --border:       var(--line);
-  --border-soft:  var(--line);
-  --text:         var(--ink);
-  --text-2:       var(--ink-soft);
-  --blue:         var(--ink);
-  --blue-hover:   #000000;
-  --blue-light:   var(--mustard-soft);
-  --blue-dim:     var(--mustard-soft);
-  --gold:         var(--terracotta);
-  --sand-light:   var(--terracotta-soft);
-  --sage-dark:    var(--ink);
+  --text:         #ece2cf;   /* aged cream */
+  --text-2:       #b9b3a3;
+  --muted:        #7f8478;   /* grey-green */
+  --line:         rgba(255, 255, 255, 0.06);
+  --line-2:       rgba(255, 255, 255, 0.10);
 
-  --radius-xs:    4px;
-  --radius-sm:    8px;
-  --radius:       10px;
-  --radius-lg:    18px;
-  --shadow:       0 6px 18px rgba(22,22,20,.08);
-  --shadow-lg:    0 24px 60px rgba(22,22,20,.18);
+  /* Red Room velvet */
+  --burgundy:        #7a1e2f;
+  --burgundy-deep:   #54101c;
+  --burgundy-bright: #8e2433;
+  --red-glow:        #f0795a;
 
-  --font:         'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-serif:   'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+  /* Warm lamp gold */
+  --gold:        #d9a441;
+  --gold-soft:   #e8c879;
+
+  /* Forest + accents */
+  --pine:        #16201a;
+  --pine-2:      #203026;
+  --blue:        #8aa6c0;
+  --sage:        #8fae84;
+
+  --radius-sm:   10px;
+  --radius:      16px;
+  --radius-lg:   20px;
+  --shadow:      0 8px 26px rgba(0, 0, 0, 0.45);
+  --shadow-lg:   0 16px 56px rgba(0, 0, 0, 0.6);
+
+  --font:        'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif:  'Cormorant Garamond', Georgia, serif;
+  --font-mono:   'JetBrains Mono', 'Courier New', monospace;
 
   font-family: var(--font);
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 * {
@@ -67,6 +61,10 @@ input, button {
   font-family: inherit;
 }
 
+::placeholder {
+  color: var(--muted);
+}
+
 a {
-  color: var(--ink);
+  color: var(--gold);
 }
