@@ -30,6 +30,7 @@ function formatTime(iso: string): string {
 export default function RadioPage({ user, onUserChange }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [online, setOnline] = useState<{ nickname: string; color: string }[]>([])
+  const [chatOpen, setChatOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
@@ -74,8 +75,17 @@ export default function RadioPage({ user, onUserChange }: Props) {
   }, [])
 
   useEffect(() => {
-    listEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    if (chatOpen) listEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, chatOpen])
+
+  useEffect(() => {
+    if (!chatOpen) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setChatOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [chatOpen])
 
   async function handleSend(e: FormEvent) {
     e.preventDefault()
@@ -127,7 +137,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
     <div className="radio-shell">
       <header className="topbar">
         <div className="topbar-inner">
-          <div className="brand">
+          <a className="brand" href="#air" aria-label="Radio Vinnipeg — до ефіру">
             <span className="brand-mark" aria-hidden>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                 strokeLinecap="round" strokeLinejoin="round">
@@ -139,12 +149,17 @@ export default function RadioPage({ user, onUserChange }: Props) {
               </svg>
             </span>
             <div className="brand-titles">
-              <span className="brand-eyebrow">Живий ефір</span>
+              <span className="brand-eyebrow">Munister / Radio 01</span>
               <span className="brand-name">Radio Vinnipeg</span>
             </div>
-          </div>
+          </a>
+          <nav className="topbar-nav" aria-label="Головна навігація">
+            <a href="#air">Ефір</a>
+            <a href="#about">Про радіо</a>
+            <button type="button" onClick={() => setChatOpen(true)}>Чат</button>
+          </nav>
           <div className="topbar-right">
-            <span className="online-pill"><span className="dot-live" />{online.length} онлайн</span>
+            <span className="online-pill"><span className="dot-live" />Ефір відкрито · {online.length}</span>
             {editingNick ? (
               <form className="nick-edit" onSubmit={handleRename}>
                 <input
@@ -166,29 +181,96 @@ export default function RadioPage({ user, onUserChange }: Props) {
               >
                 <span className="dot" style={{ background: user.color }} />
                 <span>{user.nickname}</span>
-                <span className="nick-edit-icon">✎</span>
+                <span className="nick-edit-icon" aria-hidden>↗</span>
               </button>
             )}
           </div>
         </div>
       </header>
 
-      <section className="hero">
-        <div className="hero-inner">
-          <span className="hero-badge">Живий ефір</span>
-          <h1 className="hero-title">Radio<br />Vinnipeg</h1>
-          <p className="hero-lead">Відкрите живе радіо з груповими розмовами та чатом — без реєстрації, прямо в браузері</p>
+      <main>
+        <section className="broadcast-stage" id="air">
+          <div className="broadcast-intro">
+            <div className="section-kicker"><span>01</span> Незалежний живий ефір</div>
+            <h1>Radio<br />Vinnipeg</h1>
+            <p>
+              Відкрите радіо, де слухач може стати голосом ефіру.
+              Без реєстрації. Просто в браузері.
+            </p>
+          </div>
+          <div className="frequency" aria-label="Частота Radio Vinnipeg">
+            <span>ON AIR</span>
+            <strong>24/7</strong>
+            <small>WEB FREQUENCY</small>
+          </div>
+          <div className="broadcast-console">
+            <VoicePanel user={user} />
+          </div>
+        </section>
+
+        <div className="radio-ticker" aria-hidden>
+          <span>LIVE CONVERSATION</span>
+          <i />
+          <span>OPEN MICROPHONE</span>
+          <i />
+          <span>WINNIPEG / ONLINE</span>
+          <i />
+          <span>NO REGISTRATION</span>
         </div>
-      </section>
 
-      <main className="page">
-        <VoicePanel user={user} />
+        <section className="radio-manifesto" id="about">
+          <div className="section-kicker"><span>02</span> Радіо як спільний простір</div>
+          <h2>Не плейлист.<br />Живі люди.</h2>
+          <div className="manifesto-copy">
+            <p>Слухайте розмову наживо або долучайтеся з мікрофоном, коли маєте що сказати.</p>
+            <dl>
+              <div><dt>Вхід</dt><dd>без реєстрації</dd></div>
+              <div><dt>Формат</dt><dd>відкритий мікрофон</dd></div>
+              <div><dt>Зв'язок</dt><dd>наживо у браузері</dd></div>
+            </dl>
+          </div>
+        </section>
+      </main>
 
-        <section className="chat-area">
+      <button
+        className="chat-launcher"
+        type="button"
+        onClick={() => setChatOpen(true)}
+        aria-expanded={chatOpen}
+        aria-controls="radio-chat"
+      >
+        <span className="chat-launcher-icon" aria-hidden>
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 5.5h16v11H9l-5 3v-14Z" stroke="currentColor" strokeWidth="1.8" />
+            <path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="1.8" />
+          </svg>
+        </span>
+        <span><small>MESSENGER</small>Відкрити чат</span>
+        <b>{messages.length}</b>
+      </button>
+
+      <div className={`chat-layer ${chatOpen ? 'is-open' : ''}`} aria-hidden={!chatOpen}>
+        <button className="chat-scrim" type="button" onClick={() => setChatOpen(false)} aria-label="Закрити чат" />
+        <section className="chat-drawer" id="radio-chat" role="dialog" aria-modal="true" aria-label="Чат Radio Vinnipeg">
+          <header className="chat-header">
+            <div>
+              <span>RADIO VINNIPEG / MESSENGER</span>
+              <h2>Чат ефіру</h2>
+            </div>
+            <button type="button" onClick={() => setChatOpen(false)} aria-label="Закрити чат">×</button>
+          </header>
+          <div className="chat-presence">
+            <span><i />{online.length} слухачів онлайн</span>
+            <div>
+              {online.slice(0, 5).map((u, i) => (
+                <span className="presence-dot" key={`${u.nickname}-${i}`} style={{ background: u.color }} title={u.nickname} />
+              ))}
+            </div>
+          </div>
           <div className="chat-card">
             <div className="messages">
               {messages.length === 0 && (
-                <div className="messages-empty">Тиша в чаті. Напишіть перші 👋</div>
+                <div className="messages-empty">Тиша в чаті. Почніть розмову.</div>
               )}
               {messages.map((m) => (
                 <div key={m.id} className={`message ${m.user_id === user.id ? 'mine' : ''}`}>
@@ -217,27 +299,16 @@ export default function RadioPage({ user, onUserChange }: Props) {
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder={`Напишіть як ${user.nickname}…`}
                 maxLength={1000}
+                tabIndex={chatOpen ? 0 : -1}
               />
               <button type="submit" disabled={sending || !draft.trim()}>
-                Надіслати
+                <span>Надіслати</span>
+                <b aria-hidden>↗</b>
               </button>
             </form>
           </div>
-
-          <aside className="online-card">
-            <h3>Слухачі онлайн</h3>
-            <ul>
-              {online.map((u, i) => (
-                <li key={`${u.nickname}-${i}`}>
-                  <span className="dot" style={{ background: u.color }} />
-                  {u.nickname}
-                </li>
-              ))}
-              {online.length === 0 && <li className="dim">Поки нікого немає</li>}
-            </ul>
-          </aside>
         </section>
-      </main>
+      </div>
     </div>
   )
 }

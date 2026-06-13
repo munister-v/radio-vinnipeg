@@ -186,7 +186,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       for (const t of localStreamRef.current.getTracks()) t.stop()
       localStreamRef.current = null
     }
-  }, [cleanupPeer, detachAnalyser])
+  }, [cleanupPeer])
 
   const flushPendingIce = useCallback(async (userId: number, pc: RTCPeerConnection) => {
     const queued = pendingIceRef.current.get(userId)
