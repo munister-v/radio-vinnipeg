@@ -202,8 +202,9 @@ export function useVoice(myUserId: number | null) {
       peersRef.current.set(peerId, entry)
 
       pc.ontrack = (e) => {
-        const [stream] = e.streams
-        if (!stream) return
+        // e.streams порожній коли addTransceiver без явного stream —
+        // тоді ліпимо stream вручну з треку, інакше аудіо не грало б взагалі.
+        const stream = e.streams[0] ?? new MediaStream([e.track])
         audio.srcObject = stream
         audio.play().catch(() => {})
         attachAnalyser(peerId, stream)
