@@ -53,6 +53,38 @@ def auth_required(func):
     return wrapper
 
 
+def auth_optional(func):
+    """Як auth_required, але не блокує анонімів: якщо токен валідний —
+    наповнює g.current_user і оновлює presence; інакше g.current_user = None.
+    Використовується для публічних GET-ендпоінтів (читання чату/ефіру)."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        g.current_user = None
+        g.current_token = None
+        header = request.headers.get('Authorization', '')
+        if header.startswith('Bearer '):
+            token = header.replace('Bearer ', '', 1).strip()
+            with get_connection() as conn:
+                row = conn.execute(
+                    """
+                    SELECT u.id, u.nickname, u.color, s.expires_at
+                    FROM sessions s
+                    JOIN users u ON u.id = s.user_id
+                    WHERE s.token = %s
+                    """,
+                    (token,),
+                ).fetchone()
+                if row and row['expires_at'] >= _now_iso():
+                    conn.execute(
+                        "UPDATE users SET last_seen_at = datetime('now') WHERE id = %s",
+                        (row['id'],),
+                    )
+                    g.current_user = row
+                    g.current_token = token
+        return func(*args, **kwargs)
+    return wrapper
+
+
 def _now_iso() -> str:
     from datetime import datetime, timezone
     return datetime.now(timezone.utc).isoformat()

@@ -9,7 +9,7 @@ from ..services.messenger_crypto import (
     deleted_message_text,
     encrypt_message,
 )
-from .helpers import api_error, auth_required, rate_limit, _client_ip
+from .helpers import api_error, auth_optional, auth_required, rate_limit, _client_ip
 
 chat_bp = Blueprint('chat', __name__, url_prefix='/api/chat')
 
@@ -35,7 +35,7 @@ def _serialize_message(row: dict) -> dict:
 
 
 @chat_bp.get('/messages')
-@auth_required
+@auth_optional
 def get_messages():
     """Останні повідомлення кімнати (для початкового завантаження)."""
     limit = request.args.get('limit', default=50, type=int) or 50
@@ -61,7 +61,7 @@ def get_messages():
 
 
 @chat_bp.get('/poll')
-@auth_required
+@auth_optional
 def poll():
     """Нові повідомлення після заданого id (для лонг-полінгу з фронтенду)."""
     after_id = request.args.get('after_id', default=0, type=int) or 0
@@ -135,7 +135,7 @@ def delete_message(msg_id: int):
 
 
 @chat_bp.get('/online')
-@auth_required
+@auth_optional
 def online_users():
     """Список ніків, активних протягом останніх 60с (простий presence)."""
     with get_connection() as conn:
