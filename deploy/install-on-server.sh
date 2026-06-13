@@ -25,8 +25,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable radio-vinnipeg
 sudo systemctl restart radio-vinnipeg
 
-sudo cp deploy/nginx-radio.conf /etc/nginx/sites-available/radio.munister.com.ua
-sudo ln -sf /etc/nginx/sites-available/radio.munister.com.ua /etc/nginx/sites-enabled/
+sudo cp deploy/nginx-radio.conf /etc/nginx/conf.d/radio.munister.com.ua.conf
 sudo nginx -t && sudo systemctl reload nginx
 
 echo "✅ Готово. Якщо DNS вже вказує на цей сервер, запусти:"
