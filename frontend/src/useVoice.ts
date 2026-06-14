@@ -94,6 +94,9 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const membersTimerRef = useRef<number | null>(null)
   const volumeRef = useRef<number>(opts?.volume ?? 1)
   const micDeviceIdRef = useRef<string>(opts?.micDeviceId ?? '')
+  // Аудіо-елементи, чий play() браузер заблокував (autoplay policy) — ретраїмо на жесті.
+  const blockedAudiosRef = useRef<Set<HTMLAudioElement>>(new Set())
+  const [audioBlocked, setAudioBlocked] = useState(false)
 
   // Визначення активності голосу (Web Audio).
   const audioCtxRef = useRef<AudioContext | null>(null)
@@ -181,9 +184,63 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     }
   }, [applyMembers])
 
+  // ── Надійне відтворення аудіо співрозмовника ──────────────────────────────
+  // Корінь бага «одного не чути»: коли учасник приєднується, поки ви не клікаєте,
+  // браузер блокує audio.play() (autoplay policy) — і той співрозмовник назавжди
+  // мовчить. Ловимо відмову, ставимо в чергу й повторюємо на першому ж жесті.
+  const playAudioEl = useCallback((audio: HTMLAudioElement) => {
+    const p = audio.play()
+    if (p && typeof p.then === 'function') {
+      p.then(() => {
+        blockedAudiosRef.current.delete(audio)
+        if (blockedAudiosRef.current.size === 0) setAudioBlocked(false)
+      }).catch(() => {
+        blockedAudiosRef.current.add(audio)
+        setAudioBlocked(true)
+      })
+    }
+  }, [])
+
+  const unlockAudio = useCallback(() => {
+    audioCtxRef.current?.resume?.().catch(() => {})
+    // Повторюємо всі заблоковані + про всяк випадок усі активні елементи.
+    for (const [, entry] of peersRef.current) {
+      if (entry.audio.srcObject) playAudioEl(entry.audio)
+    }
+    for (const audio of [...blockedAudiosRef.current]) playAudioEl(audio)
+  }, [playAudioEl])
+
+  // Будь-яка взаємодія/повернення вкладки → намагаємось розблокувати звук.
+  useEffect(() => {
+    const onGesture = () => unlockAudio()
+    const onVisible = () => { if (document.visibilityState === 'visible') unlockAudio() }
+    window.addEventListener('pointerdown', onGesture)
+    window.addEventListener('keydown', onGesture)
+    window.addEventListener('touchend', onGesture)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('pointerdown', onGesture)
+      window.removeEventListener('keydown', onGesture)
+      window.removeEventListener('touchend', onGesture)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [unlockAudio])
+
   // ── Транспондер аудіо (їх завжди рівно один на з'єднання) ─────────────────
   const audioTransceiver = (pc: RTCPeerConnection): RTCRtpTransceiver | undefined =>
     pc.getTransceivers().find((t) => t.receiver.track?.kind === 'audio')
+
+  // Голосу достатньо ~24 кбіт/с — обмежуємо, щоб не «з'їдати» мобільний інтернет
+  // і знизити шанс заторів на слабкому зв'язку.
+  const AUDIO_MAX_BITRATE = 24000
+
+  const capSenderBitrate = useCallback((sender: RTCRtpSender) => {
+    const params = sender.getParameters()
+    if (!params.encodings?.length) params.encodings = [{}]
+    if (params.encodings[0].maxBitrate === AUDIO_MAX_BITRATE) return
+    params.encodings[0].maxBitrate = AUDIO_MAX_BITRATE
+    sender.setParameters(params).catch(() => {})
+  }, [])
 
   const applyMicToTransceiver = useCallback((tr: RTCRtpTransceiver) => {
     const track = localStreamRef.current?.getAudioTracks()[0] ?? null
@@ -193,7 +250,8 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     if (tr.direction !== 'sendrecv' && tr.direction !== 'sendonly') {
       tr.direction = 'sendrecv'
     }
-  }, [])
+    capSenderBitrate(tr.sender)
+  }, [capSenderBitrate])
 
   // ── Життєвий цикл peer-з'єднань ───────────────────────────────────────────
   const cleanupPeer = useCallback((userId: number) => {
@@ -206,6 +264,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     try { entry.pc.close() } catch { /* ignore */ }
     entry.audio.srcObject = null
     entry.audio.remove()
+    blockedAudiosRef.current.delete(entry.audio)
     peersRef.current.delete(userId)
     pendingIceRef.current.delete(userId)
     detachAnalyser(userId)
@@ -303,7 +362,8 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       pc.ontrack = (e) => {
         const stream = e.streams[0] ?? new MediaStream([e.track])
         audio.srcObject = stream
-        audio.play().catch(() => {})
+        audio.muted = false
+        playAudioEl(audio) // надійне відтворення з ретраєм через жест користувача
         attachAnalyser(peerId, stream)
       }
       pc.onicecandidate = (e) => {
@@ -711,5 +771,5 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     }
   }, [stopTimers, cleanupAll, releaseWakeLock, teardownMediaSession])
 
-  return { members, joined, micOn, connecting, error, speaking, join, leave, toggleMic }
+  return { members, joined, micOn, connecting, error, speaking, audioBlocked, unlockAudio, join, leave, toggleMic }
 }

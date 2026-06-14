@@ -54,7 +54,7 @@ function SignalDeck({ active, label }: { active: boolean; label: string }) {
 
 export default function VoicePanel({ user }: Props) {
   const settings = useSettings()
-  const { members, joined, micOn, connecting, error, speaking, join, leave, toggleMic } =
+  const { members, joined, micOn, connecting, error, speaking, audioBlocked, unlockAudio, join, leave, toggleMic } =
     useVoice(user.id, { volume: settings.volume, micDeviceId: settings.micDeviceId })
 
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -124,6 +124,12 @@ export default function VoicePanel({ user }: Props) {
           </div>
         </div>
         <SignalDeck active={micOn || speakers.length > 0} label="Живий аудіосигнал розмови" />
+
+        {audioBlocked && (
+          <button className="btn btn-primary audio-unlock" onClick={unlockAudio}>
+            🔊 Натисніть, щоб увімкнути звук співрозмовників
+          </button>
+        )}
 
         {settingsOpen && (
           <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} />

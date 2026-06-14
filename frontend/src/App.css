@@ -761,6 +761,15 @@
   border-right: 0;
 }
 
+/* ── «Увімкнути звук» (обхід autoplay-блокування) ───────────────────────── */
+.audio-unlock {
+  width: 100%;
+  background: var(--danger);
+  color: var(--white);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.audio-unlock:hover { background: var(--ink); color: var(--white); }
+
 /* ── PTT кнопка ─────────────────────────────────────────────────────────── */
 .ptt-btn {
   touch-action: none;
