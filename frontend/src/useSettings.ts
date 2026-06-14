@@ -33,9 +33,12 @@ export function useSettings(): Settings {
   }, [])
 
   useEffect(() => {
-    refreshDevices()
+    const initialRefresh = window.setTimeout(refreshDevices, 0)
     navigator.mediaDevices?.addEventListener?.('devicechange', refreshDevices)
-    return () => navigator.mediaDevices?.removeEventListener?.('devicechange', refreshDevices)
+    return () => {
+      window.clearTimeout(initialRefresh)
+      navigator.mediaDevices?.removeEventListener?.('devicechange', refreshDevices)
+    }
   }, [refreshDevices])
 
   const setVolume = useCallback((v: number) => {

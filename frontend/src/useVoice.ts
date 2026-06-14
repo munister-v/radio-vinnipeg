@@ -52,6 +52,7 @@ type PeerEntry = {
   polite: boolean
   makingOffer: boolean
   ignoreOffer: boolean
+  restartTimer: number | null
 }
 
 type AnalyserEntry = {
@@ -198,6 +199,10 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const cleanupPeer = useCallback((userId: number) => {
     const entry = peersRef.current.get(userId)
     if (!entry) return
+    if (entry.restartTimer) {
+      window.clearTimeout(entry.restartTimer)
+      entry.restartTimer = null
+    }
     try { entry.pc.close() } catch { /* ignore */ }
     entry.audio.srcObject = null
     entry.audio.remove()
@@ -212,7 +217,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       for (const t of localStreamRef.current.getTracks()) t.stop()
       localStreamRef.current = null
     }
-  }, [cleanupPeer, detachAnalyser])
+  }, [cleanupPeer])
 
   const flushPendingIce = useCallback(async (userId: number, pc: RTCPeerConnection) => {
     const queued = pendingIceRef.current.get(userId)
@@ -239,7 +244,14 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       audio.style.display = 'none'
       document.body.appendChild(audio)
 
-      const entry: PeerEntry = { pc, audio, polite, makingOffer: false, ignoreOffer: false }
+      const entry: PeerEntry = {
+        pc,
+        audio,
+        polite,
+        makingOffer: false,
+        ignoreOffer: false,
+        restartTimer: null,
+      }
       peersRef.current.set(peerId, entry)
 
       pc.ontrack = (e) => {
@@ -254,8 +266,29 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
         }
       }
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+        if (pc.connectionState === 'connected' && entry.restartTimer) {
+          window.clearTimeout(entry.restartTimer)
+          entry.restartTimer = null
+        }
+        if (pc.connectionState === 'failed') {
+          if (entry.restartTimer) window.clearTimeout(entry.restartTimer)
+          try { pc.restartIce() } catch { cleanupPeer(peerId) }
+          entry.restartTimer = window.setTimeout(() => {
+            entry.restartTimer = null
+            if (pc.connectionState === 'failed') cleanupPeer(peerId)
+          }, 8000)
+        } else if (pc.connectionState === 'closed') {
           cleanupPeer(peerId)
+        }
+      }
+      pc.oniceconnectionstatechange = () => {
+        if (pc.iceConnectionState === 'disconnected' && !entry.restartTimer) {
+          entry.restartTimer = window.setTimeout(() => {
+            entry.restartTimer = null
+            if (pc.iceConnectionState === 'disconnected') {
+              try { pc.restartIce() } catch { cleanupPeer(peerId) }
+            }
+          }, 2500)
         }
       }
       pc.onnegotiationneeded = async () => {
@@ -493,6 +526,21 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
         const stream = await getMicStream(micDeviceIdRef.current)
         localStreamRef.current = stream
         micOnRef.current = true
+        const track = stream.getAudioTracks()[0]
+        if (track) {
+          track.onended = () => {
+            if (localStreamRef.current !== stream) return
+            localStreamRef.current = null
+            micOnRef.current = false
+            setMicOn(false)
+            setSpeaking(false)
+            for (const [, entry] of peersRef.current) {
+              const tr = audioTransceiver(entry.pc)
+              if (tr) applyMicToTransceiver(tr)
+            }
+            if (callIdRef.current) setCallMic(callIdRef.current, false).catch(() => {})
+          }
+        }
         setSpeaking(true)
         for (const [, entry] of peersRef.current) {
           const tr = audioTransceiver(entry.pc)
@@ -536,7 +584,8 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
 
   // Користувач закрив вкладку — повідомляємо сервер, щоб його прибрали зі списку.
   useEffect(() => {
-    const handlePageHide = () => {
+    const handlePageHide = (event: PageTransitionEvent) => {
+      if (event.persisted) return
       const cid = callIdRef.current
       if (!joinedRef.current || !cid) return
       const token = getToken()
@@ -552,6 +601,36 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     window.addEventListener('pagehide', handlePageHide)
     return () => window.removeEventListener('pagehide', handlePageHide)
   }, [])
+
+  // Mobile Safari/Chrome можуть приспати Web Audio і мережу при згортанні.
+  // Після повернення відновлюємо звук, polling та ICE без повторного входу.
+  useEffect(() => {
+    const recoverMobileSession = () => {
+      if (document.visibilityState === 'hidden' || !joinedRef.current) return
+      ensureAudioCtx()
+      for (const [, entry] of peersRef.current) {
+        entry.audio.play().catch(() => {})
+        if (
+          entry.pc.connectionState === 'failed' ||
+          entry.pc.iceConnectionState === 'disconnected'
+        ) {
+          try { entry.pc.restartIce() } catch { /* next member poll recreates it */ }
+        }
+      }
+      startTimers()
+      pollMembers()
+      pollSignals()
+    }
+
+    document.addEventListener('visibilitychange', recoverMobileSession)
+    window.addEventListener('online', recoverMobileSession)
+    window.addEventListener('pageshow', recoverMobileSession)
+    return () => {
+      document.removeEventListener('visibilitychange', recoverMobileSession)
+      window.removeEventListener('online', recoverMobileSession)
+      window.removeEventListener('pageshow', recoverMobileSession)
+    }
+  }, [ensureAudioCtx, startTimers, pollMembers, pollSignals])
 
   useEffect(() => {
     return () => {
