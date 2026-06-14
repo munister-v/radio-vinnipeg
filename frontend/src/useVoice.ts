@@ -279,6 +279,8 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
         // Якщо звичайне з'єднання (з ICE-restart) не вдалося — примусово
         // йдемо лише через TURN-relay. Часто рятує симетричний NAT/мобільний інтернет.
         iceTransportPolicy: opts.forceRelay ? 'relay' : 'all',
+        // Заздалегідь готує ICE-кандидати (в т.ч. TURN-allocation) — швидше з'єднання.
+        iceCandidatePoolSize: 4,
       })
       const audio = document.createElement('audio')
       audio.autoplay = true
