@@ -12,7 +12,20 @@ workers = 1
 worker_class = "gthread"
 threads = 8
 timeout = 60
+graceful_timeout = 30
 keepalive = 5
+
+# Лічильник серцебиття воркера тримаємо в RAM (tmpfs), а не на диску —
+# інакше повільний I/O спричиняє хибні kill-и воркера під навантаженням.
+worker_tmp_dir = "/dev/shm"
+
+# Періодично переробляємо воркер, щоб обмежити можливі витоки пам'яті
+# (важливо на VPS з малим RAM). Jitter — щоб рестарт не був різким.
+max_requests = 2000
+max_requests_jitter = 200
+
+# Завантажуємо застосунок у майстрі до fork — швидший старт і менше RAM (COW).
+preload_app = True
 
 accesslog = "-"
 errorlog = "-"

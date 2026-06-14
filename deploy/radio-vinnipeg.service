@@ -8,6 +8,7 @@
 [Unit]
 Description=Radio Vinnipeg Nights (Gunicorn)
 After=network.target
+Wants=network-online.target
 
 [Service]
 Type=notify
@@ -18,8 +19,29 @@ Environment="PATH=/opt/radio-vinnipeg/.venv/bin"
 EnvironmentFile=/opt/radio-vinnipeg/.env
 ExecStart=/opt/radio-vinnipeg/.venv/bin/gunicorn -c deploy/gunicorn.conf.py backend.app:app
 ExecReload=/bin/kill -s HUP $MAINPID
-Restart=on-failure
-RestartSec=5
+
+# Надійність: піднімаємо за будь-якого падіння
+Restart=always
+RestartSec=3
+
+# Ліміти пам'яті на спільному VPS: soft-throttle на 256M, жорсткий cap 384M
+# (за норми воркер ~80M; cap спрацює лише на витоку → перезапуск Restart=always)
+MemoryAccounting=true
+MemoryHigh=256M
+MemoryMax=384M
+
+# Пісочниця (застосунок — лише HTTP-сигналінг, нічого зайвого не торкається)
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+ReadWritePaths=/opt/radio-vinnipeg
 
 [Install]
 WantedBy=multi-user.target
