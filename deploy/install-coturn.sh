@@ -27,9 +27,18 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 echo "▶ Встановлюю coturn…"
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get install -y -qq coturn
+if command -v apt-get >/dev/null 2>&1; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  apt-get install -y -qq coturn
+elif command -v dnf >/dev/null 2>&1; then
+  dnf install -y -q coturn
+elif command -v yum >/dev/null 2>&1; then
+  yum install -y -q coturn
+else
+  echo "❌ Не знайшов apt-get/dnf/yum — встанови coturn вручну." >&2
+  exit 1
+fi
 
 # Зовнішня (публічна) IP-адреса сервера — потрібна coturn для коректних кандидатів.
 EXT_IP="${TURN_EXTERNAL_IP:-$(curl -fsS --max-time 5 https://api.ipify.org || curl -fsS --max-time 5 https://ifconfig.me || hostname -I | awk '{print $1}')}"
@@ -77,6 +86,12 @@ if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
   ufw allow 3478/udp >/dev/null || true
   ufw allow 3478/tcp >/dev/null || true
   ufw allow "${MIN_PORT}:${MAX_PORT}/udp" >/dev/null || true
+elif command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld; then
+  echo "▶ Відкриваю порти у firewalld…"
+  firewall-cmd --permanent --add-port=3478/udp >/dev/null || true
+  firewall-cmd --permanent --add-port=3478/tcp >/dev/null || true
+  firewall-cmd --permanent --add-port="${MIN_PORT}-${MAX_PORT}/udp" >/dev/null || true
+  firewall-cmd --reload >/dev/null || true
 fi
 
 echo "▶ Запускаю coturn…"
