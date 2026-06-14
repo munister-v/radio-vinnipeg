@@ -16,6 +16,16 @@ function Equalizer({ active }: { active: boolean }) {
   )
 }
 
+function MicIcon({ off }: { off?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M9 4.5a3 3 0 0 1 6 0v6a3 3 0 0 1-6 0v-6Z" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      {off && <path d="M3.5 3.5l17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />}
+    </svg>
+  )
+}
+
 function SettingsIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -132,17 +142,19 @@ export default function VoicePanel({ user }: Props) {
         <div className="air-actions">
           {settings.pttMode ? (
             <button
-              className={`btn btn-ghost ptt-btn ${pttHeld ? 'active' : ''}`}
+              className={`btn btn-mic ptt-btn ${pttHeld ? 'on' : ''}`}
               onMouseDown={pttStart}
               onMouseUp={pttEnd}
               onMouseLeave={pttEnd}
               onTouchStart={(e) => { e.preventDefault(); pttStart() }}
               onTouchEnd={pttEnd}
             >
+              <span className="btn-mic-icon"><MicIcon off={!pttHeld} /></span>
               {pttHeld ? 'Говорите наживо…' : 'Тримайте PTT'}
             </button>
           ) : (
-            <button className={`btn btn-ghost ${micOn ? 'active' : ''}`} onClick={toggleMic}>
+            <button className={`btn btn-mic ${micOn ? 'on' : ''}`} onClick={toggleMic}>
+              <span className="btn-mic-icon"><MicIcon off={!micOn} /></span>
               {micOn ? 'Вимкнути мікрофон' : 'Увімкнути мікрофон'}
             </button>
           )}

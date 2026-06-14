@@ -14,6 +14,32 @@ import {
 } from './api'
 
 const SIGNAL_POLL_MS = 1000
+
+// Спроба отримати мікрофон з оптимальними constraints; fallback до simple audio
+// якщо браузер (наприклад iOS Safari) відхиляє розширені параметри.
+async function getMicStream(deviceId?: string): Promise<MediaStream> {
+  const ideal: MediaTrackConstraints = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    channelCount: { ideal: 1 },
+    sampleRate: { ideal: 48000 },
+    ...(deviceId ? { deviceId: { ideal: deviceId } } : {}),
+  }
+  try {
+    return await navigator.mediaDevices.getUserMedia({ audio: ideal })
+  } catch (e) {
+    if (e instanceof DOMException && (
+      e.name === 'NotSupportedError' ||
+      e.name === 'OverconstrainedError' ||
+      e.name === 'ConstraintNotSatisfiedError'
+    )) {
+      // Fallback: мінімальні constraints — працює скрізь
+      return await navigator.mediaDevices.getUserMedia({ audio: deviceId ? { deviceId } : true })
+    }
+    throw e
+  }
+}
 const MEMBERS_POLL_MS = 2500
 const SPEAK_TICK_MS = 180
 const SPEAK_THRESHOLD = 0.02 // RMS поріг «хтось говорить»
@@ -464,31 +490,26 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
           setError('Цей браузер не підтримує мікрофон.')
           return
         }
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: { ideal: true },
-            noiseSuppression: { ideal: true },
-            autoGainControl: { ideal: true },
-            channelCount: { ideal: 1 },
-            sampleRate: { ideal: 48000 },
-            ...(micDeviceIdRef.current ? { deviceId: { ideal: micDeviceIdRef.current } } : {}),
-          },
-        })
+        const stream = await getMicStream(micDeviceIdRef.current)
         localStreamRef.current = stream
         micOnRef.current = true
-        // НЕ підключаємо локальний мікрофон до Web Audio — це заважає браузерному AEC.
-        // Стан «говорить» для себе = micOn.
         setSpeaking(true)
         for (const [, entry] of peersRef.current) {
           const tr = audioTransceiver(entry.pc)
-          if (tr) applyMicToTransceiver(tr) // → renegotiation через onnegotiationneeded
+          if (tr) applyMicToTransceiver(tr)
         }
       } catch (err) {
         micOnRef.current = false
-        if (err instanceof DOMException && err.name === 'NotAllowedError') {
-          setError('Доступ до мікрофона заблоковано. Дозвольте мікрофон у налаштуваннях браузера.')
-        } else if (err instanceof DOMException && err.name === 'NotFoundError') {
-          setError('Мікрофон не знайдено на цьому пристрої.')
+        if (err instanceof DOMException) {
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            setError('Доступ до мікрофона заблоковано. Дозвольте мікрофон у налаштуваннях браузера.')
+          } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+            setError('Мікрофон не знайдено на цьому пристрої.')
+          } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+            setError('Мікрофон зайнятий іншою програмою.')
+          } else {
+            setError('Не вдалося увімкнути мікрофон.')
+          }
         } else {
           setError('Не вдалося увімкнути мікрофон.')
         }

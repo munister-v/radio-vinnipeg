@@ -264,6 +264,37 @@
 .btn-outline { background: transparent; color: var(--ink); }
 .btn-outline:hover { background: var(--white); }
 .btn:disabled { cursor: wait; opacity: .5; }
+
+.btn-mic {
+  position: relative;
+  min-height: 60px;
+  padding: 0 26px;
+  gap: 12px;
+  font-size: 11px;
+  letter-spacing: .1em;
+  background: var(--ink);
+  color: var(--white);
+}
+.btn-mic:hover:not(:disabled), .btn-mic:disabled { background: var(--yellow-bright); color: var(--ink); }
+.btn-mic-icon {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.btn-mic-icon svg { width: 22px; height: 22px; }
+.btn-mic.on {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--white);
+}
+.btn-mic.on:hover { background: var(--danger); color: var(--white); }
+.btn-mic.on .btn-mic-icon { animation: mic-pulse 1.4s ease-in-out infinite; }
+@keyframes mic-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.12); opacity: .7; }
+}
 .air-members {
   margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; list-style: none;
 }
@@ -625,13 +656,19 @@
   .topbar-right { padding: 8px 12px; }
   .nick-chip { max-width: 145px; min-height: 40px; overflow: hidden; }
   .broadcast-stage { min-height: auto; grid-template-columns: 1fr; border-inline: 0; }
-  .broadcast-intro { min-height: 530px; padding: 46px 20px; border-bottom: 1px solid var(--ink); }
-  .broadcast-intro h1 { margin-top: auto; font-size: clamp(72px, 25vw, 104px); }
+  .broadcast-intro {
+    min-height: auto;
+    justify-content: flex-start;
+    gap: 30px;
+    padding: 40px 20px 36px;
+    border-bottom: 1px solid var(--ink);
+  }
+  .broadcast-intro h1 { margin: 0; font-size: clamp(60px, 19vw, 104px); }
   .broadcast-intro p { font-size: 17px; }
   .frequency {
-    min-height: 120px;
+    min-height: 96px;
     flex-direction: row;
-    padding: 18px 20px;
+    padding: 16px 20px;
     border-right: 0;
     border-bottom: 1px solid var(--ink);
   }
