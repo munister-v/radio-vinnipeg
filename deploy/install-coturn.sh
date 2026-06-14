@@ -19,7 +19,7 @@ TURN_USER="${TURN_USER:-radio}"
 TURN_PASS="${TURN_PASS:-$(head -c 24 /dev/urandom | base64 | tr -d '/+=' | head -c 24)}"
 # Діапазон портів для медіа-ретрансляції.
 MIN_PORT="${TURN_MIN_PORT:-49152}"
-MAX_PORT="${TURN_MAX_PORT:-65535}"
+MAX_PORT="${TURN_MAX_PORT:-49252}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "❌ Запусти з sudo/root." >&2
@@ -35,8 +35,13 @@ apt-get install -y -qq coturn
 EXT_IP="${TURN_EXTERNAL_IP:-$(curl -fsS --max-time 5 https://api.ipify.org || curl -fsS --max-time 5 https://ifconfig.me || hostname -I | awk '{print $1}')}"
 echo "▶ Зовнішня IP: ${EXT_IP}"
 
-echo "▶ Пишу /etc/turnserver.conf…"
-cat > /etc/turnserver.conf <<EOF
+TURN_CONFIG="/etc/turnserver.conf"
+if [ -d /etc/coturn ]; then
+  TURN_CONFIG="/etc/coturn/turnserver.conf"
+fi
+
+echo "▶ Пишу ${TURN_CONFIG}…"
+cat > "${TURN_CONFIG}" <<EOF
 # Згенеровано deploy/install-coturn.sh для Radio Vinnipeg
 listening-port=3478
 fingerprint
@@ -46,7 +51,8 @@ realm=${REALM}
 external-ip=${EXT_IP}
 min-port=${MIN_PORT}
 max-port=${MAX_PORT}
-# Безпека: лише ретрансляція, без доступу до приватних мереж.
+# Безпека: без доступу до приватних мереж. Не додавайте allowed-peer-ip:
+# він перетворює правило на allowlist і блокує медіа між зовнішніми клієнтами.
 no-cli
 no-tlsv1
 no-tlsv1_1
@@ -54,7 +60,6 @@ no-multicast-peers
 denied-peer-ip=10.0.0.0-10.255.255.255
 denied-peer-ip=172.16.0.0-172.31.255.255
 denied-peer-ip=192.168.0.0-192.168.255.255
-allowed-peer-ip=${EXT_IP}
 stale-nonce=600
 log-file=/var/log/turnserver.log
 simple-log
