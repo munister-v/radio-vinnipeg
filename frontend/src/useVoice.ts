@@ -228,14 +228,21 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     }
   }, [])
 
+  const reconnectViaRelayRef = useRef<(peerId: number) => void>(() => {})
+
   const createPeer = useCallback(
-    (peerId: number, opts: { initiator: boolean }): PeerEntry | undefined => {
+    (peerId: number, opts: { initiator: boolean; forceRelay?: boolean }): PeerEntry | undefined => {
       const existing = peersRef.current.get(peerId)
       if (existing) return existing
       if (!myUserId || !callIdRef.current) return undefined
 
       const polite = myUserId < peerId // менший id — ввічливий, лише відповідає
-      const pc = new RTCPeerConnection({ iceServers: iceServersRef.current })
+      const pc = new RTCPeerConnection({
+        iceServers: iceServersRef.current,
+        // Якщо звичайне з'єднання (з ICE-restart) не вдалося — примусово
+        // йдемо лише через TURN-relay. Часто рятує симетричний NAT/мобільний інтернет.
+        iceTransportPolicy: opts.forceRelay ? 'relay' : 'all',
+      })
       const audio = document.createElement('audio')
       audio.autoplay = true
       audio.volume = volumeRef.current
@@ -272,10 +279,15 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
         }
         if (pc.connectionState === 'failed') {
           if (entry.restartTimer) window.clearTimeout(entry.restartTimer)
-          try { pc.restartIce() } catch { cleanupPeer(peerId) }
+          if (opts.forceRelay) {
+            // Уже пробували relay-only — далі лишається тільки прибрати peer-а.
+            cleanupPeer(peerId)
+            return
+          }
+          try { pc.restartIce() } catch { cleanupPeer(peerId); return }
           entry.restartTimer = window.setTimeout(() => {
             entry.restartTimer = null
-            if (pc.connectionState === 'failed') cleanupPeer(peerId)
+            if (pc.connectionState === 'failed') reconnectViaRelayRef.current(peerId)
           }, 8000)
         } else if (pc.connectionState === 'closed') {
           cleanupPeer(peerId)
@@ -329,6 +341,17 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     },
     [myUserId, createPeer],
   )
+
+  // ICE-restart не допоміг → пересоздаём з'єднання, форсуючи TURN-relay.
+  const reconnectViaRelay = useCallback(
+    (peerId: number) => {
+      if (!myUserId) return
+      cleanupPeer(peerId)
+      createPeer(peerId, { initiator: myUserId > peerId, forceRelay: true })
+    },
+    [myUserId, cleanupPeer, createPeer],
+  )
+  reconnectViaRelayRef.current = reconnectViaRelay
 
   const handleDescription = useCallback(
     async (fromId: number, description: RTCSessionDescriptionInit) => {
