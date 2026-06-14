@@ -229,6 +229,43 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   }, [])
 
   const reconnectViaRelayRef = useRef<(peerId: number) => void>(() => {})
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null)
+
+  // Не даємо екрану/CPU засинати під час дзвінка (Android Chrome/PWA).
+  const acquireWakeLock = useCallback(async () => {
+    try {
+      wakeLockRef.current = await navigator.wakeLock?.request('screen')
+    } catch { /* непідтримується або відмовлено — не критично */ }
+  }, [])
+
+  const releaseWakeLock = useCallback(() => {
+    wakeLockRef.current?.release().catch(() => {})
+    wakeLockRef.current = null
+  }, [])
+
+  // Позначаємо дзвінок як активне медіа — браузер не призупиняє аудіо при згортанні.
+  const setupMediaSession = useCallback(() => {
+    if (!('mediaSession' in navigator)) return
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: 'Радіорозмова наживо',
+        artist: 'Radio Vinnipeg',
+      })
+      navigator.mediaSession.playbackState = 'playing'
+      navigator.mediaSession.setActionHandler('play', () => { navigator.mediaSession.playbackState = 'playing' })
+      navigator.mediaSession.setActionHandler('pause', () => { navigator.mediaSession.playbackState = 'playing' })
+    } catch { /* ignore */ }
+  }, [])
+
+  const teardownMediaSession = useCallback(() => {
+    if (!('mediaSession' in navigator)) return
+    try {
+      navigator.mediaSession.metadata = null
+      navigator.mediaSession.playbackState = 'none'
+      navigator.mediaSession.setActionHandler('play', null)
+      navigator.mediaSession.setActionHandler('pause', null)
+    } catch { /* ignore */ }
+  }, [])
 
   const createPeer = useCallback(
     (peerId: number, opts: { initiator: boolean; forceRelay?: boolean }): PeerEntry | undefined => {
@@ -506,16 +543,20 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       // Не чекаємо на інтервали — одразу підхоплюємо сигнали/учасників.
       pollMembers()
       pollSignals()
+      acquireWakeLock()
+      setupMediaSession()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не вдалося приєднатись до розмови.')
     } finally {
       setConnecting(false)
     }
-  }, [ensureAudioCtx, loadIceServers, applyMembers, ensurePeer, startTimers, pollMembers, pollSignals])
+  }, [ensureAudioCtx, loadIceServers, applyMembers, ensurePeer, startTimers, pollMembers, pollSignals, acquireWakeLock, setupMediaSession])
 
   const leave = useCallback(async () => {
     const cid = callIdRef.current
     stopTimers()
+    releaseWakeLock()
+    teardownMediaSession()
     for (const [peerId] of peersRef.current) {
       if (cid) sendCallSignal(cid, peerId, 'bye', { bye: true }).catch(() => {})
     }
@@ -631,6 +672,8 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     const recoverMobileSession = () => {
       if (document.visibilityState === 'hidden' || !joinedRef.current) return
       ensureAudioCtx()
+      acquireWakeLock() // wake lock автоматично знімається браузером при згортанні
+      setupMediaSession()
       for (const [, entry] of peersRef.current) {
         entry.audio.play().catch(() => {})
         if (
@@ -653,16 +696,18 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       window.removeEventListener('online', recoverMobileSession)
       window.removeEventListener('pageshow', recoverMobileSession)
     }
-  }, [ensureAudioCtx, startTimers, pollMembers, pollSignals])
+  }, [ensureAudioCtx, startTimers, pollMembers, pollSignals, acquireWakeLock, setupMediaSession])
 
   useEffect(() => {
     return () => {
       stopTimers()
       cleanupAll()
+      releaseWakeLock()
+      teardownMediaSession()
       audioCtxRef.current?.close?.().catch(() => {})
       audioCtxRef.current = null
     }
-  }, [stopTimers, cleanupAll])
+  }, [stopTimers, cleanupAll, releaseWakeLock, teardownMediaSession])
 
   return { members, joined, micOn, connecting, error, speaking, join, leave, toggleMic }
 }
