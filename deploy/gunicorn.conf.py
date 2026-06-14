@@ -8,7 +8,7 @@ port = int(os.environ.get("PORT", "5060"))
 bind = f"0.0.0.0:{port}"
 # Радіо інтенсивно опитує сигналінг/чат короткими запитами, тож тримаємо
 # більше потоків на воркер, аби polling кількох учасників не блокував решту.
-workers = 2
+workers = 1
 worker_class = "gthread"
 threads = 8
 timeout = 60
