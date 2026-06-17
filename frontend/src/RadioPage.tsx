@@ -12,6 +12,7 @@ import {
   type User,
 } from './api'
 import VoicePanel from './VoicePanel'
+import { setBackgroundInterval, type BgTimer } from './bgTimer'
 
 type Props = {
   user: User
@@ -81,7 +82,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
   const lastIdRef = useRef(0)
   const listEndRef = useRef<HTMLDivElement>(null)
   const composerInputRef = useRef<HTMLInputElement>(null)
-  const pollRef = useRef<number | null>(null)
+  const pollRef = useRef<BgTimer | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -101,7 +102,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
     }
     init()
 
-    pollRef.current = window.setInterval(async () => {
+    const tick = async () => {
       try {
         const fresh = await pollMessages(lastIdRef.current)
         if (fresh.length) {
@@ -112,11 +113,19 @@ export default function RadioPage({ user, onUserChange }: Props) {
       } catch {
         // ignore transient errors — chat is best-effort
       }
-    }, POLL_INTERVAL_MS)
+    }
+    // Воркер-таймер: опитування чату не «залипає» при згорнутій/заблокованій вкладці.
+    pollRef.current = setBackgroundInterval(tick, POLL_INTERVAL_MS)
+    // Миттєвий догін при поверненні на вкладку.
+    const onVisible = () => { if (document.visibilityState === 'visible') tick() }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('online', onVisible)
 
     return () => {
       cancelled = true
-      if (pollRef.current) window.clearInterval(pollRef.current)
+      pollRef.current?.stop()
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('online', onVisible)
     }
   }, [])
 

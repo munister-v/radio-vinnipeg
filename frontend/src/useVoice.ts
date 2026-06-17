@@ -12,6 +12,7 @@ import {
   setCallMic,
   type CallMember,
 } from './api'
+import { setBackgroundInterval, type BgTimer } from './bgTimer'
 
 const SIGNAL_POLL_MS = 1000
 
@@ -90,8 +91,9 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const iceServersRef = useRef<RTCIceServer[]>([{ urls: 'stun:stun.l.google.com:19302' }])
   const afterIdRef = useRef(0)
   const serverMembersRef = useRef<CallMember[]>([])
-  const signalTimerRef = useRef<number | null>(null)
-  const membersTimerRef = useRef<number | null>(null)
+  // Сигналінг та ростер опитуємо через Web Worker — виживає при блокуванні екрана.
+  const signalTimerRef = useRef<BgTimer | null>(null)
+  const membersTimerRef = useRef<BgTimer | null>(null)
   const volumeRef = useRef<number>(opts?.volume ?? 1)
   const micDeviceIdRef = useRef<string>(opts?.micDeviceId ?? '')
   // Аудіо-елементи, чий play() браузер заблокував (autoplay policy) — ретраїмо на жесті.
@@ -100,6 +102,9 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
 
   // Визначення активності голосу (Web Audio).
   const audioCtxRef = useRef<AudioContext | null>(null)
+  // Тихий зациклений вузол — тримає аудіо-сесію живою при блокуванні екрана,
+  // щоб вхідний голос не глух, коли телефон засинає.
+  const keepAliveRef = useRef<AudioBufferSourceNode | null>(null)
   const analysersRef = useRef<Map<number, AnalyserEntry>>(new Map())
   const speakingRef = useRef<Map<number, boolean>>(new Map())
   const speakTimerRef = useRef<number | null>(null)
@@ -133,6 +138,28 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     }
     audioCtxRef.current?.resume?.().catch(() => {})
     return audioCtxRef.current
+  }, [])
+
+  // Тихий зациклений source — не дає ОС приспати аудіо при блокуванні екрана.
+  const startKeepAlive = useCallback(() => {
+    const ctx = audioCtxRef.current
+    if (!ctx || keepAliveRef.current) return
+    try {
+      const buffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate)
+      const src = ctx.createBufferSource()
+      src.buffer = buffer
+      src.loop = true
+      const gain = ctx.createGain()
+      gain.gain.value = 0.0001 // практично нечутно, але сесія лишається активною
+      src.connect(gain).connect(ctx.destination)
+      src.start()
+      keepAliveRef.current = src
+    } catch { /* непідтримувано — не критично */ }
+  }, [])
+
+  const stopKeepAlive = useCallback(() => {
+    try { keepAliveRef.current?.stop() } catch { /* ignore */ }
+    keepAliveRef.current = null
   }, [])
 
   const detachAnalyser = useCallback((key: number) => {
@@ -547,18 +574,20 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   }, [])
 
   const startTimers = useCallback(() => {
-    if (signalTimerRef.current) window.clearInterval(signalTimerRef.current)
-    if (membersTimerRef.current) window.clearInterval(membersTimerRef.current)
+    signalTimerRef.current?.stop()
+    membersTimerRef.current?.stop()
     if (speakTimerRef.current) window.clearInterval(speakTimerRef.current)
-    signalTimerRef.current = window.setInterval(pollSignals, SIGNAL_POLL_MS)
-    membersTimerRef.current = window.setInterval(pollMembers, MEMBERS_POLL_MS)
+    // Сигналінг + ростер — на воркер-таймері (живе у фоні/при блокуванні).
+    signalTimerRef.current = setBackgroundInterval(pollSignals, SIGNAL_POLL_MS)
+    membersTimerRef.current = setBackgroundInterval(pollMembers, MEMBERS_POLL_MS)
+    // Детектор гучності потрібен лише для видимого UI — звичайний таймер.
     speakTimerRef.current = window.setInterval(speakTick, SPEAK_TICK_MS)
   }, [pollSignals, pollMembers, speakTick])
 
   const stopTimers = useCallback(() => {
-    for (const ref of [signalTimerRef, membersTimerRef, speakTimerRef]) {
-      if (ref.current) { window.clearInterval(ref.current); ref.current = null }
-    }
+    signalTimerRef.current?.stop(); signalTimerRef.current = null
+    membersTimerRef.current?.stop(); membersTimerRef.current = null
+    if (speakTimerRef.current) { window.clearInterval(speakTimerRef.current); speakTimerRef.current = null }
   }, [])
 
   // Стан розмови до приєднання (скільки людей уже всередині).
@@ -592,6 +621,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     setConnecting(true)
     try {
       ensureAudioCtx() // розблокувати аудіо в межах кліку користувача
+      startKeepAlive()
       await loadIceServers()
       const res = await apiJoinCall()
       callIdRef.current = res.call_id
@@ -612,11 +642,12 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     } finally {
       setConnecting(false)
     }
-  }, [ensureAudioCtx, loadIceServers, applyMembers, ensurePeer, startTimers, pollMembers, pollSignals, acquireWakeLock, setupMediaSession])
+  }, [ensureAudioCtx, startKeepAlive, loadIceServers, applyMembers, ensurePeer, startTimers, pollMembers, pollSignals, acquireWakeLock, setupMediaSession])
 
   const leave = useCallback(async () => {
     const cid = callIdRef.current
     stopTimers()
+    stopKeepAlive()
     releaseWakeLock()
     teardownMediaSession()
     for (const [peerId] of peersRef.current) {
@@ -636,7 +667,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       try { await apiLeaveCall(cid) } catch { /* ignore */ }
     }
     await refreshActive()
-  }, [stopTimers, cleanupAll, refreshActive])
+  }, [stopTimers, stopKeepAlive, releaseWakeLock, teardownMediaSession, cleanupAll, refreshActive])
 
   const toggleMic = useCallback(async () => {
     const cid = callIdRef.current
@@ -734,6 +765,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     const recoverMobileSession = () => {
       if (document.visibilityState === 'hidden' || !joinedRef.current) return
       ensureAudioCtx()
+      startKeepAlive() // якщо ОС зупинила тихий вузол — піднімаємо знову
       acquireWakeLock() // wake lock автоматично знімається браузером при згортанні
       setupMediaSession()
       for (const [, entry] of peersRef.current) {
@@ -758,18 +790,19 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       window.removeEventListener('online', recoverMobileSession)
       window.removeEventListener('pageshow', recoverMobileSession)
     }
-  }, [ensureAudioCtx, startTimers, pollMembers, pollSignals, acquireWakeLock, setupMediaSession])
+  }, [ensureAudioCtx, startKeepAlive, startTimers, pollMembers, pollSignals, acquireWakeLock, setupMediaSession])
 
   useEffect(() => {
     return () => {
       stopTimers()
+      stopKeepAlive()
       cleanupAll()
       releaseWakeLock()
       teardownMediaSession()
       audioCtxRef.current?.close?.().catch(() => {})
       audioCtxRef.current = null
     }
-  }, [stopTimers, cleanupAll, releaseWakeLock, teardownMediaSession])
+  }, [stopTimers, stopKeepAlive, cleanupAll, releaseWakeLock, teardownMediaSession])
 
   return { members, joined, micOn, connecting, error, speaking, audioBlocked, unlockAudio, join, leave, toggleMic }
 }
