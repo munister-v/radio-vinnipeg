@@ -58,6 +58,12 @@ type PeerEntry = {
   makingOffer: boolean
   ignoreOffer: boolean
   restartTimer: number | null
+  createdAt: number
+  // Watchdog: відстеження «застряглого» з'єднання та зупиненого вхідного аудіо.
+  lastBytes: number
+  audioStallTicks: number
+  notConnectedTicks: number
+  recoverAttempts: number
 }
 
 type AnalyserEntry = {
@@ -392,6 +398,11 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
         makingOffer: false,
         ignoreOffer: false,
         restartTimer: null,
+        createdAt: Date.now(),
+        lastBytes: 0,
+        audioStallTicks: 0,
+        notConnectedTicks: 0,
+        recoverAttempts: 0,
       }
       peersRef.current.set(peerId, entry)
 
@@ -582,23 +593,43 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     } catch { /* keep default STUN */ }
   }, [])
 
-  // Реальна якість зв'язку: беремо найгірший RTT і втрати пакетів серед усіх peer-ів.
+  // Якість зв'язку + watchdog: ловить пари, де «одного не чути» (з'єднання є,
+  // але вхідне аудіо не тече) чи переговорка застрягла, і відновлює їх.
   const pollQuality = useCallback(async () => {
     const peers = peersRef.current
     if (!joinedRef.current || peers.size === 0) { setQuality(null); return }
+    const micOnByUser = new Map<number, boolean>()
+    for (const m of serverMembersRef.current) micOnByUser.set(m.user_id, !!m.mic_on)
+
     let worstRtt = 0
     let worstLoss = 0
     let sawConnected = false
+    const recover: number[] = []
+
     for (const [peerId, entry] of peers) {
-      if (entry.pc.connectionState !== 'connected') continue
+      const state = entry.pc.connectionState
+      // 1) Застрягла переговорка: не доходить до 'connected' за розумний час.
+      if (state !== 'connected') {
+        const age = Date.now() - entry.createdAt
+        if (state === 'failed' || state === 'closed') continue // обробляється onconnectionstatechange
+        if (age > 8000) {
+          entry.notConnectedTicks++
+          if (entry.notConnectedTicks >= 3) recover.push(peerId)
+        }
+        continue
+      }
+      entry.notConnectedTicks = 0
       sawConnected = true
+
       let stats: RTCStatsReport
       try { stats = await entry.pc.getStats() } catch { continue }
+      let bytes = 0
       stats.forEach((r) => {
         if (r.type === 'candidate-pair' && (r.nominated || r.selected) && typeof r.currentRoundTripTime === 'number') {
           worstRtt = Math.max(worstRtt, r.currentRoundTripTime)
         }
         if (r.type === 'inbound-rtp' && (r.kind ?? r.mediaType) === 'audio') {
+          bytes = Math.max(bytes, r.bytesReceived ?? 0)
           const lost = r.packetsLost ?? 0
           const recv = r.packetsReceived ?? 0
           const prev = prevPacketsRef.current.get(peerId) ?? { lost: 0, recv: 0 }
@@ -608,13 +639,39 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
           if (dLost + dRecv > 0) worstLoss = Math.max(worstLoss, dLost / (dLost + dRecv))
         }
       })
+
+      // 2) «Одного не чути»: peer каже, що мікрофон увімкнено, з'єднання є,
+      //    але вхідні байти не ростуть кілька тіків поспіль.
+      const remoteMicOn = micOnByUser.get(peerId) ?? false
+      if (remoteMicOn && bytes <= entry.lastBytes) {
+        entry.audioStallTicks++
+        if (entry.audioStallTicks >= 3) recover.push(peerId)
+      } else {
+        entry.audioStallTicks = 0
+        if (bytes > entry.lastBytes) entry.recoverAttempts = 0 // аудіо тече — скидаємо ескалацію
+      }
+      entry.lastBytes = bytes
     }
+
+    // Відновлення: спершу ICE-restart, далі — повне перестворення через relay.
+    for (const peerId of recover) {
+      const entry = peers.get(peerId)
+      if (!entry) continue
+      entry.notConnectedTicks = 0
+      entry.audioStallTicks = 0
+      if (entry.recoverAttempts === 0) {
+        entry.recoverAttempts = 1
+        try { entry.pc.restartIce() } catch { reconnectViaRelay(peerId) }
+      } else {
+        reconnectViaRelay(peerId)
+      }
+    }
+
     if (!sawConnected) { setQuality(null); return }
-    // Пороги: RTT у секундах, втрати — частка.
     if (worstRtt < 0.2 && worstLoss < 0.02) setQuality('good')
     else if (worstRtt < 0.45 && worstLoss < 0.07) setQuality('ok')
     else setQuality('weak')
-  }, [])
+  }, [reconnectViaRelay])
 
   const startTimers = useCallback(() => {
     signalTimerRef.current?.stop()
