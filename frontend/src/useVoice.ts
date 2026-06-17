@@ -15,6 +15,10 @@ import {
 import { setBackgroundInterval, type BgTimer } from './bgTimer'
 
 const SIGNAL_POLL_MS = 1000
+const QUALITY_POLL_MS = 3000
+
+// Якість з'єднання за даними WebRTC getStats(): 'good' | 'ok' | 'weak'.
+export type ConnectionQuality = 'good' | 'ok' | 'weak' | null
 
 // Спроба отримати мікрофон з оптимальними constraints; fallback до simple audio
 // якщо браузер (наприклад iOS Safari) відхиляє розширені параметри.
@@ -81,6 +85,8 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const [speaking, setSpeaking] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Реальна якість зв'язку (з RTCPeerConnection.getStats): RTT + втрати пакетів.
+  const [quality, setQuality] = useState<ConnectionQuality>(null)
 
   const callIdRef = useRef<number | null>(null)
   const joinedRef = useRef(false)
@@ -108,6 +114,9 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const analysersRef = useRef<Map<number, AnalyserEntry>>(new Map())
   const speakingRef = useRef<Map<number, boolean>>(new Map())
   const speakTimerRef = useRef<number | null>(null)
+  // Моніторинг якості зв'язку.
+  const qualityTimerRef = useRef<number | null>(null)
+  const prevPacketsRef = useRef<Map<number, { lost: number; recv: number }>>(new Map())
 
   // ── Синхронізуємо volume/deviceId з opts без перестворення peers ────────────
   useEffect(() => {
@@ -573,6 +582,40 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     } catch { /* keep default STUN */ }
   }, [])
 
+  // Реальна якість зв'язку: беремо найгірший RTT і втрати пакетів серед усіх peer-ів.
+  const pollQuality = useCallback(async () => {
+    const peers = peersRef.current
+    if (!joinedRef.current || peers.size === 0) { setQuality(null); return }
+    let worstRtt = 0
+    let worstLoss = 0
+    let sawConnected = false
+    for (const [peerId, entry] of peers) {
+      if (entry.pc.connectionState !== 'connected') continue
+      sawConnected = true
+      let stats: RTCStatsReport
+      try { stats = await entry.pc.getStats() } catch { continue }
+      stats.forEach((r) => {
+        if (r.type === 'candidate-pair' && (r.nominated || r.selected) && typeof r.currentRoundTripTime === 'number') {
+          worstRtt = Math.max(worstRtt, r.currentRoundTripTime)
+        }
+        if (r.type === 'inbound-rtp' && (r.kind ?? r.mediaType) === 'audio') {
+          const lost = r.packetsLost ?? 0
+          const recv = r.packetsReceived ?? 0
+          const prev = prevPacketsRef.current.get(peerId) ?? { lost: 0, recv: 0 }
+          const dLost = lost - prev.lost
+          const dRecv = recv - prev.recv
+          prevPacketsRef.current.set(peerId, { lost, recv })
+          if (dLost + dRecv > 0) worstLoss = Math.max(worstLoss, dLost / (dLost + dRecv))
+        }
+      })
+    }
+    if (!sawConnected) { setQuality(null); return }
+    // Пороги: RTT у секундах, втрати — частка.
+    if (worstRtt < 0.2 && worstLoss < 0.02) setQuality('good')
+    else if (worstRtt < 0.45 && worstLoss < 0.07) setQuality('ok')
+    else setQuality('weak')
+  }, [])
+
   const startTimers = useCallback(() => {
     signalTimerRef.current?.stop()
     membersTimerRef.current?.stop()
@@ -582,12 +625,17 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     membersTimerRef.current = setBackgroundInterval(pollMembers, MEMBERS_POLL_MS)
     // Детектор гучності потрібен лише для видимого UI — звичайний таймер.
     speakTimerRef.current = window.setInterval(speakTick, SPEAK_TICK_MS)
-  }, [pollSignals, pollMembers, speakTick])
+    if (qualityTimerRef.current) window.clearInterval(qualityTimerRef.current)
+    qualityTimerRef.current = window.setInterval(pollQuality, QUALITY_POLL_MS)
+  }, [pollSignals, pollMembers, speakTick, pollQuality])
 
   const stopTimers = useCallback(() => {
     signalTimerRef.current?.stop(); signalTimerRef.current = null
     membersTimerRef.current?.stop(); membersTimerRef.current = null
     if (speakTimerRef.current) { window.clearInterval(speakTimerRef.current); speakTimerRef.current = null }
+    if (qualityTimerRef.current) { window.clearInterval(qualityTimerRef.current); qualityTimerRef.current = null }
+    prevPacketsRef.current.clear()
+    setQuality(null)
   }, [])
 
   // Стан розмови до приєднання (скільки людей уже всередині).
@@ -804,5 +852,5 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     }
   }, [stopTimers, stopKeepAlive, cleanupAll, releaseWakeLock, teardownMediaSession])
 
-  return { members, joined, micOn, connecting, error, speaking, audioBlocked, unlockAudio, join, leave, toggleMic }
+  return { members, joined, micOn, connecting, error, speaking, quality, audioBlocked, unlockAudio, join, leave, toggleMic }
 }

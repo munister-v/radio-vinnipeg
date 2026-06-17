@@ -50,6 +50,14 @@
 }
 
 .brand-mark svg { width: 25px; height: 25px; }
+/* Живий логотип: ядро пульсує, хвилі сигналу м'яко дихають */
+.brand-core { transform-origin: 12px 8px; animation: brandCore 2.4s ease-in-out infinite; }
+@keyframes brandCore { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+.brand-wave { opacity: .9; transform-origin: 12px 8px; animation: brandWave 2.8s ease-in-out infinite; }
+.brand-wave-l2, .brand-wave-r2 { opacity: .55; animation-delay: .4s; }
+@keyframes brandWave { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+.brand:hover .brand-mark { background: var(--ink); color: var(--yellow-bright); }
+.brand-mark { transition: background .2s ease, color .2s ease; }
 .brand-titles { display: grid; line-height: 1; }
 .brand-eyebrow {
   font: 500 7px/1.2 var(--mono);
@@ -234,6 +242,29 @@
   background: var(--paper); content: "";
 }
 .air-status.live::before { background: var(--danger); }
+
+/* ── Індикатор якості зв'язку (реальні дані WebRTC getStats) ── */
+.conn-quality {
+  display: inline-flex; align-items: center; gap: 7px;
+  font: 600 8px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink);
+}
+.conn-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 13px; }
+.conn-bars i {
+  width: 3px; border-radius: 1px; background: rgba(17,17,15,.22);
+  transition: background .25s ease, height .25s ease;
+}
+.conn-bars i:nth-child(1) { height: 5px; }
+.conn-bars i:nth-child(2) { height: 9px; }
+.conn-bars i:nth-child(3) { height: 13px; }
+.q-good  .conn-bars i.on { background: #1f8a40; }
+.q-ok    .conn-bars i.on { background: #c79100; }
+.q-weak  .conn-bars i.on { background: var(--danger); }
+.q-weak  .conn-bars i.on { animation: connPulse 1.2s ease-in-out infinite; }
+@keyframes connPulse { 50% { opacity: .4; } }
+.conn-label { color: var(--ink); opacity: .7; }
+@media (max-width: 720px) { .conn-label { display: none; } }
+
 .air-title {
   margin: 18px 0 0;
   max-width: 9ch;

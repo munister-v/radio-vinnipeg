@@ -16,6 +16,20 @@ function Equalizer({ active }: { active: boolean }) {
   )
 }
 
+function SignalQuality({ quality }: { quality: 'good' | 'ok' | 'weak' | null }) {
+  if (!quality) return null
+  const label = quality === 'good' ? 'Стабільний зв’язок' : quality === 'ok' ? 'Нормальний зв’язок' : 'Слабкий зв’язок'
+  const bars = quality === 'good' ? 3 : quality === 'ok' ? 2 : 1
+  return (
+    <span className={`conn-quality q-${quality}`} title={label} aria-label={label}>
+      <span className="conn-bars" aria-hidden>
+        {[1, 2, 3].map((b) => <i key={b} className={b <= bars ? 'on' : ''} />)}
+      </span>
+      <span className="conn-label">{label}</span>
+    </span>
+  )
+}
+
 function MicIcon({ off }: { off?: boolean }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -54,7 +68,7 @@ function SignalDeck({ active, label }: { active: boolean; label: string }) {
 
 export default function VoicePanel({ user }: Props) {
   const settings = useSettings()
-  const { members, joined, micOn, connecting, error, speaking, audioBlocked, unlockAudio, join, leave, toggleMic } =
+  const { members, joined, micOn, connecting, error, speaking, quality, audioBlocked, unlockAudio, join, leave, toggleMic } =
     useVoice(user.id, { volume: settings.volume, micDeviceId: settings.micDeviceId })
 
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -113,6 +127,7 @@ export default function VoicePanel({ user }: Props) {
         <div className="air-top">
           <span className="air-status live">Ви в розмові · {total} {plural(total)}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <SignalQuality quality={quality} />
             <Equalizer active={micOn || speakers.length > 0} />
             <button
               className="settings-gear"

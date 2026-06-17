@@ -215,13 +215,16 @@ export default function RadioPage({ user, onUserChange }: Props) {
         <div className="topbar-inner">
           <a className="brand" href="#air" aria-label="Radio Vinnipeg — до ефіру">
             <span className="brand-mark" aria-hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
                 strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none" />
-                <path d="M7.5 7.5a6 6 0 0 0 0 9" />
-                <path d="M16.5 7.5a6 6 0 0 1 0 9" />
-                <path d="M4.7 4.7a10 10 0 0 0 0 14.6" />
-                <path d="M19.3 4.7a10 10 0 0 1 0 14.6" />
+                {/* Передавач: щогла + сигнал, що випромінюється */}
+                <circle className="brand-core" cx="12" cy="8" r="2" fill="currentColor" stroke="none" />
+                <path d="M12 10v8" />
+                <path d="M8.5 18h7" />
+                <path className="brand-wave brand-wave-l" d="M8.6 4.6a5 5 0 0 0 0 6.8" />
+                <path className="brand-wave brand-wave-r" d="M15.4 4.6a5 5 0 0 1 0 6.8" />
+                <path className="brand-wave brand-wave-l2" d="M6.1 2.6a8.5 8.5 0 0 0 0 10.8" />
+                <path className="brand-wave brand-wave-r2" d="M17.9 2.6a8.5 8.5 0 0 1 0 10.8" />
               </svg>
             </span>
             <div className="brand-titles">
