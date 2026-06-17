@@ -101,6 +101,29 @@
   padding: 12px 24px;
 }
 
+/* ── Перемикач мови EN / UA ── */
+.lang-switch {
+  display: inline-flex;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.lang-switch button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 7px 9px;
+  font: 700 9px/1 var(--mono);
+  letter-spacing: .08em;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease;
+}
+.lang-switch button + button { border-left: 1px solid var(--ink); }
+.lang-switch button:hover { background: var(--yellow-bright); }
+.lang-switch button.on { background: var(--ink); color: var(--white); }
+
 .online-pill {
   display: inline-flex;
   align-items: center;

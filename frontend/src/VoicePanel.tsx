@@ -3,6 +3,7 @@ import type { User } from './api'
 import SettingsPanel from './SettingsPanel'
 import { useSettings } from './useSettings'
 import { useVoice } from './useVoice'
+import { useI18n, peopleWord } from './i18n'
 
 type Props = { user: User }
 
@@ -17,8 +18,9 @@ function Equalizer({ active }: { active: boolean }) {
 }
 
 function SignalQuality({ quality }: { quality: 'good' | 'ok' | 'weak' | null }) {
+  const { t } = useI18n()
   if (!quality) return null
-  const label = quality === 'good' ? 'Стабільний зв’язок' : quality === 'ok' ? 'Нормальний зв’язок' : 'Слабкий зв’язок'
+  const label = quality === 'good' ? t('voice.qGood') : quality === 'ok' ? t('voice.qOk') : t('voice.qWeak')
   const bars = quality === 'good' ? 3 : quality === 'ok' ? 2 : 1
   return (
     <span className={`conn-quality q-${quality}`} title={label} aria-label={label}>
@@ -67,6 +69,7 @@ function SignalDeck({ active, label }: { active: boolean; label: string }) {
 }
 
 export default function VoicePanel({ user }: Props) {
+  const { t, lang } = useI18n()
   const settings = useSettings()
   const { members, joined, micOn, connecting, error, speaking, quality, audioBlocked, unlockAudio, join, leave, toggleMic } =
     useVoice(user.id, { volume: settings.volume, micDeviceId: settings.micDeviceId })
@@ -121,28 +124,28 @@ export default function VoicePanel({ user }: Props) {
   // ── Ви в розмові ─────────────────────────────────────────────────────────
   if (joined) {
     const speakerNames = speakers.map((m) => m.nickname)
-    if (micOn && speaking) speakerNames.push('ви')
+    if (micOn && speaking) speakerNames.push(t('voice.you'))
     return (
       <section className="air air-live">
         <div className="air-top">
-          <span className="air-status live">Ви в розмові · {total} {plural(total)}</span>
+          <span className="air-status live">{t('voice.inCallYou', { n: total, ppl: peopleWord(total, lang) })}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <SignalQuality quality={quality} />
             <Equalizer active={micOn || speakers.length > 0} />
             <button
               className="settings-gear"
               onClick={() => setSettingsOpen((v) => !v)}
-              title="Налаштування"
-              aria-label="Налаштування звуку"
+              title={t('voice.settings')}
+              aria-label={t('voice.soundSettings')}
               aria-expanded={settingsOpen}
             ><SettingsIcon /></button>
           </div>
         </div>
-        <SignalDeck active={micOn || speakers.length > 0} label="Живий аудіосигнал розмови" />
+        <SignalDeck active={micOn || speakers.length > 0} label={t('voice.signalLabelLive')} />
 
         {audioBlocked && (
           <button className="btn btn-primary audio-unlock" onClick={unlockAudio}>
-            🔊 Натисніть, щоб увімкнути звук співрозмовників
+            {t('voice.audioUnlock')}
           </button>
         )}
 
@@ -150,15 +153,15 @@ export default function VoicePanel({ user }: Props) {
           <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} />
         )}
 
-        <h2 className="air-title">Радіорозмова наживо</h2>
+        <h2 className="air-title">{t('voice.liveTitle')}</h2>
         <p className="air-sub">
           {speakerNames.length > 0
-            ? `Говорить: ${speakerNames.join(', ')}`
+            ? t('voice.speaking', { names: speakerNames.join(', ') })
             : micOn
-              ? 'Мікрофон увімкнено — говоріть, вас чують'
+              ? t('voice.micOn')
               : settings.pttMode
-                ? 'Тримайте Space або кнопку нижче щоб говорити'
-                : 'Слухаєте. Натисніть мікрофон, щоб сказати слово'}
+                ? t('voice.pttHint')
+                : t('voice.listenHint')}
         </p>
         <div className="air-actions">
           {settings.pttMode ? (
@@ -171,20 +174,20 @@ export default function VoicePanel({ user }: Props) {
               onTouchEnd={pttEnd}
             >
               <span className="btn-mic-icon"><MicIcon off={!pttHeld} /></span>
-              {pttHeld ? 'Говорите наживо…' : 'Тримайте PTT'}
+              {pttHeld ? t('voice.pttLive') : t('voice.pttHold')}
             </button>
           ) : (
             <button className={`btn btn-mic ${micOn ? 'on' : ''}`} onClick={toggleMic}>
               <span className="btn-mic-icon"><MicIcon off={!micOn} /></span>
-              {micOn ? 'Вимкнути мікрофон' : 'Увімкнути мікрофон'}
+              {micOn ? t('voice.muteMic') : t('voice.unmuteMic')}
             </button>
           )}
-          <button className="btn btn-outline" onClick={leave}>Вийти з розмови</button>
+          <button className="btn btn-outline" onClick={leave}>{t('voice.leave')}</button>
         </div>
-        <ul className="air-members" aria-label="Учасники розмови">
+        <ul className="air-members" aria-label={t('voice.participants')}>
           <li className={`${micOn ? '' : 'muted-mic'} ${speaking ? 'speaking' : ''}`}>
             <span className="dot" style={{ background: user.color }} />
-            ви <small>{micOn ? 'MIC' : 'MUTE'}</small>
+            {t('voice.you')} <small>{micOn ? 'MIC' : 'MUTE'}</small>
           </li>
           {members.map((m) => (
             <li
@@ -206,18 +209,18 @@ export default function VoicePanel({ user }: Props) {
     return (
       <section className="air air-idle">
         <div className="air-top">
-          <span className="air-status live">У розмові · {members.length} {plural(members.length)}</span>
+          <span className="air-status live">{t('voice.inCall', { n: members.length, ppl: peopleWord(members.length, lang) })}</span>
           <Equalizer active={members.some((m) => m.speaking)} />
         </div>
-        <SignalDeck active={members.some((m) => m.speaking)} label="Аудіосигнал поточної розмови" />
-        <h2 className="air-title">Розмова триває</h2>
+        <SignalDeck active={members.some((m) => m.speaking)} label={t('voice.signalLabelCurrent')} />
+        <h2 className="air-title">{t('voice.inProgress')}</h2>
         <p className="air-sub">{members.map((m) => m.nickname).join(', ')}</p>
         <div className="air-actions">
           <button className="btn btn-primary" onClick={join} disabled={connecting}>
-            {connecting ? 'Підключення…' : 'Приєднатися до ефіру'}
+            {connecting ? t('voice.connecting') : t('voice.join')}
           </button>
         </div>
-        <ul className="air-members" aria-label="Учасники розмови">
+        <ul className="air-members" aria-label={t('voice.participants')}>
           {members.map((m) => (
             <li key={m.user_id} className={m.speaking ? 'speaking' : ''}>
               <span className="dot" style={{ background: m.color }} />
@@ -234,27 +237,19 @@ export default function VoicePanel({ user }: Props) {
   return (
     <section className="air air-idle">
       <div className="air-top">
-        <span className="air-status">Тиша в ефірі</span>
+        <span className="air-status">{t('voice.silence')}</span>
       </div>
-      <SignalDeck active={false} label="Ефір очікує на першу розмову" />
-      <h2 className="air-title">Зараз тут нікого немає</h2>
+      <SignalDeck active={false} label={t('voice.signalLabelWaiting')} />
+      <h2 className="air-title">{t('voice.nobody')}</h2>
       <p className="air-sub">
-        Приєднайтесь до групової розмови — слухати можна без мікрофона, говорити лише за бажанням.
+        {t('voice.inviteCopy')}
       </p>
       <div className="air-actions">
         <button className="btn btn-primary" onClick={join} disabled={connecting}>
-          {connecting ? 'Підключення…' : 'Розпочати живий ефір'}
+          {connecting ? t('voice.connecting') : t('voice.start')}
         </button>
       </div>
       {error && <div className="air-error">{error}</div>}
     </section>
   )
-}
-
-function plural(n: number): string {
-  const mod10 = n % 10
-  const mod100 = n % 100
-  if (mod10 === 1 && mod100 !== 11) return 'людина'
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'людини'
-  return 'людей'
 }

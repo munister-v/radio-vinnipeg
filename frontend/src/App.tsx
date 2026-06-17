@@ -10,8 +10,10 @@ import {
   saveSession,
   type User,
 } from './api'
+import { useI18n } from './i18n'
 
 function App() {
+  const { t } = useI18n()
   const [user, setUser] = useState<User | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -37,7 +39,7 @@ function App() {
         saveSession(t, u)
         if (!cancelled) setUser(u)
       } catch {
-        if (!cancelled) setError('Не вдалося підключитися до радіо. Оновіть сторінку.')
+        if (!cancelled) setError(t('app.connectError'))
       }
     }
 
@@ -45,13 +47,13 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [t])
 
   if (error) {
     return <div className="loading">{error}</div>
   }
   if (!user) {
-    return <div className="loading">Налаштовуємо ефір…</div>
+    return <div className="loading">{t('app.loading')}</div>
   }
 
   return <RadioPage user={user} onUserChange={setUser} />

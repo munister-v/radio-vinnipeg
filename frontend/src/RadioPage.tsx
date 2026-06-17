@@ -13,6 +13,7 @@ import {
 } from './api'
 import VoicePanel from './VoicePanel'
 import { setBackgroundInterval, type BgTimer } from './bgTimer'
+import { useI18n, type Lang } from './i18n'
 
 type Props = {
   user: User
@@ -21,21 +22,26 @@ type Props = {
 
 const POLL_INTERVAL_MS = 3000
 
-const stationSlots = [
-  { start: 0, end: 8, label: 'Нічний відкритий ефір', note: 'Тиха розмова без заданої теми' },
-  { start: 8, end: 12, label: 'Ранковий сигнал', note: 'Початок дня разом зі слухачами' },
-  { start: 12, end: 18, label: 'Денна розмова', note: 'Вільний мікрофон і живі включення' },
-  { start: 18, end: 24, label: 'Вечірній відкритий мікрофон', note: 'Головний розмовний слот станції' },
+const slotTimes = [
+  { start: 0, end: 8 },
+  { start: 8, end: 12 },
+  { start: 12, end: 18 },
+  { start: 18, end: 24 },
 ]
 
-function formatTime(iso: string): string {
+function localeOf(lang: Lang): string {
+  return lang === 'uk' ? 'uk-UA' : 'en-CA'
+}
+
+function formatTime(iso: string, lang: Lang): string {
   const normalized = iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z'
   const d = new Date(normalized)
   if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleTimeString(localeOf(lang), { hour: '2-digit', minute: '2-digit' })
 }
 
 function StationClock() {
+  const { t, lang } = useI18n()
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
@@ -44,32 +50,34 @@ function StationClock() {
   }, [])
 
   const hour = now.getHours()
-  const slotIndex = stationSlots.findIndex((slot) => hour >= slot.start && hour < slot.end)
+  const slotIndex = slotTimes.findIndex((slot) => hour >= slot.start && hour < slot.end)
   const activeIndex = slotIndex === -1 ? 0 : slotIndex
-  const active = stationSlots[activeIndex]
-  const next = stationSlots[(activeIndex + 1) % stationSlots.length]
+  const active = slotTimes[activeIndex]
+  const nextIndex = (activeIndex + 1) % slotTimes.length
   const elapsed = now.getHours() + now.getMinutes() / 60 - active.start
   const progress = Math.min(100, Math.max(0, (elapsed / (active.end - active.start)) * 100))
+  const timeStr = now.toLocaleTimeString(localeOf(lang), { hour: '2-digit', minute: '2-digit' })
 
   return (
-    <section className="station-clock" aria-label="Поточний ритм станції">
+    <section className="station-clock" aria-label={t('clock.aria')}>
       <div className="station-clock-now">
-        <span>Зараз / {now.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}</span>
-        <h2>{active.label}</h2>
-        <p>{active.note}</p>
+        <span>{t('clock.now', { time: timeStr })}</span>
+        <h2>{t(`slot.${activeIndex}.label`)}</h2>
+        <p>{t(`slot.${activeIndex}.note`)}</p>
       </div>
-      <div className="station-progress" aria-label={`Поточний слот завершено на ${Math.round(progress)} відсотків`}>
+      <div className="station-progress" aria-label={t('clock.progress', { pct: Math.round(progress) })}>
         <i style={{ transform: `scaleX(${progress / 100})` }} />
       </div>
       <div className="station-clock-next">
-        <span>Далі / {String(active.end % 24).padStart(2, '0')}:00</span>
-        <strong>{next.label}</strong>
+        <span>{t('clock.next', { time: `${String(active.end % 24).padStart(2, '0')}:00` })}</span>
+        <strong>{t(`slot.${nextIndex}.label`)}</strong>
       </div>
     </section>
   )
 }
 
 export default function RadioPage({ user, onUserChange }: Props) {
+  const { t, lang, setLang } = useI18n()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [online, setOnline] = useState<{ nickname: string; color: string }[]>([])
   const [chatOpen, setChatOpen] = useState(false)
@@ -161,7 +169,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
       lastIdRef.current = msg.id
       setDraft('')
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Не вдалося надіслати повідомлення.')
+      setError(err instanceof ApiError ? err.message : t('chat.sendError'))
     } finally {
       setSending(false)
     }
@@ -171,7 +179,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
     try {
       await deleteMessage(id)
       setMessages((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, text: 'Повідомлення видалено', is_deleted: true } : m)),
+        prev.map((m) => (m.id === id ? { ...m, text: t('chat.deleted'), is_deleted: true } : m)),
       )
     } catch {
       // ignore
@@ -191,7 +199,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
       onUserChange(updated)
       setEditingNick(false)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Не вдалося змінити нік.')
+      setError(err instanceof ApiError ? err.message : t('chat.renameError'))
     }
   }
 
@@ -213,7 +221,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
     <div className="radio-shell">
       <header className="topbar">
         <div className="topbar-inner">
-          <a className="brand" href="#air" aria-label="Radio Vinnipeg — до ефіру">
+          <a className="brand" href="#air" aria-label={t('top.toAir')}>
             <span className="brand-mark" aria-hidden>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
                 strokeLinecap="round" strokeLinejoin="round">
@@ -228,18 +236,22 @@ export default function RadioPage({ user, onUserChange }: Props) {
               </svg>
             </span>
             <div className="brand-titles">
-              <span className="brand-eyebrow">Munister / Radio 01</span>
+              <span className="brand-eyebrow">{t('top.brandEyebrow')}</span>
               <span className="brand-name">Radio Vinnipeg</span>
             </div>
           </a>
-          <nav className="topbar-nav" aria-label="Головна навігація">
-            <a href="#air">Ефір</a>
-            <a href="#schedule">Розклад</a>
-            <a href="#about">Про радіо</a>
-            <button type="button" onClick={openChat}>Чат</button>
+          <nav className="topbar-nav" aria-label="Radio Vinnipeg">
+            <a href="#air">{t('nav.air')}</a>
+            <a href="#schedule">{t('nav.schedule')}</a>
+            <a href="#about">{t('nav.about')}</a>
+            <button type="button" onClick={openChat}>{t('nav.chat')}</button>
           </nav>
           <div className="topbar-right">
-            <span className="online-pill"><span className="dot-live" />Ефір відкрито · {online.length}</span>
+            <div className="lang-switch" role="group" aria-label="Language">
+              <button type="button" className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')} aria-pressed={lang === 'en'}>EN</button>
+              <button type="button" className={lang === 'uk' ? 'on' : ''} onClick={() => setLang('uk')} aria-pressed={lang === 'uk'}>UA</button>
+            </div>
+            <span className="online-pill"><span className="dot-live" />{t('top.online', { n: online.length })}</span>
             {editingNick ? (
               <form className="nick-edit" onSubmit={handleRename}>
                 <input
@@ -257,7 +269,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
                   setNickDraft(user.nickname)
                   setEditingNick(true)
                 }}
-                title="Змінити нік"
+                title={t('top.changeNick')}
               >
                 <span className="dot" style={{ background: user.color }} />
                 <span>{user.nickname}</span>
@@ -271,14 +283,14 @@ export default function RadioPage({ user, onUserChange }: Props) {
       <main>
         <section className="broadcast-stage" id="air">
           <div className="broadcast-intro">
-            <div className="section-kicker"><span>01</span> Незалежний живий ефір</div>
+            <div className="section-kicker"><span>01</span> {t('hero.kicker')}</div>
             <h1>Radio<br />Vinnipeg</h1>
-            <p>Відкрите радіо, де слухач може стати голосом ефіру</p>
+            <p>{t('hero.tagline')}</p>
           </div>
-          <div className="frequency" aria-label="Частота Radio Vinnipeg">
-            <span>ON AIR</span>
+          <div className="frequency" aria-label="Radio Vinnipeg — 24/7">
+            <span>{t('freq.onair')}</span>
             <strong>24/7</strong>
-            <small>WEB FREQUENCY</small>
+            <small>{t('freq.web')}</small>
           </div>
           <div className="broadcast-console">
             <VoicePanel user={user} />
@@ -297,31 +309,31 @@ export default function RadioPage({ user, onUserChange }: Props) {
 
         <section className="schedule-section" id="schedule">
           <div className="schedule-heading">
-            <div className="section-kicker"><span>02</span> Ритм станції</div>
-            <h2>Зараз.<br />Далі.</h2>
+            <div className="section-kicker"><span>02</span> {t('schedule.kicker')}</div>
+            <h2 dangerouslySetInnerHTML={{ __html: t('schedule.heading') }} />
           </div>
           <StationClock />
           <ol className="schedule-grid">
-            {stationSlots.map((slot, index) => (
+            {slotTimes.map((slot, index) => (
               <li key={slot.start}>
                 <span>{String(index + 1).padStart(2, '0')}</span>
                 <time>{String(slot.start).padStart(2, '0')}:00</time>
-                <h3>{slot.label}</h3>
-                <p>{slot.note}</p>
+                <h3>{t(`slot.${index}.label`)}</h3>
+                <p>{t(`slot.${index}.note`)}</p>
               </li>
             ))}
           </ol>
         </section>
 
         <section className="radio-manifesto" id="about">
-          <div className="section-kicker"><span>03</span> Радіо як спільний простір</div>
-          <h2>Не плейлист.<br />Живі люди.</h2>
+          <div className="section-kicker"><span>03</span> {t('about.kicker')}</div>
+          <h2 dangerouslySetInnerHTML={{ __html: t('about.heading') }} />
           <div className="manifesto-copy">
-            <p>Слухайте розмову наживо або долучайтеся з мікрофоном, коли маєте що сказати.</p>
+            <p>{t('about.copy')}</p>
             <dl>
-              <div><dt>Вхід</dt><dd>без реєстрації</dd></div>
-              <div><dt>Формат</dt><dd>відкритий мікрофон</dd></div>
-              <div><dt>Зв'язок</dt><dd>наживо у браузері</dd></div>
+              <div><dt>{t('about.accessT')}</dt><dd>{t('about.accessD')}</dd></div>
+              <div><dt>{t('about.formatT')}</dt><dd>{t('about.formatD')}</dd></div>
+              <div><dt>{t('about.connT')}</dt><dd>{t('about.connD')}</dd></div>
             </dl>
           </div>
         </section>
@@ -340,37 +352,37 @@ export default function RadioPage({ user, onUserChange }: Props) {
             <path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="1.8" />
           </svg>
         </span>
-        <span><small>MESSENGER</small>Відкрити чат</span>
-        <b aria-label={`${unreadCount} непрочитаних повідомлень`}>{unreadCount}</b>
+        <span><small>{t('chat.launcherKicker')}</small>{t('chat.open')}</span>
+        <b aria-label={t('chat.unreadAria', { n: unreadCount })}>{unreadCount}</b>
       </button>
 
-      <aside className="mobile-air-dock" aria-label="Швидкий доступ до ефіру">
+      <aside className="mobile-air-dock" aria-label="Radio Vinnipeg">
         <a href="#air">
           <span><i />ON AIR</span>
           <strong>Radio Vinnipeg</strong>
         </a>
-        <button type="button" onClick={openChat} aria-label="Відкрити чат">
-          Чат{unreadCount > 0 ? ` · ${unreadCount}` : ''}
+        <button type="button" onClick={openChat} aria-label={t('chat.open')}>
+          {t('chat.dockChat')}{unreadCount > 0 ? ` · ${unreadCount}` : ''}
         </button>
       </aside>
 
       <div className={`chat-layer ${chatOpen ? 'is-open' : ''}`} aria-hidden={!chatOpen}>
-        <button className="chat-scrim" type="button" onClick={closeChat} aria-label="Закрити чат" />
-        <section className="chat-drawer" id="radio-chat" role="dialog" aria-modal="true" aria-label="Чат Radio Vinnipeg">
+        <button className="chat-scrim" type="button" onClick={closeChat} aria-label={t('chat.close')} />
+        <section className="chat-drawer" id="radio-chat" role="dialog" aria-modal="true" aria-label={t('chat.headerTitle')}>
           <header className="chat-header">
             <div>
-              <span>RADIO VINNIPEG / MESSENGER</span>
-              <h2>Чат ефіру</h2>
+              <span>{t('chat.headerKicker')}</span>
+              <h2>{t('chat.headerTitle')}</h2>
             </div>
-            <button type="button" onClick={closeChat} aria-label="Закрити чат">×</button>
+            <button type="button" onClick={closeChat} aria-label={t('chat.close')}>×</button>
           </header>
           <div className="chat-context">
-            <span>LIVE CHANNEL / 01</span>
-            <strong>Розмова навколо ефіру</strong>
-            <p>Коментуйте почуте або запропонуйте тему для відкритого мікрофона.</p>
+            <span>{t('chat.contextKicker')}</span>
+            <strong>{t('chat.contextTitle')}</strong>
+            <p>{t('chat.contextCopy')}</p>
           </div>
           <div className="chat-presence">
-            <span><i />{online.length} слухачів онлайн</span>
+            <span><i />{t('chat.presence', { n: online.length })}</span>
             <div>
               {online.slice(0, 5).map((u, i) => (
                 <span className="presence-dot" key={`${u.nickname}-${i}`} style={{ background: u.color }} title={u.nickname} />
@@ -382,20 +394,20 @@ export default function RadioPage({ user, onUserChange }: Props) {
               {messages.length === 0 && (
                 <div className="messages-empty">
                   <span aria-hidden>RV / 01</span>
-                  <strong>Чат ще мовчить</strong>
-                  <p>Напишіть перше повідомлення або запропонуйте тему для ефіру.</p>
+                  <strong>{t('chat.emptyTitle')}</strong>
+                  <p>{t('chat.emptyCopy')}</p>
                 </div>
               )}
               {messages.map((m) => (
                 <div key={m.id} className={`message ${m.user_id === user.id ? 'mine' : ''}`}>
                   <div className="message-meta">
                     <span className="message-author" style={{ color: m.user_id === user.id ? undefined : m.color }}>{m.nickname}</span>
-                    <span className="message-time">{formatTime(m.created_at)}</span>
+                    <span className="message-time">{formatTime(m.created_at, lang)}</span>
                   </div>
                   <div className={`message-bubble ${m.is_deleted ? 'deleted' : ''}`}>
                     {m.text}
                     {!m.is_deleted && m.user_id === user.id && (
-                      <button className="delete-btn" title="Видалити" onClick={() => handleDelete(m.id)}>
+                      <button className="delete-btn" title={t('chat.delete')} onClick={() => handleDelete(m.id)}>
                         ×
                       </button>
                     )}
@@ -413,15 +425,15 @@ export default function RadioPage({ user, onUserChange }: Props) {
                   ref={composerInputRef}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  placeholder={`Напишіть як ${user.nickname}…`}
-                  aria-label="Повідомлення в чат ефіру"
+                  placeholder={t('chat.placeholder', { nick: user.nickname })}
+                  aria-label={t('chat.inputAria')}
                   maxLength={1000}
                   tabIndex={chatOpen ? 0 : -1}
                 />
                 <span>{draft.length} / 1000</span>
               </div>
               <button type="submit" disabled={sending || !draft.trim()}>
-                <span>Надіслати</span>
+                <span>{t('chat.send')}</span>
                 <b aria-hidden>↗</b>
               </button>
             </form>

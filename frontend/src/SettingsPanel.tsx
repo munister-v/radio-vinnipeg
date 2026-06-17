@@ -1,4 +1,5 @@
 import type { Settings } from './useSettings'
+import { useI18n } from './i18n'
 
 type Props = {
   settings: Settings
@@ -6,17 +7,18 @@ type Props = {
 }
 
 export default function SettingsPanel({ settings, onClose }: Props) {
+  const { t } = useI18n()
   const { volume, micDeviceId, pttMode, devices, setVolume, setMicDevice, setPttMode, refreshDevices } = settings
 
   return (
     <div className="settings-panel">
       <div className="settings-header">
-        <span>Налаштування звуку</span>
-        <button className="settings-close" onClick={onClose} aria-label="Закрити">×</button>
+        <span>{t('set.title')}</span>
+        <button className="settings-close" onClick={onClose} aria-label={t('set.close')}>×</button>
       </div>
 
       <label className="settings-row">
-        <span className="settings-label">Гучність слухачів</span>
+        <span className="settings-label">{t('set.volume')}</span>
         <div className="settings-volume">
           <input
             type="range"
@@ -31,7 +33,7 @@ export default function SettingsPanel({ settings, onClose }: Props) {
       </label>
 
       <label className="settings-row">
-        <span className="settings-label">Мікрофон</span>
+        <span className="settings-label">{t('set.mic')}</span>
         <div className="settings-select-wrap">
           <select
             value={micDeviceId}
@@ -39,10 +41,10 @@ export default function SettingsPanel({ settings, onClose }: Props) {
             onFocus={refreshDevices}
             className="settings-select"
           >
-            <option value="">Системний за замовчуванням</option>
+            <option value="">{t('set.sysDefault')}</option>
             {devices.map((d) => (
               <option key={d.deviceId} value={d.deviceId}>
-                {d.label || `Мікрофон ${d.deviceId.slice(0, 8)}`}
+                {d.label || t('set.micFallback', { id: d.deviceId.slice(0, 8) })}
               </option>
             ))}
           </select>
@@ -51,8 +53,8 @@ export default function SettingsPanel({ settings, onClose }: Props) {
 
       <label className="settings-row settings-toggle-row">
         <span className="settings-label">
-          Push-to-talk
-          <span className="settings-hint">Space або кнопка — тримати щоб говорити</span>
+          {t('set.ptt')}
+          <span className="settings-hint">{t('set.pttHint')}</span>
         </span>
         <button
           className={`toggle-btn ${pttMode ? 'on' : ''}`}
