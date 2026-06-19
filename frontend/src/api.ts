@@ -146,7 +146,7 @@ export async function getActiveCall() {
 }
 
 export async function joinCall() {
-  return request<{ call_id: number; members: CallMember[] }>('/calls/join', { method: 'POST' })
+  return request<{ call_id: number; members: CallMember[]; latest_signal_id: number }>('/calls/join', { method: 'POST' })
 }
 
 export async function leaveCall(callId: number) {

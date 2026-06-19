@@ -121,7 +121,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const speakingRef = useRef<Map<number, boolean>>(new Map())
   const speakTimerRef = useRef<number | null>(null)
   // Моніторинг якості зв'язку.
-  const qualityTimerRef = useRef<number | null>(null)
+  const qualityTimerRef = useRef<BgTimer | null>(null)
   const prevPacketsRef = useRef<Map<number, { lost: number; recv: number }>>(new Map())
 
   // ── Синхронізуємо volume/deviceId з opts без перестворення peers ────────────
@@ -156,9 +156,16 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   }, [])
 
   // Тихий зациклений source — не дає ОС приспати аудіо при блокуванні екрана.
+  // Перезапускаємо, якщо AudioContext було призупинено (напр., екран вимкнено на iOS).
   const startKeepAlive = useCallback(() => {
     const ctx = audioCtxRef.current
-    if (!ctx || keepAliveRef.current) return
+    if (!ctx) return
+    // Якщо контекст не running (suspended після блокування екрана) — зупиняємо старий вузол.
+    if (keepAliveRef.current && ctx.state !== 'running') {
+      try { keepAliveRef.current.stop() } catch { /* ignore */ }
+      keepAliveRef.current = null
+    }
+    if (keepAliveRef.current) return
     try {
       const buffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate)
       const src = ctx.createBufferSource()
@@ -331,13 +338,25 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
 
   const reconnectViaRelayRef = useRef<(peerId: number) => void>(() => {})
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
+  // Зберігаємо посилання на функцію, щоб sentinel.onrelease міг перезапитати без циклічних залежностей.
+  const acquireWakeLockRef = useRef<() => Promise<void>>(async () => {})
 
   // Не даємо екрану/CPU засинати під час дзвінка (Android Chrome/PWA).
   const acquireWakeLock = useCallback(async () => {
     try {
-      wakeLockRef.current = await navigator.wakeLock?.request('screen')
+      if (!navigator.wakeLock) return
+      const sentinel = await navigator.wakeLock.request('screen')
+      wakeLockRef.current = sentinel
+      // ОС автоматично знімає wake lock при блокуванні — перезапитуємо при поверненні.
+      sentinel.addEventListener('release', () => {
+        wakeLockRef.current = null
+        if (document.visibilityState === 'visible' && joinedRef.current) {
+          acquireWakeLockRef.current()
+        }
+      }, { once: true })
     } catch { /* непідтримується або відмовлено — не критично */ }
   }, [])
+  acquireWakeLockRef.current = acquireWakeLock
 
   const releaseWakeLock = useCallback(() => {
     wakeLockRef.current?.release().catch(() => {})
@@ -389,6 +408,10 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       ;(audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true
       audio.setAttribute('playsinline', '')
       audio.style.display = 'none'
+      // iOS може заглушити елемент при блокуванні екрана — відновлюємо одразу.
+      audio.addEventListener('pause', () => {
+        if (joinedRef.current && audio.srcObject) audio.play().catch(() => {})
+      })
       document.body.appendChild(audio)
 
       const entry: PeerEntry = {
@@ -579,7 +602,18 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       serverMembersRef.current = list
       applyMembers()
       const ids = new Set(list.map((m) => m.user_id))
-      for (const m of list) ensurePeer(m.user_id)
+      for (const m of list) {
+        // If this peer exists but its connection is dead (failed/closed),
+        // drop it so ensurePeer recreates a fresh one. This handles the
+        // case where a user briefly disconnects and rejoins with the same
+        // userId without us receiving a 'bye' signal.
+        const existing = peersRef.current.get(m.user_id)
+        if (existing) {
+          const state = existing.pc.connectionState
+          if (state === 'failed' || state === 'closed') cleanupPeer(m.user_id)
+        }
+        ensurePeer(m.user_id)
+      }
       for (const peerId of [...peersRef.current.keys()]) {
         if (!ids.has(peerId)) cleanupPeer(peerId)
       }
@@ -682,15 +716,16 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     membersTimerRef.current = setBackgroundInterval(pollMembers, MEMBERS_POLL_MS)
     // Детектор гучності потрібен лише для видимого UI — звичайний таймер.
     speakTimerRef.current = window.setInterval(speakTick, SPEAK_TICK_MS)
-    if (qualityTimerRef.current) window.clearInterval(qualityTimerRef.current)
-    qualityTimerRef.current = window.setInterval(pollQuality, QUALITY_POLL_MS)
+    // Watchdog якості (getStats + reconnect) — на воркер-таймері, живе при блокуванні.
+    qualityTimerRef.current?.stop()
+    qualityTimerRef.current = setBackgroundInterval(pollQuality, QUALITY_POLL_MS)
   }, [pollSignals, pollMembers, speakTick, pollQuality])
 
   const stopTimers = useCallback(() => {
     signalTimerRef.current?.stop(); signalTimerRef.current = null
     membersTimerRef.current?.stop(); membersTimerRef.current = null
     if (speakTimerRef.current) { window.clearInterval(speakTimerRef.current); speakTimerRef.current = null }
-    if (qualityTimerRef.current) { window.clearInterval(qualityTimerRef.current); qualityTimerRef.current = null }
+    qualityTimerRef.current?.stop(); qualityTimerRef.current = null
     prevPacketsRef.current.clear()
     setQuality(null)
   }, [])
@@ -730,7 +765,9 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       await loadIceServers()
       const res = await apiJoinCall()
       callIdRef.current = res.call_id
-      afterIdRef.current = 0
+      // Start from the latest existing signal so we don't replay stale
+      // offers/answers from previous sessions in this call (join-bug fix).
+      afterIdRef.current = res.latest_signal_id ?? 0
       joinedRef.current = true
       setJoined(true)
       serverMembersRef.current = res.members

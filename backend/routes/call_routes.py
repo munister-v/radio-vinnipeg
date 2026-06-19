@@ -143,7 +143,18 @@ def join_call():
 
         _cleanup_stale(conn, call_id)
         members = [m for m in _members(conn, call_id) if int(m['user_id']) != me_id]
-    return jsonify({'ok': True, 'data': {'call_id': call_id, 'members': members}})
+        # Return latest signal id so the joining client skips replaying
+        # stale signals from previous sessions in this call.
+        latest = conn.execute(
+            "SELECT COALESCE(MAX(id), 0) AS id FROM call_signals WHERE call_id = %s",
+            (call_id,),
+        ).fetchone()
+        latest_signal_id = int(latest['id'])
+    return jsonify({'ok': True, 'data': {
+        'call_id': call_id,
+        'members': members,
+        'latest_signal_id': latest_signal_id,
+    }})
 
 
 @call_bp.put('/<int:call_id>/leave')
@@ -188,6 +199,13 @@ def call_members(call_id: int):
         )
         _cleanup_stale(conn, call_id)
         out = [m for m in _members(conn, call_id) if int(m['user_id']) != me_id]
+        # Prune signals older than the last 500 to prevent unbounded DB growth.
+        # Safe because joining clients now start from latest_signal_id, not 0.
+        conn.execute(
+            "DELETE FROM call_signals WHERE call_id = %s AND id < "
+            "((SELECT COALESCE(MAX(id), 0) FROM call_signals WHERE call_id = %s) - 500)",
+            (call_id, call_id),
+        )
     return jsonify({'ok': True, 'data': out})
 
 
