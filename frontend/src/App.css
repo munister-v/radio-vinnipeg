@@ -2202,3 +2202,28 @@ body::before {
 }
 .chat-notif-btn:hover { background: var(--ink); color: var(--paper); }
 .chat-notif-btn[aria-pressed="false"] { opacity: .48; }
+
+/* ════════════════════════════════════════════════════════════
+   DESKTOP: push page content when chat sidebar opens
+   — no scrim overlay, page remains interactive
+   ════════════════════════════════════════════════════════════ */
+
+@media (min-width: 960px) {
+  /* Smooth push transition matches chat drawer spring */
+  .topbar { transition: margin-left .44s cubic-bezier(.16, 1, .3, 1); }
+  main    { transition: margin-left .44s cubic-bezier(.16, 1, .3, 1); }
+
+  /* Push topbar and content right when sidebar is open */
+  .radio-shell.chat-is-open .topbar,
+  .radio-shell.chat-is-open main {
+    margin-left: 440px;
+  }
+
+  /* Scrim: invisible and non-blocking on desktop */
+  .chat-scrim { pointer-events: none; }
+  .chat-layer.is-open .chat-scrim {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    opacity: 0;
+  }
+}

@@ -510,7 +510,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
   const unreadCount = chatOpen ? 0 : messages.filter((message) => message.id > lastReadId).length
 
   return (
-    <div className="radio-shell">
+    <div className={`radio-shell${chatOpen ? ' chat-is-open' : ''}`}>
       <header className="topbar">
         <div className="topbar-inner">
           <a className="brand" href="#air" aria-label={t('top.toAir')}>
