@@ -4,6 +4,15 @@ export type User = {
   color: string
 }
 
+export type Reaction = { emoji: string; count: number; reacted: boolean }
+
+export type ReplyPreview = {
+  id: number
+  nickname: string
+  color: string
+  text: string
+}
+
 export type ChatMessage = {
   id: number
   user_id: number
@@ -12,6 +21,10 @@ export type ChatMessage = {
   text: string
   is_deleted: boolean
   created_at: string
+  reply_to_id: number | null
+  reply_to: ReplyPreview | null
+  edited_at: string | null
+  reactions: Reaction[]
 }
 
 const TOKEN_KEY = 'vinnipeg_token'
@@ -93,14 +106,40 @@ export async function fetchMessages() {
   return request<ChatMessage[]>('/chat/messages')
 }
 
-export async function pollMessages(afterId: number) {
-  return request<ChatMessage[]>(`/chat/poll?after_id=${afterId}`)
+export type Typer = { nickname: string; color: string }
+export type ReactionUpdate = { message_id: number; reactions: Reaction[] }
+export type PollResult = {
+  messages: ChatMessage[]
+  typing: Typer[]
+  reaction_updates: ReactionUpdate[]
 }
 
-export async function sendMessage(text: string) {
+export async function pollMessages(afterId: number): Promise<PollResult> {
+  return request<PollResult>(`/chat/poll?after_id=${afterId}`)
+}
+
+export async function sendTyping(): Promise<void> {
+  return request<void>('/chat/typing', { method: 'POST' })
+}
+
+export async function reactToMessage(msgId: number, emoji: string) {
+  return request<{ message_id: number; reactions: Reaction[] }>(`/chat/messages/${msgId}/react`, {
+    method: 'POST',
+    body: JSON.stringify({ emoji }),
+  })
+}
+
+export async function editMessage(msgId: number, text: string) {
+  return request<{ id: number; text: string; edited_at: string }>(`/chat/messages/${msgId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ text }),
+  })
+}
+
+export async function sendMessage(text: string, replyToId?: number) {
   return request<ChatMessage>('/chat/messages', {
     method: 'POST',
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, reply_to_id: replyToId ?? null }),
   })
 }
 

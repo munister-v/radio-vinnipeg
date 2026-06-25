@@ -43,6 +43,20 @@ class _ConnWrapper:
         return self._conn.execute(sql.replace('%s', '?'), params)
 
 
+def run_migrations() -> None:
+    """Безпечно додає нові колонки/таблиці до існуючої БД."""
+    with get_connection() as conn:
+        # Re-run schema to pick up new CREATE TABLE IF NOT EXISTS statements
+        schema_sql = SCHEMA_PATH.read_text(encoding='utf-8')
+        conn._conn.executescript(schema_sql)
+
+        cols = {r['name'] for r in conn.execute('PRAGMA table_info(messages)').fetchall()}
+        if 'reply_to_id' not in cols:
+            conn.execute('ALTER TABLE messages ADD COLUMN reply_to_id INTEGER REFERENCES messages(id)')
+        if 'edited_at' not in cols:
+            conn.execute('ALTER TABLE messages ADD COLUMN edited_at TEXT')
+
+
 def init_db() -> None:
     """Створює таблиці (якщо не існують) та базову кімнату чату."""
     with get_connection() as conn:

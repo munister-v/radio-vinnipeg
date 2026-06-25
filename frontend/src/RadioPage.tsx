@@ -2,18 +2,129 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   ApiError,
   deleteMessage,
+  editMessage,
   fetchMessages,
   fetchOnline,
   pollMessages,
+  reactToMessage,
   renameMe,
   saveUser,
   sendMessage,
+  sendTyping,
   type ChatMessage,
+  type Reaction,
+  type Typer,
   type User,
 } from './api'
 import VoicePanel from './VoicePanel'
+import EmojiPicker from './EmojiPicker'
+import GifPicker from './GifPicker'
 import { setBackgroundInterval, type BgTimer } from './bgTimer'
 import { useI18n, type Lang } from './i18n'
+
+function playMessagePing() {
+  try {
+    const ctx = new AudioContext()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(880, ctx.currentTime)
+    osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.15)
+    gain.gain.setValueAtTime(0, ctx.currentTime)
+    gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.015)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45)
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + 0.45)
+    osc.onended = () => ctx.close()
+  } catch { /* AudioContext not available */ }
+}
+
+function ShortcutsModal({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n()
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onClose])
+  return (
+    <div className="shortcuts-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label={t('shortcuts.title')}>
+      <div className="shortcuts-panel" onClick={(e) => e.stopPropagation()}>
+        <header className="shortcuts-header">
+          <h2>{t('shortcuts.title')}</h2>
+          <button type="button" onClick={onClose} aria-label={t('chat.close')}>×</button>
+        </header>
+        <ul className="shortcuts-list">
+          <li><kbd>C</kbd><span>{t('shortcuts.chat')}</span></li>
+          <li><kbd>J</kbd><span>{t('shortcuts.join')}</span></li>
+          <li><kbd>M</kbd><span>{t('shortcuts.mic')}</span></li>
+          <li><kbd>Space</kbd><span>{t('shortcuts.ptt')}</span></li>
+          <li><kbd>Esc</kbd><span>{t('shortcuts.close')}</span></li>
+          <li><kbd>?</kbd><span>{t('shortcuts.help')}</span></li>
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+const MEDIA_RE = /^https?:\/\/\S+\.(gif|jpg|jpeg|png|webp)(\?.*)?$/i
+const TENOR_RE = /^https?:\/\/media\.tenor\.com\//i
+const GIPHY_RE = /^https?:\/\/media\d*\.giphy\.com\//i
+const URL_RE = /(https?:\/\/[^\s]+)/g
+
+function isMediaUrl(text: string): boolean {
+  const t = text.trim()
+  return MEDIA_RE.test(t) || TENOR_RE.test(t) || GIPHY_RE.test(t)
+}
+
+function MessageContent({ text }: { text: string }) {
+  if (isMediaUrl(text)) {
+    return (
+      <div className="message-media">
+        <img
+          src={text.trim()}
+          alt=""
+          className="message-img"
+          loading="lazy"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+        />
+      </div>
+    )
+  }
+  const parts = text.split(URL_RE)
+  return (
+    <>
+      {parts.map((part, i) =>
+        URL_RE.test(part)
+          ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="msg-link">{part}</a>
+          : part,
+      )}
+    </>
+  )
+}
+
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥']
+
+function formatDateSeparator(iso: string, lang: Lang): string {
+  const normalized = iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z'
+  const d = new Date(normalized)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  if (sameDay(d, today)) return lang === 'uk' ? 'Сьогодні' : 'Today'
+  if (sameDay(d, yesterday)) return lang === 'uk' ? 'Вчора' : 'Yesterday'
+  return d.toLocaleDateString(lang === 'uk' ? 'uk-UA' : 'en-CA', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function isSameDay(a: string, b: string): boolean {
+  const normalize = (s: string) => (s.includes('T') ? s : s.replace(' ', 'T') + 'Z')
+  const da = new Date(normalize(a))
+  const db = new Date(normalize(b))
+  return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate()
+}
 
 type Props = {
   user: User
@@ -80,16 +191,32 @@ export default function RadioPage({ user, onUserChange }: Props) {
   const { t, lang, setLang } = useI18n()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [online, setOnline] = useState<{ nickname: string; color: string }[]>([])
+  const [typers, setTypers] = useState<Typer[]>([])
   const [chatOpen, setChatOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [lastReadId, setLastReadId] = useState(0)
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [editingNick, setEditingNick] = useState(false)
   const [nickDraft, setNickDraft] = useState(user.nickname)
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const [gifOpen, setGifOpen] = useState(false)
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editDraft, setEditDraft] = useState('')
+  const [showScrollBtn, setShowScrollBtn] = useState(false)
+  const [scrollUnread, setScrollUnread] = useState(0)
+  const [mentionMatches, setMentionMatches] = useState<{ nickname: string; color: string }[]>([])
+  const [mentionIdx, setMentionIdx] = useState(0)
   const lastIdRef = useRef(0)
+  const initialLoadDoneRef = useRef(false)
+  const lastTypingSentRef = useRef(0)
   const listEndRef = useRef<HTMLDivElement>(null)
+  const messagesRef = useRef<HTMLDivElement>(null)
   const composerInputRef = useRef<HTMLInputElement>(null)
+  const emojiBtnRef = useRef<HTMLButtonElement>(null)
+  const gifBtnRef = useRef<HTMLButtonElement>(null)
   const pollRef = useRef<BgTimer | null>(null)
 
   useEffect(() => {
@@ -106,16 +233,37 @@ export default function RadioPage({ user, onUserChange }: Props) {
         }
       } catch (err) {
         if (err instanceof ApiError) setError(err.message)
+      } finally {
+        if (!cancelled) initialLoadDoneRef.current = true
       }
     }
     init()
 
     const tick = async () => {
       try {
-        const fresh = await pollMessages(lastIdRef.current)
+        const result = await pollMessages(lastIdRef.current)
+        const fresh = result.messages
         if (fresh.length) {
-          setMessages((prev) => [...prev, ...fresh])
           lastIdRef.current = fresh[fresh.length - 1].id
+          setMessages((prev) => [...prev, ...fresh])
+          if (initialLoadDoneRef.current) {
+            if (!chatOpen) playMessagePing()
+            // If scrolled away, count as unread
+            setScrollUnread((n) => {
+              const container = messagesRef.current
+              if (!container) return n
+              const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80
+              return atBottom ? 0 : n + fresh.length
+            })
+          }
+        }
+        setTypers(result.typing)
+        // Apply reaction updates from server
+        if (result.reaction_updates?.length) {
+          setMessages((prev) => prev.map((m) => {
+            const upd = result.reaction_updates.find((u) => u.message_id === m.id)
+            return upd ? { ...m, reactions: upd.reactions } : m
+          }))
         }
         setOnline(await fetchOnline())
       } catch {
@@ -140,9 +288,37 @@ export default function RadioPage({ user, onUserChange }: Props) {
   useEffect(() => {
     if (chatOpen) {
       listEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      setScrollUnread(0)
       window.setTimeout(() => composerInputRef.current?.focus(), 280)
     }
   }, [messages, chatOpen])
+
+  // Track whether listEnd is visible → show scroll-to-bottom button
+  useEffect(() => {
+    const el = listEndRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => {
+      setShowScrollBtn(!entry.isIntersecting)
+      if (entry.isIntersecting) setScrollUnread(0)
+    }, { root: messagesRef.current, threshold: 0 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [chatOpen])
+
+  // Mention autocomplete keyboard nav
+  useEffect(() => {
+    if (mentionMatches.length === 0) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIdx((i) => (i + 1) % mentionMatches.length) }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIdx((i) => (i - 1 + mentionMatches.length) % mentionMatches.length) }
+      else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault()
+        insertMention(mentionMatches[mentionIdx].nickname)
+      } else if (e.key === 'Escape') { setMentionMatches([]) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mentionMatches, mentionIdx])
 
   useEffect(() => {
     if (!chatOpen) return
@@ -157,17 +333,95 @@ export default function RadioPage({ user, onUserChange }: Props) {
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [chatOpen, messages])
 
+  // C: toggle chat
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyC' || e.repeat) return
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (chatOpen) closeChat()
+      else openChat()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [chatOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ?: toggle keyboard shortcuts help
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== '?' || e.repeat) return
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      setShortcutsOpen((v) => !v)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  function handleDraftChange(text: string) {
+    setDraft(text)
+    if (text.trim()) {
+      const now = Date.now()
+      if (now - lastTypingSentRef.current > 2500) {
+        lastTypingSentRef.current = now
+        sendTyping().catch(() => {})
+      }
+    }
+    // @mention autocomplete
+    const match = text.match(/@(\w*)$/)
+    if (match) {
+      const q = match[1].toLowerCase()
+      const hits = online.filter((u) => u.nickname.toLowerCase().startsWith(q)).slice(0, 6)
+      setMentionMatches(hits)
+      setMentionIdx(0)
+    } else {
+      setMentionMatches([])
+    }
+  }
+
+  function insertMention(nickname: string) {
+    setDraft((d) => d.replace(/@\w*$/, `@${nickname} `))
+    setMentionMatches([])
+    composerInputRef.current?.focus()
+  }
+
+  async function handleReact(msgId: number, emoji: string) {
+    try {
+      const res = await reactToMessage(msgId, emoji)
+      setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, reactions: res.reactions } : m))
+    } catch { /* ignore */ }
+  }
+
+  function startEdit(m: ChatMessage) {
+    setEditingId(m.id)
+    setEditDraft(m.text)
+  }
+
+  async function submitEdit(e: React.FormEvent, msgId: number) {
+    e.preventDefault()
+    const text = editDraft.trim()
+    if (!text) return
+    try {
+      const res = await editMessage(msgId, text)
+      setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, text: res.text, edited_at: res.edited_at } : m))
+      setEditingId(null)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t('chat.sendError'))
+    }
+  }
+
   async function handleSend(e: FormEvent) {
     e.preventDefault()
     const text = draft.trim()
     if (!text) return
     setSending(true)
     setError(null)
+    const rid = replyTo?.id
+    setReplyTo(null)
     try {
-      const msg = await sendMessage(text)
+      const msg = await sendMessage(text, rid)
       setMessages((prev) => [...prev, msg])
       lastIdRef.current = msg.id
       setDraft('')
+      listEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('chat.sendError'))
     } finally {
@@ -366,6 +620,8 @@ export default function RadioPage({ user, onUserChange }: Props) {
         </button>
       </aside>
 
+      {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
+
       <div className={`chat-layer ${chatOpen ? 'is-open' : ''}`} aria-hidden={!chatOpen}>
         <button className="chat-scrim" type="button" onClick={closeChat} aria-label={t('chat.close')} />
         <section className="chat-drawer" id="radio-chat" role="dialog" aria-modal="true" aria-label={t('chat.headerTitle')}>
@@ -374,7 +630,16 @@ export default function RadioPage({ user, onUserChange }: Props) {
               <span>{t('chat.headerKicker')}</span>
               <h2>{t('chat.headerTitle')}</h2>
             </div>
-            <button type="button" onClick={closeChat} aria-label={t('chat.close')}>×</button>
+            <div className="chat-header-actions">
+              <button
+                type="button"
+                className="chat-shortcuts-btn"
+                onClick={() => setShortcutsOpen(true)}
+                title={t('shortcuts.title')}
+                aria-label={t('shortcuts.title')}
+              >?</button>
+              <button type="button" onClick={closeChat} aria-label={t('chat.close')}>×</button>
+            </div>
           </header>
           <div className="chat-context">
             <span>{t('chat.contextKicker')}</span>
@@ -390,7 +655,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
             </div>
           </div>
           <div className="chat-card">
-            <div className="messages">
+            <div className="messages" ref={messagesRef}>
               {messages.length === 0 && (
                 <div className="messages-empty">
                   <span aria-hidden>RV / 01</span>
@@ -398,45 +663,225 @@ export default function RadioPage({ user, onUserChange }: Props) {
                   <p>{t('chat.emptyCopy')}</p>
                 </div>
               )}
-              {messages.map((m) => (
-                <div key={m.id} className={`message ${m.user_id === user.id ? 'mine' : ''}`}>
-                  <div className="message-meta">
-                    <span className="message-author" style={{ color: m.user_id === user.id ? undefined : m.color }}>{m.nickname}</span>
-                    <span className="message-time">{formatTime(m.created_at, lang)}</span>
-                  </div>
-                  <div className={`message-bubble ${m.is_deleted ? 'deleted' : ''}`}>
-                    {m.text}
-                    {!m.is_deleted && m.user_id === user.id && (
-                      <button className="delete-btn" title={t('chat.delete')} onClick={() => handleDelete(m.id)}>
-                        ×
-                      </button>
+              {messages.map((m, idx) => {
+                const prev = messages[idx - 1]
+                const grouped = !!prev && prev.user_id === m.user_id && !prev.is_deleted && !m.is_deleted
+                  && isSameDay(prev.created_at, m.created_at)
+                const showSep = !prev || !isSameDay(prev.created_at, m.created_at)
+                const mine = m.user_id === user.id
+                const isMedia = isMediaUrl(m.text)
+                const isEditing = editingId === m.id
+                return (
+                  <div key={m.id}>
+                    {showSep && (
+                      <div className="date-separator" aria-label={formatDateSeparator(m.created_at, lang)}>
+                        <span>{formatDateSeparator(m.created_at, lang)}</span>
+                      </div>
                     )}
+                    <div className={`message ${mine ? 'mine' : ''} ${grouped ? 'grouped' : ''} msg-enter`}>
+                      {/* Hover action bar */}
+                      {!m.is_deleted && !isEditing && (
+                        <div className="message-actions">
+                          <div className="quick-react-bar">
+                            {QUICK_EMOJIS.map((e) => (
+                              <button key={e} type="button" className="qr-btn" onClick={() => handleReact(m.id, e)} title={e}>{e}</button>
+                            ))}
+                          </div>
+                          <button type="button" className="action-btn" onClick={() => setReplyTo(m)} title={t('chat.reply')}>↩</button>
+                          {mine && <button type="button" className="action-btn" onClick={() => startEdit(m)} title={t('chat.edit')}>✎</button>}
+                          {mine && <button type="button" className="action-btn danger" onClick={() => handleDelete(m.id)} title={t('chat.delete')}>✕</button>}
+                        </div>
+                      )}
+
+                      {/* Reply preview (if this message is a reply) */}
+                      {m.reply_to && !m.is_deleted && (
+                        <div className="reply-preview">
+                          <span className="reply-author" style={{ color: m.reply_to.color }}>{m.reply_to.nickname}</span>
+                          <p className="reply-text">{m.reply_to.text}</p>
+                        </div>
+                      )}
+
+                      {!grouped && (
+                        <div className="message-meta">
+                          <span className="message-author" style={{ color: mine ? undefined : m.color }}>
+                            {mine ? t('voice.you') : m.nickname}
+                          </span>
+                          <span className="message-time">{formatTime(m.created_at, lang)}</span>
+                          {m.edited_at && <span className="edited-tag">{t('chat.edited')}</span>}
+                        </div>
+                      )}
+
+                      {/* Inline edit form */}
+                      {isEditing ? (
+                        <form className="message-edit-form" onSubmit={(e) => submitEdit(e, m.id)}>
+                          <input
+                            value={editDraft}
+                            onChange={(e) => setEditDraft(e.target.value)}
+                            maxLength={1000}
+                            autoFocus
+                          />
+                          <div className="edit-hint">
+                            <span>{t('chat.editEsc')}</span>
+                            <button type="button" onClick={() => setEditingId(null)}>{t('chat.cancel')}</button>
+                            <button type="submit" disabled={!editDraft.trim()}>{t('chat.save')}</button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className={`message-bubble ${m.is_deleted ? 'deleted' : ''} ${isMedia ? 'media-bubble' : ''}`}>
+                          {m.is_deleted ? m.text : <MessageContent text={m.text} />}
+                          {!m.is_deleted && grouped && m.edited_at && (
+                            <span className="edited-tag-inline">{t('chat.edited')}</span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Reactions */}
+                      {m.reactions.length > 0 && !m.is_deleted && (
+                        <div className="reactions">
+                          {m.reactions.map((r: Reaction) => (
+                            <button
+                              key={r.emoji}
+                              type="button"
+                              className={`reaction-pill ${r.reacted ? 'reacted' : ''}`}
+                              onClick={() => handleReact(m.id, r.emoji)}
+                              title={r.reacted ? t('chat.unreact') : t('chat.react')}
+                            >
+                              {r.emoji} <span>{r.count}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
               <div ref={listEndRef} />
             </div>
 
+            {/* Scroll-to-bottom button */}
+            {showScrollBtn && (
+              <button
+                type="button"
+                className="scroll-to-bottom"
+                onClick={() => {
+                  listEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+                  setScrollUnread(0)
+                }}
+                aria-label={t('chat.scrollToBottom')}
+              >
+                ↓{scrollUnread > 0 && <b>{scrollUnread}</b>}
+              </button>
+            )}
+
+            {typers.length > 0 && (
+              <div className="chat-typing" aria-live="polite">
+                <span className="typing-dots" aria-hidden><i /><i /><i /></span>
+                <span>
+                  {typers.length === 1
+                    ? t('chat.typing', { name: typers[0].nickname })
+                    : t('chat.typingMulti', { n: typers.length })}
+                </span>
+              </div>
+            )}
+
             {error && <div className="error banner">{error}</div>}
 
-            <form className="composer" onSubmit={handleSend}>
-              <div className="composer-field">
-                <input
-                  ref={composerInputRef}
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  placeholder={t('chat.placeholder', { nick: user.nickname })}
-                  aria-label={t('chat.inputAria')}
-                  maxLength={1000}
-                  tabIndex={chatOpen ? 0 : -1}
+            <div className="composer-wrap">
+              {/* Reply banner */}
+              {replyTo && (
+                <div className="reply-banner">
+                  <span className="reply-banner-label">{t('chat.replyingTo')}</span>
+                  <span className="reply-banner-nick" style={{ color: replyTo.color }}>{replyTo.nickname}</span>
+                  <span className="reply-banner-text">{replyTo.text.slice(0, 80)}</span>
+                  <button type="button" className="reply-banner-close" onClick={() => setReplyTo(null)} aria-label={t('chat.cancel')}>×</button>
+                </div>
+              )}
+
+              {/* @mention dropdown */}
+              {mentionMatches.length > 0 && (
+                <div className="mention-dropdown">
+                  {mentionMatches.map((u, i) => (
+                    <button
+                      key={u.nickname}
+                      type="button"
+                      className={`mention-item ${i === mentionIdx ? 'active' : ''}`}
+                      onMouseDown={(e) => { e.preventDefault(); insertMention(u.nickname) }}
+                    >
+                      <span className="dot" style={{ background: u.color }} />
+                      <span>{u.nickname}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {emojiOpen && (
+                <EmojiPicker
+                  anchorRef={emojiBtnRef}
+                  onClose={() => setEmojiOpen(false)}
+                  onPick={(emoji) => {
+                    setDraft((d) => d + emoji)
+                    composerInputRef.current?.focus()
+                  }}
                 />
-                <span>{draft.length} / 1000</span>
+              )}
+              {gifOpen && (
+                <GifPicker
+                  anchorRef={gifBtnRef}
+                  onClose={() => setGifOpen(false)}
+                  onPick={async (url) => {
+                    setGifOpen(false)
+                    setSending(true)
+                    try {
+                      const msg = await sendMessage(url)
+                      setMessages((prev) => [...prev, msg])
+                      lastIdRef.current = msg.id
+                    } catch (err) {
+                      setError(err instanceof ApiError ? err.message : t('chat.sendError'))
+                    } finally {
+                      setSending(false)
+                    }
+                  }}
+                />
+              )}
+              <div className="composer-extras">
+                <button
+                  ref={emojiBtnRef}
+                  type="button"
+                  className={`composer-extra-btn ${emojiOpen ? 'active' : ''}`}
+                  onClick={() => { setEmojiOpen((v) => !v); setGifOpen(false) }}
+                  title="Емодзі"
+                  aria-label="Вставити емодзі"
+                  tabIndex={chatOpen ? 0 : -1}
+                >😊</button>
+                <button
+                  ref={gifBtnRef}
+                  type="button"
+                  className={`composer-extra-btn ${gifOpen ? 'active' : ''}`}
+                  onClick={() => { setGifOpen((v) => !v); setEmojiOpen(false) }}
+                  title="GIF"
+                  aria-label="Вставити GIF"
+                  tabIndex={chatOpen ? 0 : -1}
+                >GIF</button>
               </div>
-              <button type="submit" disabled={sending || !draft.trim()}>
-                <span>{t('chat.send')}</span>
-                <b aria-hidden>↗</b>
-              </button>
-            </form>
+              <form className="composer" onSubmit={handleSend}>
+                <div className="composer-field">
+                  <input
+                    ref={composerInputRef}
+                    value={draft}
+                    onChange={(e) => handleDraftChange(e.target.value)}
+                    placeholder={t('chat.placeholder', { nick: user.nickname })}
+                    aria-label={t('chat.inputAria')}
+                    maxLength={1000}
+                    tabIndex={chatOpen ? 0 : -1}
+                  />
+                  <span>{draft.length} / 1000</span>
+                </div>
+                <button type="submit" disabled={sending || !draft.trim()}>
+                  <span>{t('chat.send')}</span>
+                  <b aria-hidden>↗</b>
+                </button>
+              </form>
+            </div>
           </div>
         </section>
       </div>

@@ -7,7 +7,7 @@ from flask import Flask, send_from_directory
 from flask_cors import CORS
 
 from .config import CORS_ORIGINS, STATION_NAME
-from .database import init_db
+from .database import init_db, run_migrations
 from .routes.auth_routes import auth_bp
 from .routes.call_routes import call_bp
 from .routes.chat_routes import chat_bp
@@ -22,6 +22,7 @@ def create_app() -> Flask:
         CORS(app, resources={r'/api/*': {'origins': CORS_ORIGINS}}, supports_credentials=True)
 
     init_db()
+    run_migrations()
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(call_bp)

@@ -1,0 +1,19 @@
+{
+  "name": "Radio Vinnipeg",
+  "short_name": "Radio VNP",
+  "description": "Open live broadcast — join group voice conversation and chat. No sign-up.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#f6cf42",
+  "orientation": "any",
+  "categories": ["entertainment", "music"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
