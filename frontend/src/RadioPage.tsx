@@ -60,6 +60,7 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
           <li><kbd>J</kbd><span>{t('shortcuts.join')}</span></li>
           <li><kbd>M</kbd><span>{t('shortcuts.mic')}</span></li>
           <li><kbd>Space</kbd><span>{t('shortcuts.ptt')}</span></li>
+          <li><kbd>↑</kbd><span>{t('shortcuts.editLast')}</span></li>
           <li><kbd>Esc</kbd><span>{t('shortcuts.close')}</span></li>
           <li><kbd>?</kbd><span>{t('shortcuts.help')}</span></li>
         </ul>
@@ -626,9 +627,12 @@ export default function RadioPage({ user, onUserChange }: Props) {
         <button className="chat-scrim" type="button" onClick={closeChat} aria-label={t('chat.close')} />
         <section className="chat-drawer" id="radio-chat" role="dialog" aria-modal="true" aria-label={t('chat.headerTitle')}>
           <header className="chat-header">
-            <div>
-              <span>{t('chat.headerKicker')}</span>
-              <h2>{t('chat.headerTitle')}</h2>
+            <div className="chat-header-identity">
+              <div className="chat-server-mark" aria-hidden>RV</div>
+              <div className="chat-server-info">
+                <strong>Radio Vinnipeg</strong>
+                <span># lounge</span>
+              </div>
             </div>
             <div className="chat-header-actions">
               <button
@@ -641,11 +645,6 @@ export default function RadioPage({ user, onUserChange }: Props) {
               <button type="button" onClick={closeChat} aria-label={t('chat.close')}>×</button>
             </div>
           </header>
-          <div className="chat-context">
-            <span>{t('chat.contextKicker')}</span>
-            <strong>{t('chat.contextTitle')}</strong>
-            <p>{t('chat.contextCopy')}</p>
-          </div>
           <div className="chat-presence">
             <span><i />{t('chat.presence', { n: online.length })}</span>
             <div>
@@ -703,7 +702,8 @@ export default function RadioPage({ user, onUserChange }: Props) {
 
                       {!grouped && (
                         <div className="message-meta">
-                          <span className="message-author" style={{ color: mine ? undefined : m.color }}>
+                          <span className="msg-avatar-dot" style={{ background: mine ? user.color : m.color }} aria-hidden />
+                          <span className="message-author" style={{ color: mine ? user.color : m.color }}>
                             {mine ? t('voice.you') : m.nickname}
                           </span>
                           <span className="message-time">{formatTime(m.created_at, lang)}</span>
@@ -852,7 +852,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
                   title="Емодзі"
                   aria-label="Вставити емодзі"
                   tabIndex={chatOpen ? 0 : -1}
-                >😊</button>
+                ><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c1 1.2 5.5 1.2 7 0"/><circle cx="9.5" cy="10" r=".6" fill="currentColor" stroke="none"/><circle cx="14.5" cy="10" r=".6" fill="currentColor" stroke="none"/></svg></button>
                 <button
                   ref={gifBtnRef}
                   type="button"
@@ -869,6 +869,12 @@ export default function RadioPage({ user, onUserChange }: Props) {
                     ref={composerInputRef}
                     value={draft}
                     onChange={(e) => handleDraftChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp' && !draft.trim()) {
+                        const lastMine = [...messages].reverse().find(m => m.user_id === user.id && !m.is_deleted)
+                        if (lastMine) { e.preventDefault(); startEdit(lastMine) }
+                      }
+                    }}
                     placeholder={t('chat.placeholder', { nick: user.nickname })}
                     aria-label={t('chat.inputAria')}
                     maxLength={1000}

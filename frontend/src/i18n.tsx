@@ -90,6 +90,7 @@ const en: Dict = {
   'shortcuts.join': 'Join / leave voice',
   'shortcuts.mic': 'Mute / unmute mic',
   'shortcuts.ptt': 'Push-to-talk (hold)',
+  'shortcuts.editLast': 'Edit last message (empty input)',
   'shortcuts.close': 'Close panel',
   'shortcuts.help': 'Show this help',
   // Voice panel
@@ -202,6 +203,7 @@ const uk: Dict = {
   'shortcuts.join': 'Приєднатися / вийти з розмови',
   'shortcuts.mic': 'Вимкнути / увімкнути мікрофон',
   'shortcuts.ptt': 'Push-to-talk (тримати)',
+  'shortcuts.editLast': 'Редагувати останнє своє (поле порожнє)',
   'shortcuts.close': 'Закрити панель',
   'shortcuts.help': 'Показати цю підказку',
   'voice.inCallYou': 'Ви в розмові · {n} {ppl}',
