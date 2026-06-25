@@ -2217,6 +2217,14 @@ body::before {
 .chat-notif-btn:hover { background: var(--ink); color: var(--paper); }
 .chat-notif-btn[aria-pressed="false"] { opacity: .48; }
 
+/* City label in message meta */
+.message-city {
+  font: 500 9px/1 var(--mono);
+  letter-spacing: .04em;
+  opacity: .38;
+  text-transform: uppercase;
+}
+
 /* ════════════════════════════════════════════════════════════
    DESKTOP: push page content when chat sidebar opens
    — no scrim overlay, page remains interactive

@@ -58,7 +58,7 @@ def _get_reply_previews(conn, reply_ids: list[int]) -> dict[int, dict]:
     ph = ', '.join(['%s'] * len(reply_ids))
     rows = conn.execute(
         f"""
-        SELECT m.id, m.text, m.is_deleted, u.nickname, u.color
+        SELECT m.id, m.text, m.is_deleted, u.nickname, u.color, u.city
         FROM messages m JOIN users u ON u.id = m.user_id
         WHERE m.id IN ({ph})
         """,
@@ -90,6 +90,7 @@ def _serialize_messages(rows: list[dict], me_id: int | None, conn) -> list[dict]
             'user_id': r['user_id'],
             'nickname': r['nickname'],
             'color': r['color'],
+            'city': r.get('city', '') or '',
             'text': text,
             'is_deleted': bool(r['is_deleted']),
             'created_at': r['created_at'],
@@ -116,7 +117,7 @@ def get_messages():
         rows = conn.execute(
             """
             SELECT m.id, m.user_id, m.text, m.is_deleted, m.created_at,
-                   m.reply_to_id, m.edited_at, u.nickname, u.color
+                   m.reply_to_id, m.edited_at, u.nickname, u.color, u.city
             FROM messages m
             JOIN users u ON u.id = m.user_id
             WHERE m.room_id = %s
@@ -142,7 +143,7 @@ def poll():
         rows = conn.execute(
             """
             SELECT m.id, m.user_id, m.text, m.is_deleted, m.created_at,
-                   m.reply_to_id, m.edited_at, u.nickname, u.color
+                   m.reply_to_id, m.edited_at, u.nickname, u.color, u.city
             FROM messages m
             JOIN users u ON u.id = m.user_id
             WHERE m.room_id = %s AND m.id > %s
@@ -244,7 +245,7 @@ def send_message():
         row = conn.execute(
             """
             SELECT m.id, m.user_id, m.text, m.is_deleted, m.created_at,
-                   m.reply_to_id, m.edited_at, u.nickname, u.color
+                   m.reply_to_id, m.edited_at, u.nickname, u.color, u.city
             FROM messages m JOIN users u ON u.id = m.user_id
             WHERE m.id = %s
             """,
@@ -359,7 +360,7 @@ def online_users():
     with get_connection() as conn:
         rows = conn.execute(
             """
-            SELECT nickname, color FROM users
+            SELECT nickname, color, city FROM users
             WHERE last_seen_at IS NOT NULL
               AND last_seen_at >= datetime('now', '-60 seconds')
             ORDER BY nickname ASC

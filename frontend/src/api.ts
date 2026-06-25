@@ -2,6 +2,7 @@ export type User = {
   id: number
   nickname: string
   color: string
+  city?: string
 }
 
 export type Reaction = { emoji: string; count: number; reacted: boolean }
@@ -18,6 +19,7 @@ export type ChatMessage = {
   user_id: number
   nickname: string
   color: string
+  city?: string
   text: string
   is_deleted: boolean
   created_at: string

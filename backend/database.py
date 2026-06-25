@@ -56,6 +56,10 @@ def run_migrations() -> None:
         if 'edited_at' not in cols:
             conn.execute('ALTER TABLE messages ADD COLUMN edited_at TEXT')
 
+        ucols = {r['name'] for r in conn.execute('PRAGMA table_info(users)').fetchall()}
+        if 'city' not in ucols:
+            conn.execute("ALTER TABLE users ADD COLUMN city TEXT DEFAULT ''")
+
 
 def init_db() -> None:
     """Створює таблиці (якщо не існують) та базову кімнату чату."""

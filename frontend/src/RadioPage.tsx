@@ -226,7 +226,7 @@ function StationClock() {
 export default function RadioPage({ user, onUserChange }: Props) {
   const { t, lang, setLang } = useI18n()
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [online, setOnline] = useState<{ nickname: string; color: string }[]>([])
+  const [online, setOnline] = useState<{ nickname: string; color: string; city?: string }[]>([])
   const [typers, setTypers] = useState<Typer[]>([])
   const [chatOpen, setChatOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
@@ -708,7 +708,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
             <span><i />{t('chat.presence', { n: online.length })}</span>
             <div>
               {online.slice(0, 5).map((u, i) => (
-                <span className="presence-dot" key={`${u.nickname}-${i}`} style={{ background: u.color }} title={u.nickname} />
+                <span className="presence-dot" key={`${u.nickname}-${i}`} style={{ background: u.color }} title={[u.nickname, u.city].filter(Boolean).join(' · ')} />
               ))}
             </div>
           </div>
@@ -741,6 +741,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
                         ? <span
                             className="msg-avatar-circle"
                             style={{ background: mine ? user.color : m.color }}
+                            title={[mine ? user.nickname : m.nickname, mine ? user.city : m.city].filter(Boolean).join(' · ')}
                             aria-hidden
                           >
                             {(mine ? user.nickname : m.nickname).slice(0, 2).toUpperCase()}
@@ -775,6 +776,9 @@ export default function RadioPage({ user, onUserChange }: Props) {
                             <span className="message-author" style={{ color: mine ? user.color : m.color }}>
                               {mine ? t('voice.you') : m.nickname}
                             </span>
+                            {(mine ? user.city : m.city) && (
+                              <span className="message-city">{mine ? user.city : m.city}</span>
+                            )}
                             <span className="message-time">{formatTime(m.created_at, lang)}</span>
                             {m.edited_at && <span className="edited-tag">{t('chat.edited')}</span>}
                           </div>
