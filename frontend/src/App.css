@@ -1433,12 +1433,22 @@
 /* Subtle presence avatars have a tooltip */
 .presence-dot[title] { cursor: default; }
 
-/* Mobile: make emoji/gif picker full-width */
+/* Mobile: gif/emoji picker fixed to bottom, above keyboard */
 @media (max-width: 720px) {
   .emoji-picker, .gif-picker {
-    width: calc(100vw - 2px);
+    position: fixed;
+    bottom: 0;
     left: 0;
     right: 0;
+    width: 100%;
+    max-height: 55dvh;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,.35);
+  }
+  .gif-grid {
+    max-height: calc(55dvh - 56px);
   }
   .composer-extra-btn { font-size: 18px; min-width: 44px; height: 38px; }
 }

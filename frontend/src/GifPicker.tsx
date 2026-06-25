@@ -91,7 +91,11 @@ export default function GifPicker({ onPick, onClose, anchorRef }: Props) {
           placeholder="Пошук GIF…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          autoFocus
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          enterKeyHint="search"
         />
         <span className="gif-powered">via Tenor</span>
       </div>
