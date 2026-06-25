@@ -844,12 +844,14 @@
   .broadcast-intro {
     min-height: auto;
     justify-content: flex-start;
-    gap: 30px;
+    gap: 24px;
     padding: 40px 20px 36px;
-    border-bottom: 1px solid var(--ink);
+    border-bottom: 1px solid rgba(255,255,255,.1);
+    border-right: 0;
   }
   .broadcast-intro h1 { margin: 0; font-size: clamp(60px, 19vw, 104px); }
   .broadcast-intro p { font-size: 17px; }
+  .pine-row { border-inline: 0; }
   .frequency {
     min-height: 96px;
     flex-direction: row;
@@ -1715,6 +1717,96 @@
   border-radius: 9px;
 }
 .scroll-to-bottom:hover b { background: var(--yellow-bright); color: var(--ink); }
+
+/* ════════════════════════════════════════════════════════════
+   CANADIAN NIGHT SKY — broadcast hero dark treatment
+   ════════════════════════════════════════════════════════════ */
+
+/* Grain overlay — paper/film texture across entire page */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: .038;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.68' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+}
+
+/* Broadcast stage: overall dark sky */
+.broadcast-stage { background: #060908; }
+
+/* Broadcast intro: dark night, aurora overlay */
+.broadcast-intro {
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+  border-right-color: rgba(255,255,255,.09);
+}
+
+/* Aurora borealis animation */
+.broadcast-intro::before {
+  content: '';
+  position: absolute;
+  inset: -60% -40%;
+  background:
+    radial-gradient(ellipse 90% 55% at 28% 38%, rgba(0,210,120,.20) 0%, transparent 54%),
+    radial-gradient(ellipse 65% 90% at 74% 22%, rgba(85,10,215,.15) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 48% at 54% 68%, rgba(0,155,255,.13) 0%, transparent 52%),
+    radial-gradient(ellipse 45% 38% at 12% 78%, rgba(0,195,165,.10) 0%, transparent 48%),
+    radial-gradient(ellipse 55% 40% at 88% 60%, rgba(140,0,180,.09) 0%, transparent 50%);
+  animation: aurora-drift 20s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform, opacity;
+}
+
+@keyframes aurora-drift {
+  0%   { transform: translate(-6%, 0) rotate(-1.5deg) scale(1);    filter: hue-rotate(0deg);   opacity: .75; }
+  30%  { transform: translate(3%, -3%) rotate(.8deg) scale(1.04);  filter: hue-rotate(18deg);  opacity: 1; }
+  65%  { transform: translate(-2%, 2%) rotate(1.3deg) scale(.97);  filter: hue-rotate(-10deg); opacity: .82; }
+  100% { transform: translate(5%, -1%) rotate(-1.2deg) scale(1.03);filter: hue-rotate(28deg);  opacity: .9; }
+}
+
+/* All content above aurora */
+.broadcast-intro > * { position: relative; z-index: 1; }
+
+/* Text on dark night background */
+.broadcast-intro .section-kicker            { color: rgba(220,255,45,.85); }
+.broadcast-intro .section-kicker::before    { background: rgba(220,255,45,.55); }
+.broadcast-intro .section-kicker span       { color: rgba(220,255,45,.45); }
+.broadcast-intro h1                         { color: #ede9dc; }
+.broadcast-intro p                          { color: #9a9690; }
+
+/* Geo coordinate badge */
+.geo-coord {
+  font: 500 8px/1 var(--mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(240,236,224,.22);
+  margin-bottom: 22px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Pine tree silhouette divider */
+.pine-row {
+  max-width: var(--page-width);
+  margin: auto;
+  height: 72px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--ink);
+  border-inline: 1px solid var(--line);
+  background: var(--paper);
+  line-height: 0;
+}
+.pine-row svg {
+  display: block;
+  width: 100%;
+  height: 72px;
+  fill: var(--ink);
+}
 
 /* ════════════════════════════════════════════════════════════
    PRODUCTION POLISH — global
