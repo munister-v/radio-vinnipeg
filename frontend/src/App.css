@@ -616,7 +616,7 @@
 
 .chat-layer { position: fixed; inset: 0; z-index: 100; pointer-events: none; visibility: hidden; }
 .chat-layer.is-open { pointer-events: auto; visibility: visible; }
-.chat-scrim { position: absolute; inset: 0; border: 0; background: rgba(17,17,15,.55); opacity: 0; transition: opacity .2s ease; }
+.chat-scrim { position: absolute; inset: 0; border: 0; background: rgba(17,17,15,.55); opacity: 0; transition: opacity .2s ease; pointer-events: none; }
 .chat-layer.is-open .chat-scrim { opacity: 1; }
 .chat-drawer {
   position: absolute;
@@ -1837,15 +1837,10 @@ body::before {
   -webkit-backdrop-filter: blur(14px) saturate(1.3);
 }
 
-/* Chat scrim: blur fades in with opacity */
+/* Chat scrim: no blur, no pointer-events globally (voice controls must remain accessible) */
 .chat-scrim {
-  backdrop-filter: blur(0px);
-  -webkit-backdrop-filter: blur(0px);
-  transition: opacity .28s ease, backdrop-filter .28s ease, -webkit-backdrop-filter .28s ease;
-}
-.chat-layer.is-open .chat-scrim {
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Chat drawer: spring physics instead of linear ease */
@@ -2285,11 +2280,6 @@ body::before {
     margin-left: 440px;
   }
 
-  /* Scrim: invisible and non-blocking on desktop */
-  .chat-scrim { pointer-events: none; }
-  .chat-layer.is-open .chat-scrim {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    opacity: 0;
-  }
+  /* Scrim: invisible on desktop (pointer-events and blur already off globally) */
+  .chat-layer.is-open .chat-scrim { opacity: 0; }
 }
