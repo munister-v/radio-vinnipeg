@@ -245,6 +245,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
   const [scrollUnread, setScrollUnread] = useState(0)
   const [notifSound, setNotifSound] = useState(true)
   const notifSoundRef = useRef(true)
+  const prevOnlineLenRef = useRef(0)
   const [mentionMatches, setMentionMatches] = useState<{ nickname: string; color: string }[]>([])
   const [mentionIdx, setMentionIdx] = useState(0)
   const lastIdRef = useRef(0)
@@ -370,6 +371,19 @@ export default function RadioPage({ user, onUserChange }: Props) {
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [chatOpen, messages])
+
+  // Auto-clear chat when everyone leaves (broadcast ended)
+  useEffect(() => {
+    if (prevOnlineLenRef.current > 0 && online.length === 0) {
+      const timer = window.setTimeout(() => {
+        setMessages([])
+        lastIdRef.current = 0
+        initialLoadDoneRef.current = false
+      }, 8000)
+      return () => window.clearTimeout(timer)
+    }
+    prevOnlineLenRef.current = online.length
+  }, [online.length])
 
   // C: toggle chat
   useEffect(() => {
@@ -563,6 +577,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
       <main>
         <section className="broadcast-stage" id="air">
           <div className="broadcast-intro">
+            <div className="aurora-bg" aria-hidden />
             <div className="section-kicker"><span>01</span> {t('hero.kicker')}</div>
             <h1>Radio<br />Vinnipeg</h1>
             <div className="geo-coord" aria-hidden>49°46′N · 97°14′W · Winnipeg MB</div>
@@ -659,13 +674,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
         <button className="chat-scrim" type="button" onClick={closeChat} aria-label={t('chat.close')} />
         <section className="chat-drawer" id="radio-chat" role="dialog" aria-modal="true" aria-label={t('chat.headerTitle')}>
           <header className="chat-header">
-            <div className="chat-header-identity">
-              <div className="chat-server-mark" aria-hidden>RV</div>
-              <div className="chat-server-info">
-                <strong>Radio Vinnipeg</strong>
-                <span># lounge</span>
-              </div>
-            </div>
+            <span className="chat-channel-name"># lounge</span>
             <div className="chat-header-actions">
               <button
                 type="button"
