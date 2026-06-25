@@ -2217,6 +2217,50 @@ body::before {
 .chat-notif-btn:hover { background: var(--ink); color: var(--paper); }
 .chat-notif-btn[aria-pressed="false"] { opacity: .48; }
 
+/* ── Connection quality tray (topbar) ───────────────────────────── */
+.conn-tray {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 18px;
+  height: 100%;
+  border-right: 1px solid var(--line);
+  cursor: default;
+  user-select: none;
+}
+.conn-tray .conn-bars {
+  height: 15px;
+  gap: 3px;
+  align-items: flex-end;
+}
+.conn-tray .conn-bars i {
+  width: 3px;
+  border-radius: 1px;
+  background: rgba(17,17,15,.18);
+}
+.conn-tray .conn-bars i:nth-child(1) { height:  5px; }
+.conn-tray .conn-bars i:nth-child(2) { height: 10px; }
+.conn-tray .conn-bars i:nth-child(3) { height: 15px; }
+.conn-tray.q-good .conn-bars i.on { background: #1a7a38; }
+.conn-tray.q-ok   .conn-bars i.on { background: #b08000; }
+.conn-tray.q-weak .conn-bars i.on { background: var(--danger); animation: connPulse 1.2s ease-in-out infinite; }
+.conn-tray-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1;
+}
+.conn-tray-stats b {
+  display: block;
+  font: 700 8px/1 var(--mono);
+  letter-spacing: .03em;
+  color: var(--muted);
+}
+.conn-tray-stats small { font-size: 6px; opacity: .65; margin-left: 1px; }
+.conn-tray.q-good .conn-tray-stats b { color: #1a7a38; }
+.conn-tray.q-ok   .conn-tray-stats b { color: #b08000; }
+.conn-tray.q-weak .conn-tray-stats b { color: var(--danger); }
+
 /* City label in message meta */
 .message-city {
   font: 500 9px/1 var(--mono);

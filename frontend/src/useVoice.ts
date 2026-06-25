@@ -93,6 +93,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const [error, setError] = useState<string | null>(null)
   // Реальна якість зв'язку (з RTCPeerConnection.getStats): RTT + втрати пакетів.
   const [quality, setQuality] = useState<ConnectionQuality>(null)
+  const [connStats, setConnStats] = useState<{ rttMs: number; lossPercent: number }>({ rttMs: 0, lossPercent: 0 })
 
   const callIdRef = useRef<number | null>(null)
   const joinedRef = useRef(false)
@@ -702,6 +703,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     }
 
     if (!sawConnected) { setQuality(null); return }
+    setConnStats({ rttMs: Math.round(worstRtt * 1000), lossPercent: parseFloat((worstLoss * 100).toFixed(1)) })
     if (worstRtt < 0.2 && worstLoss < 0.02) setQuality('good')
     else if (worstRtt < 0.45 && worstLoss < 0.07) setQuality('ok')
     else setQuality('weak')
@@ -946,5 +948,5 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     }
   }, [stopTimers, stopKeepAlive, cleanupAll, releaseWakeLock, teardownMediaSession])
 
-  return { members, joined, micOn, connecting, error, speaking, quality, audioBlocked, unlockAudio, join, leave, toggleMic }
+  return { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic }
 }

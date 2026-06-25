@@ -2,10 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import type { User } from './api'
 import SettingsPanel from './SettingsPanel'
 import { useSettings } from './useSettings'
-import { useVoice } from './useVoice'
+import { useVoice, type ConnectionQuality } from './useVoice'
 import { useI18n, peopleWord } from './i18n'
 
-type Props = { user: User }
+export type VoiceStats = { quality: ConnectionQuality; rttMs: number; lossPercent: number } | null
+
+type Props = {
+  user: User
+  onStats?: (s: VoiceStats) => void
+}
 
 function Equalizer({ active }: { active: boolean }) {
   return (
@@ -93,11 +98,18 @@ function SignalDeck({ active, label }: { active: boolean; label: string }) {
   )
 }
 
-export default function VoicePanel({ user }: Props) {
+export default function VoicePanel({ user, onStats }: Props) {
   const { t, lang } = useI18n()
   const settings = useSettings()
-  const { members, joined, micOn, connecting, error, speaking, quality, audioBlocked, unlockAudio, join, leave, toggleMic } =
+  const { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic } =
     useVoice(user.id, { volume: settings.volume, micDeviceId: settings.micDeviceId })
+
+  const onStatsRef = useRef(onStats)
+  useEffect(() => { onStatsRef.current = onStats })
+  useEffect(() => {
+    if (!joined || !quality) { onStatsRef.current?.(null); return }
+    onStatsRef.current?.({ quality, rttMs: connStats.rttMs, lossPercent: connStats.lossPercent })
+  }, [joined, quality, connStats.rttMs, connStats.lossPercent])
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [pttHeld, setPttHeld] = useState(false)

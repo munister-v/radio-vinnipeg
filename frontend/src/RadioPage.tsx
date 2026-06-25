@@ -16,7 +16,7 @@ import {
   type Typer,
   type User,
 } from './api'
-import VoicePanel from './VoicePanel'
+import VoicePanel, { type VoiceStats } from './VoicePanel'
 import EmojiPicker from './EmojiPicker'
 import GifPicker from './GifPicker'
 import { setBackgroundInterval, type BgTimer } from './bgTimer'
@@ -244,6 +244,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const [scrollUnread, setScrollUnread] = useState(0)
   const [notifSound, setNotifSound] = useState(true)
+  const [voiceStats, setVoiceStats] = useState<VoiceStats>(null)
   const notifSoundRef = useRef(true)
   const prevOnlineLenRef = useRef(0)
   const [mentionMatches, setMentionMatches] = useState<{ nickname: string; color: string }[]>([])
@@ -541,6 +542,23 @@ export default function RadioPage({ user, onUserChange }: Props) {
             <button type="button" onClick={openChat}>{t('nav.chat')}</button>
           </nav>
           <div className="topbar-right">
+            {voiceStats && voiceStats.quality && (
+              <div
+                className={`conn-tray q-${voiceStats.quality}`}
+                title={`RTT ${voiceStats.rttMs} ms · Loss ${voiceStats.lossPercent}%`}
+                aria-label={`Connection quality: ${voiceStats.quality}, RTT ${voiceStats.rttMs} ms`}
+              >
+                <span className="conn-bars" aria-hidden>
+                  {[1, 2, 3].map((b) => (
+                    <i key={b} className={b <= (voiceStats.quality === 'good' ? 3 : voiceStats.quality === 'ok' ? 2 : 1) ? 'on' : ''} />
+                  ))}
+                </span>
+                <span className="conn-tray-stats" aria-hidden>
+                  <b>{voiceStats.rttMs}<small>ms</small></b>
+                  <b>{voiceStats.lossPercent}<small>%</small></b>
+                </span>
+              </div>
+            )}
             <div className="lang-switch" role="group" aria-label="Language">
               <button type="button" className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')} aria-pressed={lang === 'en'}>EN</button>
               <button type="button" className={lang === 'uk' ? 'on' : ''} onClick={() => setLang('uk')} aria-pressed={lang === 'uk'}>UA</button>
@@ -589,7 +607,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
             <small>{t('freq.web')}</small>
           </div>
           <div className="broadcast-console">
-            <VoicePanel user={user} />
+            <VoicePanel user={user} onStats={setVoiceStats} />
           </div>
         </section>
 
