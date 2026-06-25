@@ -243,6 +243,8 @@ export default function RadioPage({ user, onUserChange }: Props) {
   const [editDraft, setEditDraft] = useState('')
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const [scrollUnread, setScrollUnread] = useState(0)
+  const [notifSound, setNotifSound] = useState(true)
+  const notifSoundRef = useRef(true)
   const [mentionMatches, setMentionMatches] = useState<{ nickname: string; color: string }[]>([])
   const [mentionIdx, setMentionIdx] = useState(0)
   const lastIdRef = useRef(0)
@@ -283,7 +285,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
           lastIdRef.current = fresh[fresh.length - 1].id
           setMessages((prev) => [...prev, ...fresh])
           if (initialLoadDoneRef.current) {
-            if (!chatOpen) playMessagePing()
+            if (!chatOpen && notifSoundRef.current) playMessagePing()
             // If scrolled away, count as unread
             setScrollUnread((n) => {
               const container = messagesRef.current
@@ -512,19 +514,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
       <header className="topbar">
         <div className="topbar-inner">
           <a className="brand" href="#air" aria-label={t('top.toAir')}>
-            <span className="brand-mark" aria-hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
-                strokeLinecap="round" strokeLinejoin="round">
-                {/* Передавач: щогла + сигнал, що випромінюється */}
-                <circle className="brand-core" cx="12" cy="8" r="2" fill="currentColor" stroke="none" />
-                <path d="M12 10v8" />
-                <path d="M8.5 18h7" />
-                <path className="brand-wave brand-wave-l" d="M8.6 4.6a5 5 0 0 0 0 6.8" />
-                <path className="brand-wave brand-wave-r" d="M15.4 4.6a5 5 0 0 1 0 6.8" />
-                <path className="brand-wave brand-wave-l2" d="M6.1 2.6a8.5 8.5 0 0 0 0 10.8" />
-                <path className="brand-wave brand-wave-r2" d="M17.9 2.6a8.5 8.5 0 0 1 0 10.8" />
-              </svg>
-            </span>
+            <span className="brand-mark" aria-hidden>RV</span>
             <div className="brand-titles">
               <span className="brand-eyebrow">{t('top.brandEyebrow')}</span>
               <span className="brand-name">Radio Vinnipeg</span>
@@ -679,6 +669,24 @@ export default function RadioPage({ user, onUserChange }: Props) {
             <div className="chat-header-actions">
               <button
                 type="button"
+                className="chat-notif-btn"
+                onClick={() => {
+                  const next = !notifSoundRef.current
+                  notifSoundRef.current = next
+                  setNotifSound(next)
+                }}
+                aria-pressed={notifSound}
+                title={notifSound ? 'Звук увімкнено' : 'Звук вимкнено'}
+                aria-label={notifSound ? 'Вимкнути звук' : 'Увімкнути звук'}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  {!notifSound && <line x1="2" y1="2" x2="22" y2="22"/>}
+                </svg>
+              </button>
+              <button
+                type="button"
                 className="chat-shortcuts-btn"
                 onClick={() => setShortcutsOpen(true)}
                 title={t('shortcuts.title')}
@@ -720,79 +728,90 @@ export default function RadioPage({ user, onUserChange }: Props) {
                       </div>
                     )}
                     <div className={`message ${mine ? 'mine' : ''} ${grouped ? 'grouped' : ''} msg-enter`}>
-                      {/* Hover action bar */}
-                      {!m.is_deleted && !isEditing && (
-                        <div className="message-actions">
-                          <div className="quick-react-bar">
-                            {QUICK_EMOJIS.map((e) => (
-                              <button key={e} type="button" className="qr-btn" onClick={() => handleReact(m.id, e)} title={e}>{e}</button>
+                      {!grouped
+                        ? <span
+                            className="msg-avatar-circle"
+                            style={{ background: mine ? user.color : m.color }}
+                            aria-hidden
+                          >
+                            {(mine ? user.nickname : m.nickname).slice(0, 2).toUpperCase()}
+                          </span>
+                        : <span className="msg-avatar-spacer" aria-hidden />
+                      }
+                      <div className="msg-content">
+                        {/* Hover action bar */}
+                        {!m.is_deleted && !isEditing && (
+                          <div className="message-actions">
+                            <div className="quick-react-bar">
+                              {QUICK_EMOJIS.map((e) => (
+                                <button key={e} type="button" className="qr-btn" onClick={() => handleReact(m.id, e)} title={e}>{e}</button>
+                              ))}
+                            </div>
+                            <button type="button" className="action-btn" onClick={() => setReplyTo(m)} title={t('chat.reply')}>↩</button>
+                            {mine && <button type="button" className="action-btn" onClick={() => startEdit(m)} title={t('chat.edit')}>✎</button>}
+                            {mine && <button type="button" className="action-btn danger" onClick={() => handleDelete(m.id)} title={t('chat.delete')}>✕</button>}
+                          </div>
+                        )}
+
+                        {/* Reply preview (if this message is a reply) */}
+                        {m.reply_to && !m.is_deleted && (
+                          <div className="reply-preview">
+                            <span className="reply-author" style={{ color: m.reply_to.color }}>{m.reply_to.nickname}</span>
+                            <p className="reply-text">{m.reply_to.text}</p>
+                          </div>
+                        )}
+
+                        {!grouped && (
+                          <div className="message-meta">
+                            <span className="message-author" style={{ color: mine ? user.color : m.color }}>
+                              {mine ? t('voice.you') : m.nickname}
+                            </span>
+                            <span className="message-time">{formatTime(m.created_at, lang)}</span>
+                            {m.edited_at && <span className="edited-tag">{t('chat.edited')}</span>}
+                          </div>
+                        )}
+
+                        {/* Inline edit form */}
+                        {isEditing ? (
+                          <form className="message-edit-form" onSubmit={(e) => submitEdit(e, m.id)}>
+                            <input
+                              value={editDraft}
+                              onChange={(e) => setEditDraft(e.target.value)}
+                              maxLength={1000}
+                              autoFocus
+                            />
+                            <div className="edit-hint">
+                              <span>{t('chat.editEsc')}</span>
+                              <button type="button" onClick={() => setEditingId(null)}>{t('chat.cancel')}</button>
+                              <button type="submit" disabled={!editDraft.trim()}>{t('chat.save')}</button>
+                            </div>
+                          </form>
+                        ) : (
+                          <div className={`message-bubble ${m.is_deleted ? 'deleted' : ''} ${isMedia ? 'media-bubble' : ''}`}>
+                            {m.is_deleted ? m.text : <MessageContent text={m.text} />}
+                            {!m.is_deleted && grouped && m.edited_at && (
+                              <span className="edited-tag-inline">{t('chat.edited')}</span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Reactions */}
+                        {m.reactions.length > 0 && !m.is_deleted && (
+                          <div className="reactions">
+                            {m.reactions.map((r: Reaction) => (
+                              <button
+                                key={r.emoji}
+                                type="button"
+                                className={`reaction-pill ${r.reacted ? 'reacted' : ''}`}
+                                onClick={() => handleReact(m.id, r.emoji)}
+                                title={r.reacted ? t('chat.unreact') : t('chat.react')}
+                              >
+                                {r.emoji} <span>{r.count}</span>
+                              </button>
                             ))}
                           </div>
-                          <button type="button" className="action-btn" onClick={() => setReplyTo(m)} title={t('chat.reply')}>↩</button>
-                          {mine && <button type="button" className="action-btn" onClick={() => startEdit(m)} title={t('chat.edit')}>✎</button>}
-                          {mine && <button type="button" className="action-btn danger" onClick={() => handleDelete(m.id)} title={t('chat.delete')}>✕</button>}
-                        </div>
-                      )}
-
-                      {/* Reply preview (if this message is a reply) */}
-                      {m.reply_to && !m.is_deleted && (
-                        <div className="reply-preview">
-                          <span className="reply-author" style={{ color: m.reply_to.color }}>{m.reply_to.nickname}</span>
-                          <p className="reply-text">{m.reply_to.text}</p>
-                        </div>
-                      )}
-
-                      {!grouped && (
-                        <div className="message-meta">
-                          <span className="msg-avatar-dot" style={{ background: mine ? user.color : m.color }} aria-hidden />
-                          <span className="message-author" style={{ color: mine ? user.color : m.color }}>
-                            {mine ? t('voice.you') : m.nickname}
-                          </span>
-                          <span className="message-time">{formatTime(m.created_at, lang)}</span>
-                          {m.edited_at && <span className="edited-tag">{t('chat.edited')}</span>}
-                        </div>
-                      )}
-
-                      {/* Inline edit form */}
-                      {isEditing ? (
-                        <form className="message-edit-form" onSubmit={(e) => submitEdit(e, m.id)}>
-                          <input
-                            value={editDraft}
-                            onChange={(e) => setEditDraft(e.target.value)}
-                            maxLength={1000}
-                            autoFocus
-                          />
-                          <div className="edit-hint">
-                            <span>{t('chat.editEsc')}</span>
-                            <button type="button" onClick={() => setEditingId(null)}>{t('chat.cancel')}</button>
-                            <button type="submit" disabled={!editDraft.trim()}>{t('chat.save')}</button>
-                          </div>
-                        </form>
-                      ) : (
-                        <div className={`message-bubble ${m.is_deleted ? 'deleted' : ''} ${isMedia ? 'media-bubble' : ''}`}>
-                          {m.is_deleted ? m.text : <MessageContent text={m.text} />}
-                          {!m.is_deleted && grouped && m.edited_at && (
-                            <span className="edited-tag-inline">{t('chat.edited')}</span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Reactions */}
-                      {m.reactions.length > 0 && !m.is_deleted && (
-                        <div className="reactions">
-                          {m.reactions.map((r: Reaction) => (
-                            <button
-                              key={r.emoji}
-                              type="button"
-                              className={`reaction-pill ${r.reacted ? 'reacted' : ''}`}
-                              onClick={() => handleReact(m.id, r.emoji)}
-                              title={r.reacted ? t('chat.unreact') : t('chat.react')}
-                            >
-                              {r.emoji} <span>{r.count}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
