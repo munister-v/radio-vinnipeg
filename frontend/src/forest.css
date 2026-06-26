@@ -92,18 +92,19 @@
   min-height: clamp(440px, 64vh, 720px);
   border-right: 1px solid var(--line);
   isolation: isolate;
-  background-color: #040507;
+  background-color: #08090d;
+  /* Emanuel Leutze — Washington Crossing the Delaware, 1851 (Met, NYC) */
   background-image:
     linear-gradient(180deg,
-      rgba(4, 5, 9, .60) 0%,
-      rgba(4, 5, 9, .18) 26%,
-      rgba(5, 6, 10, .28) 55%,
-      rgba(3, 4, 8, .80) 80%,
-      rgba(2, 3, 6, .97) 100%
+      rgba(4, 5, 12, .52) 0%,
+      rgba(4, 5, 10, .12) 30%,
+      rgba(5, 6, 12, .22) 55%,
+      rgba(3, 4, 10, .82) 80%,
+      rgba(2, 3, 8, .97) 100%
     ),
-    url('https://images.unsplash.com/photo-1531366936337-7c912a4589a7?auto=format&fit=crop&w=1920&q=80');
+    url('/slots/hero-battle.jpg');
   background-size: auto, cover;
-  background-position: center, center 22%;
+  background-position: center, center 30%;
   background-repeat: no-repeat;
 }
 .fx-feature::after {
