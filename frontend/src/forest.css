@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   ЛІСОВА СЦЕНА — іммерсивний герой ефіру
+   HERO — Apple city-radio identity (clean, SF Pro / Inter)
    ════════════════════════════════════════════════════════════════════════ */
 
 .fx-stage {
@@ -10,169 +10,98 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: clamp(80px, 12vh, 140px) 20px 120px;
+  padding: clamp(96px, 14vh, 168px) 22px clamp(80px, 12vh, 120px);
   isolation: isolate;
+  background: var(--surface-2);
 }
 
-/* ── Небо: тепле світло над глибоким бором ── */
-.fx-sky {
-  position: absolute;
-  inset: 0;
-  z-index: -6;
-  background:
-    radial-gradient(120% 80% at 50% 8%, rgba(255, 248, 228, .9) 0%, transparent 46%),
-    linear-gradient(180deg,
-      #f6efdc 0%,
-      #efe6cf 24%,
-      #e0d8b4 44%,
-      #b9c193 60%,
-      #7f9a6b 78%,
-      #4c6a44 100%);
-}
-.fx-sun {
-  position: absolute;
-  z-index: -5;
-  top: 2%;
-  left: 50%;
-  width: min(86vw, 880px);
-  aspect-ratio: 1;
-  transform: translate(-50%, var(--py, 0px));
-  background: radial-gradient(circle, rgba(255, 248, 224, 1) 0%, rgba(245, 215, 150, .6) 25%, rgba(214, 188, 130, .16) 50%, transparent 66%);
-  pointer-events: none;
-  will-change: transform;
-}
-
-/* ── Промені світла крізь крони ── */
-.fx-rays {
-  position: absolute;
-  z-index: -5;
-  top: -12%;
-  left: 50%;
-  width: 130%;
-  height: 96%;
-  transform: translate(-50%, var(--py, 0px));
-  pointer-events: none;
-  opacity: .6;
-  mix-blend-mode: screen;
-  filter: blur(1px);
-  background: repeating-linear-gradient(99deg,
-    rgba(255, 247, 223, .6) 0 3px,
-    transparent 3px 52px);
-  -webkit-mask: radial-gradient(62% 74% at 52% 0%, #000 0%, transparent 72%);
-  mask: radial-gradient(62% 74% at 52% 0%, #000 0%, transparent 72%);
-  will-change: transform;
-}
-
-/* ── Хвойні гребені (глибина) ── */
-.fx-forest {
-  position: absolute;
-  z-index: -4;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  width: 100%;
-  height: min(72vh, 660px);
-  transform: translateY(var(--py, 0px));
-  will-change: transform;
-}
-.fx-layer { transform-origin: bottom; }
-.fx-far   { fill: #93a587; opacity: .46; transform: translateY(40%) scale(1, .76); }
-.fx-midd  { fill: #5d7450; opacity: .68; transform: translateY(26%) scale(1, .88); }
-.fx-mid   { fill: #355032; opacity: .92; transform: translateY(12%) scale(1, .95); }
-.fx-near  { fill: #15271a; }
-
-/* ── Вертикальні стволи сосен (передній план, як у бору) ── */
-.fx-trunks {
-  position: absolute;
-  z-index: -3;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  transform: translateY(var(--py, 0px));
-  will-change: transform;
-}
-.fx-trunks polygon { fill: url(#fx-trunk-grad); }
-
-/* ── Туман біля підніжжя ── */
-.fx-mist {
-  position: absolute;
-  z-index: -2;
-  left: 0; right: 0; bottom: 0;
-  height: 48vh;
-  background: linear-gradient(180deg, transparent 0%, rgba(239, 231, 211, .34) 40%, rgba(239, 231, 211, .74) 100%);
-  pointer-events: none;
-}
-
-/* ── Пилок / порошинки у промені ── */
-.fx-motes { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
-.fx-motes i {
-  position: absolute;
-  bottom: -8px;
-  width: 4px; height: 4px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 248, 224, .95), rgba(255, 248, 224, 0) 70%);
-  animation: fx-float linear infinite;
-}
-@keyframes fx-float {
-  0%   { transform: translateY(0) translateX(0); opacity: 0; }
-  12%  { opacity: .9; }
-  88%  { opacity: .7; }
-  100% { transform: translateY(-90vh) translateX(28px); opacity: 0; }
-}
-
-.fx-grain {
+/* Soft Apple aurora — blurred colour fields, low opacity, never loud */
+.fx-aurora {
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  opacity: .45;
-  background-image: radial-gradient(rgba(43, 30, 18, .05) 1px, transparent 1.4px);
-  background-size: 4px 4px;
-  mix-blend-mode: multiply;
+  overflow: hidden;
+  filter: blur(64px) saturate(1.2);
+  opacity: .72;
+}
+.fx-aurora span {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+}
+.fx-aurora-a {
+  top: -8%; left: 14%;
+  width: 46vw; height: 46vw;
+  max-width: 620px; max-height: 620px;
+  background: radial-gradient(circle, #cfe0ff 0%, transparent 68%);
+  animation: fx-drift 22s ease-in-out infinite;
+}
+.fx-aurora-b {
+  top: -2%; right: 10%;
+  width: 40vw; height: 40vw;
+  max-width: 540px; max-height: 540px;
+  background: radial-gradient(circle, #ffd9e4 0%, transparent 68%);
+  animation: fx-drift 26s ease-in-out infinite reverse;
+}
+.fx-aurora-c {
+  top: 18%; left: 50%;
+  width: 38vw; height: 38vw;
+  max-width: 520px; max-height: 520px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, #d6f0ec 0%, transparent 68%);
+  animation: fx-drift 30s ease-in-out infinite;
+}
+@keyframes fx-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(4%, 5%); }
 }
 
-/* ── Контент ── */
+/* ── Content ── */
 .fx-content {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 680px;
+  max-width: 720px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
 }
-.fx-emblem {
-  width: clamp(54px, 7vw, 78px);
-  height: auto;
-  color: var(--brass);
-  filter: drop-shadow(0 3px 12px rgba(154, 122, 60, .3));
-}
 .fx-eyebrow {
-  margin: 22px 0 0;
-  font: 500 11px/1.4 var(--font);
-  letter-spacing: .34em;
-  text-transform: uppercase;
-  color: var(--moss);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 500 13px/1.4 var(--mono);
+  letter-spacing: .02em;
+  color: var(--ink-2);
 }
+.fx-eyebrow-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+.fx-eyebrow-dot.on { background: var(--signal); animation: fx-pulse 1.8s ease-in-out infinite; }
+
 .fx-wordmark {
-  margin: 12px 0 0;
-  font-family: var(--serif);
-  font-weight: 600;
-  font-size: clamp(56px, 9vw, 116px);
-  line-height: .94;
-  letter-spacing: -.02em;
+  margin: 18px 0 0;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: clamp(52px, 9vw, 116px);
+  line-height: 1.02;
+  letter-spacing: -.045em;
   color: var(--ink);
 }
 .fx-tagline {
-  margin: 16px auto 0;
-  max-width: 30ch;
-  font-family: var(--serif);
-  font-weight: 500;
-  font-size: clamp(19px, 2.1vw, 25px);
-  line-height: 1.34;
-  color: #5a5340;
+  margin: 18px auto 0;
+  max-width: 34ch;
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: clamp(19px, 2.2vw, 27px);
+  line-height: 1.32;
+  letter-spacing: -.018em;
+  color: var(--ink-2);
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -400,33 +329,34 @@
   gap: 7px;
   padding: 6px 12px 6px 8px;
   border-radius: 999px;
-  background: rgba(74, 93, 68, .1);
-  font: 500 11px/1 var(--font);
-  letter-spacing: .02em;
-  color: var(--ink);
+  background: rgba(255, 255, 255, .1);
+  font: 500 12px/1 var(--font);
+  letter-spacing: -.01em;
+  color: rgba(255, 255, 255, .85);
 }
 .fx-part i { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
-.fx-part.speaking { background: rgba(154, 122, 60, .22); box-shadow: 0 0 0 1px rgba(154, 122, 60, .4); }
-.fx-part:not(.mic) { opacity: .55; }
-.fx-error { margin: 0; color: var(--signal); font-size: 13px; }
+.fx-part.speaking { background: rgba(255, 55, 95, .2); box-shadow: 0 0 0 1px rgba(255, 55, 95, .45); color: #fff; }
+.fx-part:not(.mic) { opacity: .5; }
+.fx-error { margin: 0; color: #ff6b81; font-size: 13px; }
 
 /* ── Підказка прокрутки ── */
 .fx-scroll {
   position: absolute;
   z-index: 1;
-  bottom: 26px;
+  bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  color: var(--moss);
+  gap: 7px;
+  color: var(--ink-3);
   text-decoration: none;
-  font: 500 9px/1 var(--font);
-  letter-spacing: .22em;
-  text-transform: uppercase;
+  font: 500 11px/1 var(--font);
+  letter-spacing: .04em;
+  transition: color .16s ease;
 }
+.fx-scroll:hover { color: var(--ink-2); }
 .fx-scroll svg { width: 20px; height: 20px; animation: fx-nudge 2s ease-in-out infinite; }
 @keyframes fx-nudge { 50% { transform: translateY(5px); } }
 

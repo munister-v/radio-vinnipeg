@@ -12,67 +12,6 @@ import './forest.css'
    Жодної брутальної сітки — глибина, туман, тепле світло, м'які форми.
    ──────────────────────────────────────────────────────────────────────── */
 
-// Геральдична емблема (золото, лінійна) — повторюємо мотив знака курорту.
-function Emblem({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 48 48" fill="none"
-      stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <rect x="3" y="3" width="42" height="42" rx="6" strokeWidth="2" />
-      <line x1="24" y1="4" x2="24" y2="44" strokeWidth="1.1" opacity=".4" />
-      <line x1="4" y1="24" x2="44" y2="24" strokeWidth="1.1" opacity=".4" />
-      <path d="M10.5 4 A6.5 6.5 0 0 1 4 10.5" strokeWidth="2" />
-      <path d="M16 4 A12 12 0 0 1 4 16" strokeWidth="2" />
-      <path d="M21.5 4 A17.5 17.5 0 0 1 4 21.5" strokeWidth="2" />
-      <path d="M27 20 L34 13 L41 20" strokeWidth="2" />
-      <path d="M27 14.5 L34 7.5 L41 14.5" strokeWidth="2" />
-      <path d="M7 30 H21" strokeWidth="2" />
-      <path d="M7 35 H21" strokeWidth="2" />
-      <path d="M7 40 H21" strokeWidth="2" />
-      <path d="M28 42 V34 a6 6 0 0 1 12 0 V42" strokeWidth="2" />
-    </svg>
-  )
-}
-
-// Згенерувати силует хвойного гребеня (полігони сосен) на всю ширину.
-function pineRange(seed: number, count: number, minH: number, maxH: number): string {
-  const W = 1440
-  const base = 200
-  const step = W / count
-  let d = `M0 ${base} `
-  for (let i = 0; i <= count; i++) {
-    const cx = i * step
-    const r = ((Math.sin(seed * 9.7 + i * 2.3) + 1) / 2)
-    const h = minH + r * (maxH - minH)
-    const half = step * 0.62
-    d += `L${(cx - half).toFixed(1)} ${base} L${cx.toFixed(1)} ${(base - h).toFixed(1)} L${(cx + half).toFixed(1)} ${base} `
-  }
-  d += `L${W} ${base} L${W} ${base + 60} L0 ${base + 60} Z`
-  return d
-}
-
-const RANGE_FAR = pineRange(1, 28, 38, 92)
-const RANGE_MIDD = pineRange(4, 23, 55, 124)
-const RANGE_MID = pineRange(7, 19, 78, 158)
-const RANGE_NEAR = pineRange(13, 14, 116, 222)
-
-// Вертикальні стволи переднього плану (краї щільніші, центр прозоріший).
-const TRUNKS = [
-  { x: 38, w: 56, op: .88 }, { x: 132, w: 30, op: .6 },
-  { x: 1402, w: 54, op: .88 }, { x: 1300, w: 32, op: .62 },
-  { x: 250, w: 18, op: .26 }, { x: 1170, w: 20, op: .3 },
-  { x: 560, w: 12, op: .15 }, { x: 905, w: 15, op: .18 },
-]
-const trunkPts = (x: number, w: number) =>
-  `${x - w * 0.42},0 ${x + w * 0.42},0 ${x + w * 0.5},1000 ${x - w * 0.5},1000`
-
-// Порошинки/пилок у промені світла (детерміновано).
-const MOTES = Array.from({ length: 16 }).map((_, i) => ({
-  left: `${(i * 61) % 100}%`,
-  s: `${2 + (i % 3) * 1.4}px`,
-  d: `${15 + (i % 5) * 4}s`,
-  delay: `${-(i * 1.7).toFixed(1)}s`,
-}))
-
 function PlayGlyph() {
   return <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M8 5.4l12 6.6-12 6.6V5.4Z" /></svg>
 }
@@ -119,33 +58,6 @@ export default function ForestStage({ user, onStats }: { user: User; onStats?: (
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [pttHeld, setPttHeld] = useState(false)
   const pttBusyRef = useRef(false)
-  const stageRef = useRef<HTMLElement>(null)
-
-  // Легкий параллакс: шари рухаються з різною швидкістю при скролі героя.
-  useEffect(() => {
-    const root = stageRef.current
-    if (!root) return
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
-    const layers: Array<[HTMLElement | null, number]> = [
-      [root.querySelector('.fx-sun'), 0.45],
-      [root.querySelector('.fx-rays'), 0.42],
-      [root.querySelector('.fx-forest'), 0.28],
-      [root.querySelector('.fx-trunks'), 0.06],
-    ]
-    let ticking = false
-    const apply = () => {
-      ticking = false
-      const y = window.scrollY
-      if (y > window.innerHeight * 1.3) return
-      for (const [el, k] of layers) {
-        if (el) el.style.setProperty('--py', `${(y * k).toFixed(1)}px`)
-      }
-    }
-    const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(apply) } }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    apply()
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
 
   const total = members.length + (joined ? 1 : 0)
   const speakers = members.filter((m) => m.speaking)
@@ -179,41 +91,19 @@ export default function ForestStage({ user, onStats }: { user: User; onStats?: (
       : t('voice.nobody')
 
   return (
-    <section className="fx-stage" id="air" ref={stageRef}>
-      {/* ── Атмосфера ── */}
-      <div className="fx-sky" aria-hidden />
-      <div className="fx-rays" aria-hidden />
-      <div className="fx-sun" aria-hidden />
-      <svg className="fx-forest" viewBox="0 0 1440 260" preserveAspectRatio="xMidYMax slice" aria-hidden>
-        <path className="fx-layer fx-far" d={RANGE_FAR} />
-        <path className="fx-layer fx-midd" d={RANGE_MIDD} />
-        <path className="fx-layer fx-mid" d={RANGE_MID} />
-        <path className="fx-layer fx-near" d={RANGE_NEAR} />
-      </svg>
-      <svg className="fx-trunks" viewBox="0 0 1440 1000" preserveAspectRatio="none" aria-hidden>
-        <defs>
-          <linearGradient id="fx-trunk-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#33271a" />
-            <stop offset="0.55" stopColor="#22301a" />
-            <stop offset="1" stopColor="#14210e" />
-          </linearGradient>
-        </defs>
-        {TRUNKS.map((tr, i) => (
-          <polygon key={i} points={trunkPts(tr.x, tr.w)} opacity={tr.op} />
-        ))}
-      </svg>
-      <div className="fx-mist" aria-hidden />
-      <div className="fx-motes" aria-hidden>
-        {MOTES.map((m, i) => (
-          <i key={i} style={{ left: m.left, width: m.s, height: m.s, animationDuration: m.d, animationDelay: m.delay }} />
-        ))}
+    <section className="fx-stage" id="air">
+      {/* Soft Apple aurora glow behind the wordmark */}
+      <div className="fx-aurora" aria-hidden>
+        <span className="fx-aurora-a" />
+        <span className="fx-aurora-b" />
+        <span className="fx-aurora-c" />
       </div>
-      <div className="fx-grain" aria-hidden />
 
-      {/* ── Контент ── */}
       <div className="fx-content">
-        <Emblem className="fx-emblem" />
-        <p className="fx-eyebrow">{t('hero.kicker')}</p>
+        <p className="fx-eyebrow">
+          <span className={`fx-eyebrow-dot ${active ? 'on' : ''}`} aria-hidden />
+          Winnipeg · Manitoba · 94.7 FM
+        </p>
         <h1 className="fx-wordmark">Radio Vinnipeg</h1>
         <p className="fx-tagline">{t('hero.tagline')}</p>
 

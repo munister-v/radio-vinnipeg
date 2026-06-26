@@ -5,7 +5,8 @@
   --ink-3: #aeaeb2;         /* SF tertiary label */
 
   --surface:   #ffffff;
-  --surface-2: #f5f5f7;     /* SF grouped background */
+  --surface-2: #fbfbfd;     /* Apple page background */
+  --surface-3: #f5f5f7;     /* Apple grouped background */
 
   --tint:   #0071e3;         /* Apple blue */
   --signal: #ff375f;         /* Apple Music red — live/on-air only */
@@ -14,15 +15,10 @@
   --line:   rgba(0, 0, 0, .07);
   --line-strong: rgba(0, 0, 0, .14);
 
-  /* Forest-stage accent tokens (scoped to hero, not page-wide) */
-  --moss:        #4a5d44;
-  --sage:        #7d8e6b;
-  --brass:       #9a7a3c;
-  --brass-bright:#c6a15c;
-
-  --font:  -apple-system, "SF Pro Display", "Inter Tight", "Helvetica Neue", Arial, sans-serif;
-  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
-  --mono:  "SF Mono", ui-monospace, "IBM Plex Mono", SFMono-Regular, Menlo, monospace;
+  /* Real Apple typography: SF Pro on Apple devices, Inter elsewhere. */
+  --font:  -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, "Helvetica Neue", Arial, sans-serif;
+  --serif: var(--font);
+  --mono:  "SF Mono", ui-monospace, SFMono-Regular, "Inter", Menlo, monospace;
 
   --page-width: 100%;
   font-family: var(--font);
@@ -49,9 +45,10 @@ html, body, #root { min-height: 100%; }
 body {
   margin: 0;
   overflow-x: hidden;
-  background: var(--surface);
+  background: var(--surface-2);
   color: var(--ink);
   font-family: var(--font);
+  letter-spacing: -.01em;
   font-size: 17px;
   line-height: 1.5;
 }
