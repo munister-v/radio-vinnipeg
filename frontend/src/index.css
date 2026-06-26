@@ -1,45 +1,28 @@
 :root {
-  /* ── Сосновий курорт ────────────────────────────────────────────────
-     Натхнення: дерев'яна навігація соснового курорту — теплий пергамент,
-     дерево-еспресо як «чорнило», лісова зелень і латунь як акценти,
-     теракотовий жар для «наживо». Світло й натурально.
+  /* ── Apple-identity system palette ────────────────────────────────── */
+  --ink:   #1d1d1f;         /* SF primary label */
+  --ink-2: #6e6e73;         /* SF secondary label */
+  --ink-3: #aeaeb2;         /* SF tertiary label */
 
-     Легасі-назви змінних (--yellow / --paper / --ink ...) збережені, але
-     перенастроєні на курортну палітру — увесь App.css перефарбовується
-     автоматично через них. */
+  --surface:   #ffffff;
+  --surface-2: #f5f5f7;     /* SF grouped background */
 
-  /* Поверхні — пергамент і крем */
-  --paper: #efe7d3;   /* тло сторінки */
-  --white: #f7f1e2;   /* піднята поверхня (картки) */
+  --tint:   #0071e3;         /* Apple blue */
+  --signal: #ff375f;         /* Apple Music red — live/on-air only */
+  --danger: #ff375f;
 
-  /* «Чорнило» — темне дерево-еспресо (текст + темні панелі-таблички) */
-  --ink:   #2b1e12;
-  --muted: #6e6650;   /* приглушений теплий */
+  --line:   rgba(0, 0, 0, .07);
+  --line-strong: rgba(0, 0, 0, .14);
 
-  /* Тепла піщана поверхня (subtle-ховери, власне повідомлення, hero-тло) */
-  --yellow: #e4d6b4;
-  --yellow-bright: #2b1e12;   /* == ink: активна інверсія / посилання */
+  /* Forest-stage accent tokens (scoped to hero, not page-wide) */
+  --moss:        #4a5d44;
+  --sage:        #7d8e6b;
+  --brass:       #9a7a3c;
+  --brass-bright:#c6a15c;
 
-  /* Теракотовий жар — «наживо» / on-air */
-  --signal: #b0533a;
-  --signal-soft: rgba(176, 83, 58, .14);
-  --danger: #b0533a;
-
-  /* Лісова зелень і латунь — акценти навігації */
-  --moss:  #4a5d44;
-  --sage:  #7d8e6b;
-  --brass: #9a7a3c;
-  --brass-bright: #c6a15c;
-
-  /* Латунно-деревна волосина-розділювач */
-  --line: rgba(43, 30, 18, .20);
-
-  /* Типографіка: класична антиква для дисплея + геометричний гротеск Jost
-     для тексту й службових підписів (як у європейській курортній навігації).
-     --mono лишає монопростір лише у фолбеку для рідкісних таблиць. */
+  --font:  -apple-system, "SF Pro Display", "Inter Tight", "Helvetica Neue", Arial, sans-serif;
   --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
-  --font:  "Jost", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono:  "Jost", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --mono:  "SF Mono", ui-monospace, "IBM Plex Mono", SFMono-Regular, Menlo, monospace;
 
   --page-width: 100%;
   font-family: var(--font);
@@ -50,29 +33,39 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* Legacy aliases — keep App.css working without churn */
+:root {
+  --paper:        var(--surface-2);
+  --white:        var(--surface);
+  --muted:        var(--ink-2);
+  --yellow:       var(--surface-2);
+  --yellow-bright:var(--ink);
+  --signal-soft:  rgba(255, 55, 95, .1);
+}
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 html, body, #root { min-height: 100%; }
 body {
   margin: 0;
   overflow-x: hidden;
-  background: var(--paper);
+  background: var(--surface);
   color: var(--ink);
   font-family: var(--font);
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1.5;
 }
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
-  outline: 2px solid var(--moss);
-  outline-offset: 3px;
+  outline: 2px solid var(--tint);
+  outline-offset: 2px;
 }
 a { color: inherit; }
-::selection { background: var(--ink); color: var(--paper); }
-* { scrollbar-width: thin; scrollbar-color: var(--ink) transparent; }
-*::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: var(--ink); }
+::selection { background: var(--tint); color: #fff; }
+* { scrollbar-width: thin; scrollbar-color: var(--ink-3) transparent; }
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-thumb { background: var(--ink-3); border-radius: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

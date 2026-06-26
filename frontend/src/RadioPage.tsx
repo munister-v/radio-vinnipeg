@@ -108,40 +108,6 @@ function MessageContent({ text }: { text: string }) {
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥']
 
-function PineRow() {
-  const pts = [
-    "0,72 14,7 26,72","22,72 37,26 52,72","49,72 60,14 71,72","68,72 79,33 90,72",
-    "87,72 101,2 115,72","111,72 122,20 133,72","129,72 142,11 155,72",
-    "152,72 160,38 168,72","165,72 178,9 192,72","189,72 200,26 211,72",
-    "208,72 221,5 234,72","231,72 240,30 249,72","246,72 260,15 274,72",
-    "271,72 282,22 293,72","290,72 304,4 318,72","315,72 324,33 333,72",
-    "330,72 344,11 358,72","355,72 365,36 375,72","372,72 385,7 398,72",
-    "395,72 405,24 415,72","412,72 427,3 442,72","439,72 449,19 459,72",
-    "456,72 468,13 480,72","477,72 487,32 497,72","494,72 508,6 522,72",
-    "519,72 529,26 539,72","536,72 549,10 562,72","559,72 569,34 579,72",
-    "576,72 590,2 604,72","601,72 611,21 621,72","618,72 632,14 646,72",
-    "643,72 653,37 663,72","660,72 674,5 688,72","685,72 695,23 705,72",
-    "702,72 715,12 728,72","725,72 735,31 745,72","742,72 756,7 770,72",
-    "767,72 777,26 787,72","784,72 798,4 812,72","809,72 819,19 829,72",
-    "826,72 840,14 854,72","851,72 861,33 871,72","868,72 882,8 896,72",
-    "893,72 903,25 913,72","910,72 924,10 938,72","935,72 945,35 955,72",
-    "952,72 966,3 980,72","977,72 987,22 997,72","994,72 1008,13 1022,72",
-    "1019,72 1029,30 1039,72","1036,72 1050,6 1064,72","1061,72 1071,24 1081,72",
-    "1078,72 1092,15 1106,72","1103,72 1113,36 1123,72","1120,72 1134,4 1148,72",
-    "1145,72 1155,23 1165,72","1162,72 1176,11 1190,72","1187,72 1197,30 1207,72",
-    "1204,72 1218,8 1232,72","1229,72 1239,27 1249,72","1246,72 1260,16 1274,72",
-    "1271,72 1281,33 1291,72","1288,72 1302,5 1316,72","1313,72 1323,21 1333,72",
-    "1330,72 1344,12 1358,72","1355,72 1365,34 1375,72","1372,72 1386,7 1400,72",
-    "1397,72 1419,19 1440,72",
-  ]
-  return (
-    <div className="pine-row" aria-hidden>
-      <svg viewBox="0 0 1440 72" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-        {pts.map((p, i) => <polygon key={i} points={p} />)}
-      </svg>
-    </div>
-  )
-}
 
 // Геральдична емблема Winnipeg Nights — латунний лінійний знак у квадраті:
 // концентричні хвилі (ефір/світанок) · шеврони (сосни) · страти (земля) ·
@@ -171,23 +137,6 @@ function BrandEmblem({ className }: { className?: string }) {
 }
 
 
-function FrequencyDial() {
-  return (
-    <div className="freq-dial" aria-hidden>
-      <div className="freq-dial-inner">
-        <div className="freq-number">
-          <span className="freq-khz-big">980</span>
-          <span className="freq-khz-unit">kHz</span>
-        </div>
-        <div className="freq-meta">
-          <span>AM</span>
-          <span>Internet Radio</span>
-          <span>Winnipeg · MB</span>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function formatDateSeparator(iso: string, lang: Lang): string {
   const normalized = iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z'
@@ -642,30 +591,27 @@ export default function RadioPage({ user, onUserChange }: Props) {
       <main>
         <ForestStage user={user} onStats={setVoiceStats} />
 
-        <PineRow />
-
-        <FrequencyDial />
-
         <section className="schedule-section" id="schedule">
-          <div className="schedule-heading">
-            <div className="section-kicker"><span>02</span> {t('schedule.kicker')}</div>
+          <div className="schedule-head">
+            <span className="schedule-eyebrow">{t('schedule.kicker')}</span>
             <h2 dangerouslySetInnerHTML={{ __html: t('schedule.heading') }} />
           </div>
           <StationClock />
-          <ol className="schedule-grid">
+          <ol className="schedule-list">
             {slotTimes.map((slot, index) => (
-              <li key={slot.start}>
-                <span>{String(index + 1).padStart(2, '0')}</span>
-                <time>{String(slot.start).padStart(2, '0')}:00</time>
-                <h3>{t(`slot.${index}.label`)}</h3>
-                <p>{t(`slot.${index}.note`)}</p>
+              <li key={slot.start} className="schedule-row">
+                <time className="schedule-time">{String(slot.start).padStart(2, '0')}:00</time>
+                <div className="schedule-body">
+                  <h3>{t(`slot.${index}.label`)}</h3>
+                  <p>{t(`slot.${index}.note`)}</p>
+                </div>
               </li>
             ))}
           </ol>
         </section>
 
         <section className="radio-manifesto" id="about">
-          <div className="section-kicker"><span>03</span> {t('about.kicker')}</div>
+          <span className="schedule-eyebrow">{t('about.kicker')}</span>
           <h2 dangerouslySetInnerHTML={{ __html: t('about.heading') }} />
           <div className="manifesto-copy">
             <p>{t('about.copy')}</p>
