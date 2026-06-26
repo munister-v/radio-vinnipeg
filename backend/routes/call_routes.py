@@ -23,8 +23,21 @@ _ROOM_SLUG = 'lounge'
 _HEARTBEAT_TIMEOUT = "20 seconds"
 
 
+def _req_room_slug() -> str:
+    """Slug кімнати з запиту (?room=... або body.room), дефолт — lounge."""
+    slug = (request.args.get('room') or '').strip()
+    if not slug:
+        body = request.get_json(silent=True)
+        if isinstance(body, dict):
+            slug = (body.get('room') or '').strip()
+    return slug or _ROOM_SLUG
+
+
 def _room_id(conn) -> int:
-    row = conn.execute('SELECT id FROM rooms WHERE slug = %s', (_ROOM_SLUG,)).fetchone()
+    slug = _req_room_slug()
+    row = conn.execute('SELECT id FROM rooms WHERE slug = %s', (slug,)).fetchone()
+    if not row:  # невідома кімната → безпечний фолбек на lounge
+        row = conn.execute('SELECT id FROM rooms WHERE slug = %s', (_ROOM_SLUG,)).fetchone()
     return row['id']
 
 

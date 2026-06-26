@@ -11,6 +11,7 @@ from .database import init_db, run_migrations
 from .routes.auth_routes import auth_bp
 from .routes.call_routes import call_bp
 from .routes.chat_routes import chat_bp
+from .routes.room_routes import room_bp
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / 'frontend' / 'dist'
 
@@ -27,6 +28,7 @@ def create_app() -> Flask:
     app.register_blueprint(auth_bp)
     app.register_blueprint(call_bp)
     app.register_blueprint(chat_bp)
+    app.register_blueprint(room_bp)
 
     @app.get('/api/health')
     def health():

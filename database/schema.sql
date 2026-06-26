@@ -92,3 +92,20 @@ CREATE TABLE IF NOT EXISTS message_reactions (
     UNIQUE(message_id, user_id, emoji)
 );
 CREATE INDEX IF NOT EXISTS idx_reactions_msg ON message_reactions(message_id);
+
+-- Синхронне відтворення YouTube у кімнаті ("спільний діджей").
+-- Сервер зберігає, що грає; клієнти підлаштовують позицію через IFrame API,
+-- тож усі чують одне й те саме приблизно синхронно.
+--   position_sec — позиція треку на момент started_at
+--   started_at   — epoch-секунди сервера, коли позицію було встановлено
+-- Поточна позиція = position_sec + (now - started_at), якщо is_playing.
+CREATE TABLE IF NOT EXISTS room_now_playing (
+    room_id      INTEGER PRIMARY KEY REFERENCES rooms(id) ON DELETE CASCADE,
+    video_id     TEXT,
+    title        TEXT,
+    position_sec REAL NOT NULL DEFAULT 0,
+    is_playing   INTEGER NOT NULL DEFAULT 0,
+    started_at   REAL,
+    updated_by   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);

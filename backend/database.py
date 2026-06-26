@@ -66,7 +66,13 @@ def init_db() -> None:
     with get_connection() as conn:
         schema_sql = SCHEMA_PATH.read_text(encoding='utf-8')
         conn._conn.executescript(schema_sql)
-        conn.execute(
-            'INSERT OR IGNORE INTO rooms (slug, title) VALUES (%s, %s)',
+        # Базові кімнати ефіру (інші користувачі створюють самі).
+        for slug, title in (
             ('lounge', f'{STATION_NAME} · Lounge'),
-        )
+            ('music', f'{STATION_NAME} · Music'),
+            ('talk', f'{STATION_NAME} · Talk'),
+        ):
+            conn.execute(
+                'INSERT OR IGNORE INTO rooms (slug, title) VALUES (%s, %s)',
+                (slug, title),
+            )

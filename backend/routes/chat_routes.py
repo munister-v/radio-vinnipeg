@@ -17,14 +17,27 @@ chat_bp = Blueprint('chat', __name__, url_prefix='/api/chat')
 
 _ROOM_SLUG = 'lounge'
 
-# In-memory typing state: user_id -> {nickname, color, at}
-_typing_state: dict[int, dict] = {}
+# In-memory typing state per room slug: slug -> {user_id -> {nickname, color, at}}
+_typing_state: dict[str, dict[int, dict]] = {}
 
 
 # ── DB helpers ───────────────────────────────────────────────────────────────
 
+def _req_room_slug() -> str:
+    """Slug кімнати з запиту (?room=... або body.room), дефолт — lounge."""
+    slug = (request.args.get('room') or '').strip()
+    if not slug:
+        body = request.get_json(silent=True)
+        if isinstance(body, dict):
+            slug = (body.get('room') or '').strip()
+    return slug or _ROOM_SLUG
+
+
 def _room_id(conn) -> int:
-    row = conn.execute('SELECT id FROM rooms WHERE slug = %s', (_ROOM_SLUG,)).fetchone()
+    slug = _req_room_slug()
+    row = conn.execute('SELECT id FROM rooms WHERE slug = %s', (slug,)).fetchone()
+    if not row:  # невідома кімната → безпечний фолбек на lounge
+        row = conn.execute('SELECT id FROM rooms WHERE slug = %s', (_ROOM_SLUG,)).fetchone()
     return row['id']
 
 
@@ -154,11 +167,12 @@ def poll():
         ).fetchall()
         msgs = _serialize_messages(list(rows), me_id, conn)
 
-        # Typing state (TTL 5s, exclude self)
+        # Typing state (TTL 5s, exclude self) — лише для цієї кімнати
         now = time.time()
+        room_typing = _typing_state.get(_req_room_slug(), {})
         typing = [
             {'nickname': v['nickname'], 'color': v['color']}
-            for uid, v in list(_typing_state.items())
+            for uid, v in list(room_typing.items())
             if now - v['at'] < 5 and uid != me_id
         ]
 
@@ -196,7 +210,7 @@ def poll():
 @rate_limit(20, 10, key_func=lambda: f'chat:typing:{_client_ip()}')
 def set_typing():
     me = g.current_user
-    _typing_state[int(me['id'])] = {
+    _typing_state.setdefault(_req_room_slug(), {})[int(me['id'])] = {
         'nickname': me['nickname'],
         'color': me['color'],
         'at': time.time(),
