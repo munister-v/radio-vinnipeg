@@ -7,10 +7,40 @@ import type { VoiceStats } from './VoicePanel'
 import { useI18n, peopleWord } from './i18n'
 import './forest.css'
 
-/* ────────────────────────────────────────────────────────────────────────
-   Лісова сцена: іммерсивний хвойний горизонт + спокійний плеєр ефіру.
-   Жодної брутальної сітки — глибина, туман, тепле світло, м'які форми.
-   ──────────────────────────────────────────────────────────────────────── */
+/* Deterministic pine-forest silhouette — three depth layers */
+function pinePath(count: number, minH: number, maxH: number, seed: number): string {
+  const W = 1440, H = 400
+  const step = W / count
+  const hs = Array.from({ length: count }, (_, i) => {
+    const n = (Math.sin(seed + i * 2.618) + Math.sin(seed * 1.73 + i * 1.414)) * 0.5
+    return minH + (n * 0.5 + 0.5) * (maxH - minH)
+  })
+  let d = `M0,${H}`
+  hs.forEach((h, i) => {
+    const prev = i > 0 ? hs[i - 1] : h
+    const valX = (i * step).toFixed(1)
+    const valY = (H - Math.min(h, prev) * 0.72).toFixed(1)
+    const pkX  = (i * step + step * 0.5).toFixed(1)
+    const pkY  = (H - h).toFixed(1)
+    d += ` L${valX},${valY} L${pkX},${pkY}`
+  })
+  return d + ` L${W},${H} Z`
+}
+
+function PineTrees() {
+  const far  = pinePath(52, 28, 68,  1.1)
+  const mid  = pinePath(34, 72, 148, 3.7)
+  const near = pinePath(22, 140, 230, 6.2)
+  return (
+    <div className="fx-pines" aria-hidden>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 400" preserveAspectRatio="xMidYMax slice">
+        <path d={far}  fill="rgba(48, 53, 66, 0.65)" />
+        <path d={mid}  fill="rgba(22, 25, 32, 0.92)" />
+        <path d={near} fill="rgba(6, 7, 10, 0.99)" />
+      </svg>
+    </div>
+  )
+}
 
 function PlayGlyph() {
   return <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M8 5.4l12 6.6-12 6.6V5.4Z" /></svg>
@@ -64,6 +94,17 @@ export default function ForestStage({ user, onStats }: { user: User; onStats?: (
   const someoneSpeaking = speakers.length > 0 || (joined && micOn && speaking)
   const active = joined || members.length > 0
 
+  // Schedule slots (mirror RadioPage) → drives the tile rail + channel 2
+  const SLOT_STARTS = [0, 8, 12, 18]
+  const [hour, setHour] = useState(() => new Date().getHours())
+  useEffect(() => {
+    const id = window.setInterval(() => setHour(new Date().getHours()), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
+  const activeSlot = SLOT_STARTS.reduce((acc, s, i) => (hour >= s ? i : acc), 0)
+  const nextSlot = (activeSlot + 1) % SLOT_STARTS.length
+  const pad2 = (n: number) => String(n % 24).padStart(2, '0')
+
   // PTT (Space) у режимі рації
   useEffect(() => {
     if (!joined || !settings.pttMode) return
@@ -84,129 +125,156 @@ export default function ForestStage({ user, onStats }: { user: User; onStats?: (
     return () => { window.removeEventListener('keydown', dn); window.removeEventListener('keyup', up) }
   }, [joined, settings.pttMode, micOn, pttHeld, toggleMic])
 
-  const statusLabel = joined
-    ? (someoneSpeaking ? t('voice.micOn') : settings.pttMode ? t('voice.pttHint') : t('voice.listenHint'))
-    : members.length > 0
-      ? t('voice.inProgress')
-      : t('voice.nobody')
 
   return (
     <section className="fx-stage" id="air">
-      {/* Soft Apple aurora glow behind the wordmark */}
-      <div className="fx-aurora" aria-hidden>
-        <span className="fx-aurora-a" />
-        <span className="fx-aurora-b" />
-        <span className="fx-aurora-c" />
+      {/* ════ Dual-channel LIVE NOW bar — NTS signature ════ */}
+      <div className="fx-livebar">
+        <span className="fx-lb-label">
+          <span className={`fx-lb-dot ${active ? 'on' : ''}`} aria-hidden />
+          Live now
+        </span>
+
+        {/* Channel 1 — the open broadcast */}
+        <button className="fx-chan" onClick={joined ? undefined : join} disabled={connecting}>
+          <span className="fx-chan-n">1</span>
+          <PlayGlyph />
+          <span className="fx-chan-title">
+            {active ? 'Winnipeg Nights · on air' : 'Winnipeg Nights · open mic'}
+          </span>
+          <span className="fx-chan-loc">Winnipeg</span>
+        </button>
+
+        {/* Channel 2 — scheduled programme */}
+        <a className="fx-chan fx-chan-2" href="#schedule">
+          <span className="fx-chan-n">2</span>
+          <span className="fx-chan-title">{t(`slot.${activeSlot}.label`)}</span>
+          <span className="fx-chan-loc">94.7 FM</span>
+        </a>
+
+        <span className="fx-lb-tail">{total} {peopleWord(total, lang)}</span>
       </div>
 
-      <div className="fx-content">
-        <p className="fx-eyebrow">
-          <span className={`fx-eyebrow-dot ${active ? 'on' : ''}`} aria-hidden />
-          Winnipeg · Manitoba · 94.7 FM
-        </p>
-        <h1 className="fx-wordmark">Radio Vinnipeg</h1>
-        <p className="fx-tagline">{t('hero.tagline')}</p>
+      {/* ════ Two-column grid: featured cell + tile rail ════ */}
+      <div className="fx-grid">
+        {/* ── Featured live cell (the "artwork") ── */}
+        <div className="fx-feature">
+          <div className="fx-moon" aria-hidden />
+          <PineTrees />
 
-        {/* ── Плеєр ефіру ── */}
-        <div className={`fx-player ${active ? 'is-active' : ''}`}>
-          <div className="fx-player-head">
-            <span className={`fx-pulse ${active ? 'on' : ''}`} aria-hidden />
-            <span className="fx-player-status">
-              {active
-                ? t('voice.inCallYou', { n: total || members.length, ppl: peopleWord(total || members.length, lang) })
-                : t('voice.silence')}
-            </span>
-            {joined && (
-              <button className="fx-gear" onClick={() => setSettingsOpen((v) => !v)} aria-label={t('voice.soundSettings')}>
-                <GearGlyph />
-              </button>
+          <div className="fx-deck">
+            {!joined ? (
+              <div className="fx-deck-idle">
+                <button
+                  className="fx-play"
+                  onClick={join}
+                  disabled={connecting}
+                  aria-label={members.length ? t('voice.join') : t('voice.start')}
+                >
+                  <span className={`fx-play-ring r1 ${active ? 'on' : ''}`} aria-hidden />
+                  <span className={`fx-play-ring r2 ${active ? 'on' : ''}`} aria-hidden />
+                  <span className={`fx-play-ring r3 ${active ? 'on' : ''}`} aria-hidden />
+                  <PlayGlyph />
+                </button>
+                <div className="fx-deck-text">
+                  <span className="fx-deck-kicker">
+                    {connecting ? t('voice.connecting') : members.length ? t('voice.join') : 'Курорт · Open broadcast'}
+                  </span>
+                  <h1 className="fx-deck-title">Winnipeg Nights</h1>
+                  <p className="fx-deck-desc">{t('hero.tagline')}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="fx-deck-live">
+                <div className="fx-deck-livehead">
+                  <span className="fx-deck-live-title">Winnipeg Nights</span>
+                  <span className="fx-deck-live-status">
+                    {t('voice.inCallYou', { n: total, ppl: peopleWord(total, lang) })}
+                  </span>
+                  <button className="fx-gear" onClick={() => setSettingsOpen((v) => !v)} aria-label={t('voice.soundSettings')}>
+                    <GearGlyph />
+                  </button>
+                </div>
+
+                <div className={`fx-wave ${someoneSpeaking ? 'live' : ''}`} aria-hidden>
+                  {Array.from({ length: 40 }).map((_, i) => (
+                    <i key={i} style={{ animationDelay: `${i * 0.04}s` }} />
+                  ))}
+                </div>
+
+                {audioBlocked && (
+                  <button className="fx-unlock" onClick={unlockAudio}>{t('voice.audioUnlock')}</button>
+                )}
+
+                <div className="fx-vol">
+                  <span className="fx-vol-ic"><VolGlyph muted={settings.volume === 0} /></span>
+                  <input type="range" min="0" max="1" step="0.02" value={settings.volume}
+                    onChange={(e) => settings.setVolume(parseFloat(e.target.value))} aria-label={t('set.volume')} />
+                  <span className="fx-vol-val">{Math.round(settings.volume * 100)}%</span>
+                </div>
+
+                <div className="fx-controls">
+                  {settings.pttMode ? (
+                    <button
+                      className={`fx-mic ${pttHeld ? 'live' : ''}`}
+                      onMouseDown={() => { if (!micOn && !pttBusyRef.current) { pttBusyRef.current = true; setPttHeld(true); toggleMic().finally(() => { pttBusyRef.current = false }) } }}
+                      onMouseUp={() => { if (micOn) { setPttHeld(false); toggleMic() } }}
+                      onMouseLeave={() => { if (micOn) { setPttHeld(false); toggleMic() } }}
+                      onTouchStart={(e) => { e.preventDefault(); if (!micOn && !pttBusyRef.current) { pttBusyRef.current = true; setPttHeld(true); toggleMic().finally(() => { pttBusyRef.current = false }) } }}
+                      onTouchEnd={() => { if (micOn) { setPttHeld(false); toggleMic() } }}
+                    >
+                      <MicGlyph off={!pttHeld} />{pttHeld ? t('voice.pttLive') : t('voice.pttHold')}
+                    </button>
+                  ) : (
+                    <button className={`fx-mic ${micOn ? 'live' : ''}`} onClick={toggleMic}>
+                      <MicGlyph off={!micOn} />{micOn ? t('voice.muteMic') : t('voice.unmuteMic')}
+                    </button>
+                  )}
+                  <button className="fx-leave" onClick={leave}>{t('voice.leave')}</button>
+                </div>
+
+                <div className="fx-parts" aria-label={t('voice.participants')}>
+                  <span className={`fx-part me ${micOn ? 'mic' : ''} ${speaking && micOn ? 'speaking' : ''}`}>
+                    <i style={{ background: user.color }} />{t('voice.you')}
+                  </span>
+                  {members.map((m) => (
+                    <span key={m.user_id} className={`fx-part ${m.mic_on ? 'mic' : ''} ${m.speaking ? 'speaking' : ''}`}>
+                      <i style={{ background: m.color }} />{m.nickname}
+                    </span>
+                  ))}
+                </div>
+
+                {error && <p className="fx-error">{error}</p>}
+                {settingsOpen && <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} />}
+              </div>
             )}
           </div>
-
-          <p className="fx-player-now">{statusLabel}</p>
-
-          {/* Велике коло «вийти в ефір» / стан */}
-          {!joined ? (
-            <div className="fx-tune-wrap">
-              <button className="fx-tune" onClick={join} disabled={connecting} aria-label={members.length ? t('voice.join') : t('voice.start')}>
-                <span className={`fx-ring r1 ${active ? 'on' : ''}`} aria-hidden />
-                <span className={`fx-ring r2 ${active ? 'on' : ''}`} aria-hidden />
-                <span className={`fx-ring r3 ${active ? 'on' : ''}`} aria-hidden />
-                <span className="fx-tune-core"><PlayGlyph /></span>
-              </button>
-              <span className="fx-tune-label">
-                {connecting ? t('voice.connecting') : members.length ? t('voice.join') : t('voice.start')}
-              </span>
-            </div>
-          ) : (
-            <>
-              {/* Хвиля ефіру */}
-              <div className={`fx-wave ${someoneSpeaking ? 'live' : ''}`} aria-hidden>
-                {Array.from({ length: 28 }).map((_, i) => (
-                  <i key={i} style={{ animationDelay: `${i * 0.05}s` }} />
-                ))}
-              </div>
-
-              {audioBlocked && (
-                <button className="fx-unlock" onClick={unlockAudio}>{t('voice.audioUnlock')}</button>
-              )}
-
-              {/* Гучність */}
-              <div className="fx-vol">
-                <span className="fx-vol-ic"><VolGlyph muted={settings.volume === 0} /></span>
-                <input type="range" min="0" max="1" step="0.02" value={settings.volume}
-                  onChange={(e) => settings.setVolume(parseFloat(e.target.value))} aria-label={t('set.volume')} />
-                <span className="fx-vol-val">{Math.round(settings.volume * 100)}%</span>
-              </div>
-
-              {/* Керування */}
-              <div className="fx-controls">
-                {settings.pttMode ? (
-                  <button
-                    className={`fx-mic ${pttHeld ? 'live' : ''}`}
-                    onMouseDown={() => { if (!micOn && !pttBusyRef.current) { pttBusyRef.current = true; setPttHeld(true); toggleMic().finally(() => { pttBusyRef.current = false }) } }}
-                    onMouseUp={() => { if (micOn) { setPttHeld(false); toggleMic() } }}
-                    onMouseLeave={() => { if (micOn) { setPttHeld(false); toggleMic() } }}
-                    onTouchStart={(e) => { e.preventDefault(); if (!micOn && !pttBusyRef.current) { pttBusyRef.current = true; setPttHeld(true); toggleMic().finally(() => { pttBusyRef.current = false }) } }}
-                    onTouchEnd={() => { if (micOn) { setPttHeld(false); toggleMic() } }}
-                  >
-                    <MicGlyph off={!pttHeld} />{pttHeld ? t('voice.pttLive') : t('voice.pttHold')}
-                  </button>
-                ) : (
-                  <button className={`fx-mic ${micOn ? 'live' : ''}`} onClick={toggleMic}>
-                    <MicGlyph off={!micOn} />{micOn ? t('voice.muteMic') : t('voice.unmuteMic')}
-                  </button>
-                )}
-                <button className="fx-leave" onClick={leave}>{t('voice.leave')}</button>
-              </div>
-            </>
-          )}
-
-          {/* Учасники */}
-          {(members.length > 0 || joined) && (
-            <div className="fx-parts" aria-label={t('voice.participants')}>
-              {joined && (
-                <span className={`fx-part me ${micOn ? 'mic' : ''} ${speaking && micOn ? 'speaking' : ''}`}>
-                  <i style={{ background: user.color }} />{t('voice.you')}
-                </span>
-              )}
-              {members.map((m) => (
-                <span key={m.user_id} className={`fx-part ${m.mic_on ? 'mic' : ''} ${m.speaking ? 'speaking' : ''}`}>
-                  <i style={{ background: m.color }} />{m.nickname}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {error && <p className="fx-error">{error}</p>}
-          {settingsOpen && <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} />}
         </div>
-      </div>
 
-      <a className="fx-scroll" href="#schedule" aria-label={t('nav.schedule')}>
-        <span>{t('nav.schedule')}</span>
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 4v15M6 13l6 6 6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-      </a>
+        {/* ── Tile rail: schedule slots as NTS show-tiles ── */}
+        <aside className="fx-rail" aria-label={t('nav.schedule')}>
+          <a className="fx-rail-head" href="#schedule">
+            <span>{t('schedule.kicker')}</span>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 4v15M6 13l6 6 6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </a>
+          <div className="fx-tiles">
+            {SLOT_STARTS.map((startH, i) => (
+              <a key={startH} href="#schedule" className={`fx-tile s${i} ${i === activeSlot ? 'on' : ''}`}>
+                <span className="fx-tile-top">
+                  <span className="fx-tile-time">{pad2(startH)}:00</span>
+                  {i === activeSlot
+                    ? <span className="fx-tile-badge">On now</span>
+                    : i === nextSlot
+                      ? <span className="fx-tile-badge next">Next</span>
+                      : null}
+                </span>
+                <span className="fx-tile-play" aria-hidden><PlayGlyph /></span>
+                <span className="fx-tile-name">{t(`slot.${i}.label`)}</span>
+              </a>
+            ))}
+          </div>
+        </aside>
+      </div>
     </section>
   )
 }

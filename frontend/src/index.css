@@ -1,29 +1,30 @@
 :root {
-  /* ── Apple-identity system palette ────────────────────────────────── */
-  --ink:   #1d1d1f;         /* SF primary label */
-  --ink-2: #6e6e73;         /* SF secondary label */
-  --ink-3: #aeaeb2;         /* SF tertiary label */
+  /* ── NTS-style monochrome system ──────────────────────────────────── */
+  --ink:   #f2f0ea;         /* off-white — primary */
+  --ink-2: #9c9c94;         /* grey — secondary */
+  --ink-3: #5f5f59;         /* dim grey — tertiary */
 
-  --surface:   #ffffff;
-  --surface-2: #fbfbfd;     /* Apple page background */
-  --surface-3: #f5f5f7;     /* Apple grouped background */
+  --surface:   #050506;     /* deepest black */
+  --surface-2: #0a0b0c;     /* page background */
+  --surface-3: #16171a;     /* panel / card */
 
-  --tint:   #0071e3;         /* Apple blue */
-  --signal: #ff375f;         /* Apple Music red — live/on-air only */
-  --danger: #ff375f;
+  --gold:   #c9a96e;        /* reserved: brand mark only */
+  --tint:   #f2f0ea;        /* link/accent — white */
+  --signal: #ff3b2e;        /* NTS live red */
+  --danger: #ff3b2e;
 
-  --line:   rgba(0, 0, 0, .07);
-  --line-strong: rgba(0, 0, 0, .14);
+  --line:        rgba(255, 255, 255, .15);
+  --line-strong: rgba(255, 255, 255, .28);
 
-  /* Real Apple typography: SF Pro on Apple devices, Inter elsewhere. */
-  --font:  -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, "Helvetica Neue", Arial, sans-serif;
+  /* Grotesque sans, NTS-style — Inter standing in for Helvetica Neue */
+  --font:  "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   --serif: var(--font);
   --mono:  "SF Mono", ui-monospace, SFMono-Regular, "Inter", Menlo, monospace;
 
   --page-width: 100%;
   font-family: var(--font);
   color: var(--ink);
-  color-scheme: light;
+  color-scheme: dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -31,12 +32,12 @@
 
 /* Legacy aliases — keep App.css working without churn */
 :root {
-  --paper:        var(--surface-2);
-  --white:        var(--surface);
-  --muted:        var(--ink-2);
-  --yellow:       var(--surface-2);
-  --yellow-bright:var(--ink);
-  --signal-soft:  rgba(255, 55, 95, .1);
+  --paper:         var(--surface-2);
+  --white:         var(--surface-3);
+  --muted:         var(--ink-3);
+  --yellow:        var(--surface-2);
+  --yellow-bright: var(--ink);
+  --signal-soft:   rgba(255, 59, 46, .12);
 }
 
 * { box-sizing: border-box; }
@@ -49,20 +50,20 @@ body {
   color: var(--ink);
   font-family: var(--font);
   letter-spacing: -.01em;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.5;
 }
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
-  outline: 2px solid var(--tint);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 a { color: inherit; }
-::selection { background: var(--tint); color: #fff; }
+::selection { background: var(--ink); color: var(--surface); }
 * { scrollbar-width: thin; scrollbar-color: var(--ink-3) transparent; }
 *::-webkit-scrollbar { width: 6px; height: 6px; }
-*::-webkit-scrollbar-thumb { background: var(--ink-3); border-radius: 3px; }
+*::-webkit-scrollbar-thumb { background: var(--ink-3); border-radius: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

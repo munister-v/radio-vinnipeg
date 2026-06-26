@@ -528,10 +528,10 @@ export default function RadioPage({ user, onUserChange }: Props) {
             <span className="brand-mark" aria-hidden><BrandEmblem className="brand-emblem" /></span>
             <div className="brand-titles">
               <span className="brand-eyebrow">{t('top.brandEyebrow')}</span>
-              <span className="brand-name">Radio Vinnipeg</span>
+              <span className="brand-name">Winnipeg Nights</span>
             </div>
           </a>
-          <nav className="topbar-nav" aria-label="Radio Vinnipeg">
+          <nav className="topbar-nav" aria-label="Winnipeg Nights">
             <a href="#air">{t('nav.air')}</a>
             <a href="#schedule">{t('nav.schedule')}</a>
             <a href="#about">{t('nav.about')}</a>
@@ -641,10 +641,10 @@ export default function RadioPage({ user, onUserChange }: Props) {
         <b aria-label={t('chat.unreadAria', { n: unreadCount })}>{unreadCount}</b>
       </button>
 
-      <aside className="mobile-air-dock" aria-label="Radio Vinnipeg">
+      <aside className="mobile-air-dock" aria-label="Winnipeg Nights">
         <a href="#air">
           <span><i />ON AIR</span>
-          <strong>Radio Vinnipeg</strong>
+          <strong>Winnipeg Nights</strong>
         </a>
         <button type="button" onClick={openChat} aria-label={t('chat.open')}>
           {t('chat.dockChat')}{unreadCount > 0 ? ` · ${unreadCount}` : ''}

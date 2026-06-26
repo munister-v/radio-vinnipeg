@@ -370,7 +370,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'Радіорозмова наживо',
-        artist: 'Radio Vinnipeg',
+        artist: 'Winnipeg Nights',
       })
       navigator.mediaSession.playbackState = 'playing'
       navigator.mediaSession.setActionHandler('play', () => { navigator.mediaSession.playbackState = 'playing' })

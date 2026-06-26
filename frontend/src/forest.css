@@ -1,371 +1,326 @@
 /* ════════════════════════════════════════════════════════════════════════
-   HERO — Apple city-radio identity (clean, SF Pro / Inter)
+   HERO — Winnipeg Nights, NTS architecture
+   Dual-channel LIVE bar · featured cell + square tile rail · monochrome
    ════════════════════════════════════════════════════════════════════════ */
 
 .fx-stage {
   position: relative;
-  min-height: 100dvh;
+  min-height: calc(100dvh - 52px);   /* below sticky topbar */
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: clamp(96px, 14vh, 168px) 22px clamp(80px, 12vh, 120px);
-  isolation: isolate;
   background: var(--surface-2);
 }
 
-/* Soft Apple aurora — blurred colour fields, low opacity, never loud */
-.fx-aurora {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  overflow: hidden;
-  filter: blur(64px) saturate(1.2);
-  opacity: .72;
-}
-.fx-aurora span {
-  position: absolute;
-  display: block;
-  border-radius: 50%;
-}
-.fx-aurora-a {
-  top: -8%; left: 14%;
-  width: 46vw; height: 46vw;
-  max-width: 620px; max-height: 620px;
-  background: radial-gradient(circle, #cfe0ff 0%, transparent 68%);
-  animation: fx-drift 22s ease-in-out infinite;
-}
-.fx-aurora-b {
-  top: -2%; right: 10%;
-  width: 40vw; height: 40vw;
-  max-width: 540px; max-height: 540px;
-  background: radial-gradient(circle, #ffd9e4 0%, transparent 68%);
-  animation: fx-drift 26s ease-in-out infinite reverse;
-}
-.fx-aurora-c {
-  top: 18%; left: 50%;
-  width: 38vw; height: 38vw;
-  max-width: 520px; max-height: 520px;
-  transform: translateX(-50%);
-  background: radial-gradient(circle, #d6f0ec 0%, transparent 68%);
-  animation: fx-drift 30s ease-in-out infinite;
-}
-@keyframes fx-drift {
-  0%, 100% { transform: translate(0, 0); }
-  50%      { transform: translate(4%, 5%); }
-}
-
-/* ── Content ── */
-.fx-content {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 720px;
+/* ════ Dual-channel LIVE NOW bar ════ */
+.fx-livebar {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
+  align-items: stretch;
+  height: 46px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  font: 700 11px/1 var(--font);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  overflow: hidden;
 }
-.fx-eyebrow {
+.fx-lb-label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin: 0;
-  font: 500 13px/1.4 var(--mono);
-  letter-spacing: .02em;
-  color: var(--ink-2);
-}
-.fx-eyebrow-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--ink-3);
-}
-.fx-eyebrow-dot.on { background: var(--signal); animation: fx-pulse 1.8s ease-in-out infinite; }
-
-.fx-wordmark {
-  margin: 18px 0 0;
-  font-family: var(--font);
-  font-weight: 700;
-  font-size: clamp(52px, 9vw, 116px);
-  line-height: 1.02;
-  letter-spacing: -.045em;
+  padding: 0 16px;
+  border-right: 1px solid var(--line);
   color: var(--ink);
-}
-.fx-tagline {
-  margin: 18px auto 0;
-  max-width: 34ch;
-  font-family: var(--font);
-  font-weight: 400;
-  font-size: clamp(19px, 2.2vw, 27px);
-  line-height: 1.32;
-  letter-spacing: -.018em;
-  color: var(--ink-2);
-}
-
-/* ════════════════════════════════════════════════════════════════════════
-   ПЛЕЄР ЕФІРУ
-   ════════════════════════════════════════════════════════════════════════ */
-
-/* ══ Player card — Apple Music dark glass ══════════════════════════════ */
-.fx-player {
-  position: relative;
-  width: min(480px, 100%);
-  margin-top: clamp(32px, 4vw, 48px);
-  padding: 24px 24px 28px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  background: rgba(12, 12, 12, .72);
-  backdrop-filter: blur(40px) saturate(1.4);
-  -webkit-backdrop-filter: blur(40px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, .1);
-  border-radius: 20px;
-  box-shadow: 0 32px 72px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .08);
-  color: #fff;
-}
-
-.fx-player-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  justify-content: center;
-}
-.fx-pulse {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: rgba(255,255,255,.3);
   flex: 0 0 auto;
 }
-.fx-pulse.on { background: #ff375f; animation: fx-pulse 1.6s ease-in-out infinite; }
-@keyframes fx-pulse { 50% { opacity: .3; transform: scale(.82); } }
-.fx-player-status {
-  font: 600 11px/1 var(--font);
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.65);
-}
-.fx-gear {
-  margin-left: auto;
-  width: 32px; height: 32px;
-  display: grid; place-items: center;
-  border: 1px solid rgba(255,255,255,.14);
-  border-radius: 50%;
-  background: transparent;
-  color: rgba(255,255,255,.6);
-  cursor: pointer;
-  transition: background .16s ease, color .16s ease;
-}
-.fx-gear svg { width: 16px; height: 16px; }
-.fx-gear:hover { background: rgba(255,255,255,.1); color: #fff; }
+.fx-lb-dot { width: 7px; height: 7px; background: var(--ink-3); flex: 0 0 auto; }
+.fx-lb-dot.on { background: var(--signal); animation: fx-blink 1.6s step-end infinite; }
+@keyframes fx-blink { 50% { opacity: .25; } }
 
-.fx-player-now {
-  margin: 0;
-  max-width: 32ch;
-  font-size: 17px;
-  font-weight: 500;
-  line-height: 1.3;
-  color: rgba(255,255,255,.7);
-  text-align: center;
-}
-
-/* ── Play button ── */
-.fx-tune-wrap {
-  display: flex;
-  flex-direction: column;
+.fx-chan {
+  display: inline-flex;
   align-items: center;
-  gap: 14px;
-  margin: 6px 0 2px;
-}
-.fx-tune {
-  position: relative;
-  width: 120px; height: 120px;
-  display: grid; place-items: center;
-  border: 0; background: transparent; cursor: pointer;
-  border-radius: 50%;
-}
-.fx-tune:disabled { cursor: wait; opacity: .5; }
-.fx-tune-core {
-  position: relative;
-  z-index: 2;
-  width: 80px; height: 80px;
-  display: grid; place-items: center;
-  border-radius: 50%;
-  background: #fff;
-  color: #1d1d1f;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
-  transition: transform .18s ease, opacity .18s ease;
-}
-.fx-tune-core svg { width: 30px; height: 30px; margin-left: 4px; }
-.fx-tune:hover .fx-tune-core { transform: scale(1.06); }
-.fx-tune:active .fx-tune-core { transform: scale(.96); }
-.fx-ring {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 80px; height: 80px;
-  border: 1.5px solid rgba(255,255,255,.4);
-  border-radius: 50%;
-  opacity: 0;
-}
-.fx-ring.on, .fx-tune:hover .fx-ring {
-  animation: fx-ripple 2.6s ease-out infinite;
-}
-.fx-ring.r2 { animation-delay: .85s; }
-.fx-ring.r3 { animation-delay: 1.7s; }
-@keyframes fx-ripple {
-  0%   { opacity: .45; transform: scale(1); }
-  100% { opacity: 0;   transform: scale(2.1); }
-}
-.fx-tune-label {
-  font: 600 11px/1 var(--font);
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.55);
-}
-
-/* ── Хвиля ефіру (в розмові) ── */
-.fx-wave {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  height: 46px;
-  margin: 4px 0;
-}
-.fx-wave i {
-  width: 3px; height: 8px;
-  border-radius: 2px;
-  background: rgba(255,255,255,.3);
-}
-.fx-wave.live i {
-  background: rgba(255,255,255,.75);
-  animation: fx-bounce .9s ease-in-out infinite alternate;
-}
-@keyframes fx-bounce { to { height: 38px; } }
-
-/* ── Гучність ── */
-.fx-vol {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 6px 4px;
-}
-.fx-vol-ic { width: 26px; height: 26px; display: grid; place-items: center; color: rgba(255,255,255,.5); flex: 0 0 auto; }
-.fx-vol-ic svg { width: 20px; height: 20px; }
-.fx-vol input { flex: 1; min-width: 0; height: 4px; accent-color: rgba(255,255,255,.8); cursor: pointer; }
-.fx-vol-val { font: 500 11px/1 var(--font); letter-spacing: .06em; color: rgba(255,255,255,.4); min-width: 36px; text-align: right; }
-
-/* ── Керування ── */
-.fx-controls {
-  display: flex;
   gap: 10px;
-  width: 100%;
-}
-.fx-mic {
-  flex: 1;
-  min-height: 48px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
+  min-width: 0;
+  padding: 0 16px;
   border: 0;
-  border-radius: 14px;
-  background: rgba(255,255,255,.14);
-  color: #fff;
-  cursor: pointer;
-  font: 600 11px/1 var(--font);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  transition: background .18s ease, transform .12s ease;
-  touch-action: manipulation;
-  user-select: none;
-}
-.fx-mic svg { width: 20px; height: 20px; }
-.fx-mic:hover { background: rgba(255,255,255,.22); }
-.fx-mic.live { background: #ff375f; color: #fff; }
-.fx-mic.live svg { animation: fx-pulse 1.3s ease-in-out infinite; }
-.fx-leave {
-  min-height: 48px;
-  padding: 0 20px;
-  border: 1px solid rgba(255,255,255,.14);
-  border-radius: 14px;
+  border-right: 1px solid var(--line);
   background: transparent;
-  color: rgba(255,255,255,.7);
+  color: var(--ink);
   cursor: pointer;
-  font: 600 11px/1 var(--font);
-  letter-spacing: .12em;
+  font: inherit;
+  text-decoration: none;
   text-transform: uppercase;
-  transition: background .18s ease, color .18s ease;
+  transition: background .14s ease;
 }
-.fx-leave:hover { background: rgba(255,255,255,.1); color: #fff; }
-.fx-unlock {
-  width: 100%;
-  min-height: 48px;
-  border: 0;
-  border-radius: 14px;
-  background: var(--signal);
-  color: #fff;
-  cursor: pointer;
-  font: 600 11px/1 var(--font);
-  letter-spacing: .1em;
-  text-transform: uppercase;
+.fx-chan:hover:not(:disabled) { background: var(--surface-3); }
+.fx-chan:disabled { cursor: wait; opacity: .6; }
+.fx-chan { flex: 1 1 0; }
+.fx-chan-2 { flex: 0 1 auto; color: var(--ink-2); }
+.fx-chan-n {
+  display: grid; place-items: center;
+  width: 18px; height: 18px;
+  background: var(--ink); color: var(--surface);
+  font-weight: 800; font-size: 11px;
+  flex: 0 0 auto;
 }
+.fx-chan svg { width: 13px; height: 13px; color: var(--ink); flex: 0 0 auto; }
+.fx-chan-2 .fx-chan-n { background: var(--ink-3); }
+.fx-chan-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.fx-chan-loc { margin-left: auto; color: var(--ink-3); flex: 0 0 auto; padding-left: 10px; }
 
-/* ── Учасники ── */
-.fx-parts {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 7px;
-  width: 100%;
-}
-.fx-part {
+.fx-lb-tail {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 12px 6px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, .1);
-  font: 500 12px/1 var(--font);
-  letter-spacing: -.01em;
-  color: rgba(255, 255, 255, .85);
+  padding: 0 16px;
+  border-left: 1px solid var(--line);
+  color: var(--ink-2);
+  flex: 0 0 auto;
 }
-.fx-part i { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
-.fx-part.speaking { background: rgba(255, 55, 95, .2); box-shadow: 0 0 0 1px rgba(255, 55, 95, .45); color: #fff; }
-.fx-part:not(.mic) { opacity: .5; }
-.fx-error { margin: 0; color: #ff6b81; font-size: 13px; }
 
-/* ── Підказка прокрутки ── */
-.fx-scroll {
-  position: absolute;
-  z-index: 1;
-  bottom: 28px;
-  left: 50%;
-  transform: translateX(-50%);
+/* ════ Two-column grid ════ */
+.fx-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.85fr 1fr;
+  min-height: 0;
+}
+
+/* ── Featured cell (the artwork) ── */
+.fx-feature {
+  position: relative;
+  overflow: hidden;
+  min-height: clamp(440px, 64vh, 720px);
+  border-right: 1px solid var(--line);
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 56% 28%, rgba(214, 222, 236, .1) 0%, transparent 42%),
+    linear-gradient(180deg, #050507 0%, #070809 40%, #0a0b0d 78%, #0c0d10 100%);
+}
+.fx-feature::after {
+  content: '';
+  position: absolute; inset: 0; z-index: 6; pointer-events: none;
+  opacity: .05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+.fx-moon {
+  position: absolute; z-index: 1;
+  top: 16%; left: 56%; transform: translateX(-50%);
+  width: clamp(88px, 9vw, 150px); aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #fdfdfb 0%, #e9eaee 56%, #cfd3da 100%);
+  box-shadow: 0 0 90px 22px rgba(222, 228, 240, .16), 0 0 180px 70px rgba(196, 206, 228, .07);
+}
+.fx-pines {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 72%; z-index: 2; pointer-events: none;
+}
+.fx-pines svg { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; }
+
+/* ── Deck (info card / live controls) bottom-left in the feature ── */
+.fx-deck {
+  position: absolute; z-index: 5;
+  bottom: clamp(24px, 4vh, 48px);
+  left: clamp(20px, 3vw, 44px);
+  width: min(540px, calc(100% - 40px));
+  padding: 22px 24px 24px;
+  border: 1px solid var(--line-strong);
+  background: rgba(6, 7, 9, .66);
+  backdrop-filter: blur(20px) saturate(1.1);
+  -webkit-backdrop-filter: blur(20px) saturate(1.1);
+}
+.fx-deck-idle { display: flex; align-items: center; gap: 22px; }
+.fx-play {
+  position: relative; flex: 0 0 auto;
+  width: 84px; height: 84px;
+  border: 1px solid var(--ink); background: var(--ink); color: var(--surface);
+  cursor: pointer; display: grid; place-items: center;
+  transition: background .16s, color .16s, transform .16s;
+}
+.fx-play svg { width: 32px; height: 32px; margin-left: 4px; }
+.fx-play:hover { background: transparent; color: var(--ink); }
+.fx-play:active { transform: scale(.96); }
+.fx-play:disabled { opacity: .45; cursor: wait; }
+.fx-play-ring { position: absolute; inset: -1px; border: 1px solid var(--signal); opacity: 0; }
+.fx-play-ring.on { animation: fx-ring 2.6s ease-out infinite; }
+.fx-play-ring.r2 { animation-delay: .85s; }
+.fx-play-ring.r3 { animation-delay: 1.7s; }
+@keyframes fx-ring { 0% { opacity: .55; transform: scale(1); } 100% { opacity: 0; transform: scale(1.7); } }
+
+.fx-deck-text { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.fx-deck-kicker {
+  font: 700 10px/1 var(--font); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--signal);
+}
+.fx-deck-title {
+  margin: 0;
+  font: 800 clamp(28px, 3.4vw, 50px)/0.95 var(--font);
+  letter-spacing: -.022em; text-transform: uppercase; color: var(--ink);
+}
+.fx-deck-desc {
+  margin: 0; max-width: 38ch;
+  font: 400 13px/1.45 var(--font); letter-spacing: -.005em; color: var(--ink-2);
+}
+
+/* live state */
+.fx-deck-live { display: flex; flex-direction: column; gap: 13px; }
+.fx-deck-livehead { display: flex; align-items: center; gap: 10px; }
+.fx-deck-live-title { font: 800 18px/1 var(--font); letter-spacing: -.02em; text-transform: uppercase; color: var(--ink); }
+.fx-deck-live-status { font: 700 10px/1 var(--font); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.fx-gear {
+  margin-left: auto; width: 30px; height: 30px; display: grid; place-items: center;
+  border: 1px solid var(--line-strong); background: transparent; color: var(--ink-2); cursor: pointer;
+  transition: background .16s, color .16s;
+}
+.fx-gear svg { width: 15px; height: 15px; }
+.fx-gear:hover { background: var(--ink); color: var(--surface); }
+
+.fx-wave { display: flex; align-items: center; gap: 3px; height: 34px; }
+.fx-wave i { width: 3px; height: 6px; background: rgba(242, 240, 234, .22); }
+.fx-wave.live i { background: var(--ink); animation: fx-bar .9s ease-in-out infinite alternate; }
+@keyframes fx-bar { to { height: 28px; } }
+
+.fx-vol { display: flex; align-items: center; gap: 12px; width: 100%; }
+.fx-vol-ic { width: 22px; height: 22px; display: grid; place-items: center; color: var(--ink-3); flex: 0 0 auto; }
+.fx-vol-ic svg { width: 18px; height: 18px; }
+.fx-vol input { flex: 1; min-width: 0; height: 3px; accent-color: var(--ink); cursor: pointer; }
+.fx-vol-val { font: 600 10px/1 var(--mono); color: var(--ink-3); min-width: 32px; text-align: right; }
+
+.fx-controls { display: flex; gap: 8px; width: 100%; }
+.fx-mic {
+  flex: 1; min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid var(--ink); background: var(--ink); color: var(--surface); cursor: pointer;
+  font: 700 10px/1 var(--font); letter-spacing: .12em; text-transform: uppercase;
+  transition: background .16s, color .16s; touch-action: manipulation; user-select: none;
+}
+.fx-mic svg { width: 18px; height: 18px; }
+.fx-mic:hover { background: transparent; color: var(--ink); }
+.fx-mic.live { background: var(--signal); border-color: var(--signal); color: #fff; }
+.fx-mic.live:hover { background: var(--signal); color: #fff; }
+.fx-leave {
+  min-height: 44px; padding: 0 18px;
+  border: 1px solid var(--line-strong); background: transparent; color: var(--ink-2); cursor: pointer;
+  font: 700 10px/1 var(--font); letter-spacing: .12em; text-transform: uppercase;
+  transition: background .16s, color .16s;
+}
+.fx-leave:hover { background: var(--ink); color: var(--surface); }
+.fx-unlock {
+  width: 100%; min-height: 44px; border: 1px solid var(--signal);
+  background: var(--signal); color: #fff; cursor: pointer;
+  font: 700 10px/1 var(--font); letter-spacing: .1em; text-transform: uppercase;
+}
+
+.fx-parts { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.fx-part {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px 5px 7px; border: 1px solid var(--line);
+  font: 600 10px/1 var(--font); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2);
+}
+.fx-part i { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+.fx-part.speaking { border-color: var(--signal); color: var(--ink); }
+.fx-part:not(.mic) { opacity: .5; }
+.fx-error { margin: 0; color: var(--signal); font-size: 13px; }
+
+/* ════ Tile rail — schedule slots as NTS show-tiles ════ */
+.fx-rail {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 7px;
-  color: var(--ink-3);
-  text-decoration: none;
-  font: 500 11px/1 var(--font);
-  letter-spacing: .04em;
-  transition: color .16s ease;
+  background: var(--surface-2);
 }
-.fx-scroll:hover { color: var(--ink-2); }
-.fx-scroll svg { width: 20px; height: 20px; animation: fx-nudge 2s ease-in-out infinite; }
-@keyframes fx-nudge { 50% { transform: translateY(5px); } }
+.fx-rail-head {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 46px; padding: 0 18px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+  font: 700 11px/1 var(--font); letter-spacing: .12em; text-transform: uppercase;
+}
+.fx-rail-head svg { width: 15px; height: 15px; }
+.fx-rail-head:hover { color: var(--signal); }
 
-/* Налаштування поверх плеєра — лишаємо фіксований SettingsPanel (App.css) */
+.fx-tiles {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  min-height: 0;
+}
+.fx-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px;
+  min-height: clamp(150px, 22vh, 220px);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+  color: #fff;
+  overflow: hidden;
+  isolation: isolate;
+}
+.fx-tile:nth-child(2n) { border-right: 0; }
+.fx-tile::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  transition: transform .4s ease;
+}
+.fx-tile:hover::before { transform: scale(1.05); }
+/* per-slot "artwork" gradients */
+.fx-tile.s0::before { background: linear-gradient(150deg, #11131f 0%, #232a45 55%, #0c0d16 100%); }   /* night */
+.fx-tile.s1::before { background: linear-gradient(150deg, #4a2a12 0%, #b5651d 55%, #e0a458 100%); }   /* morning */
+.fx-tile.s2::before { background: linear-gradient(150deg, #0d2a33 0%, #1d6b7a 55%, #3aa6b8 100%); }   /* day */
+.fx-tile.s3::before { background: linear-gradient(150deg, #2a1030 0%, #6b1d57 55%, #b8326f 100%); }   /* evening */
+.fx-tile::after {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, rgba(0,0,0,.1) 0%, rgba(0,0,0,.55) 100%);
+}
+.fx-tile.on { outline: 2px solid var(--signal); outline-offset: -2px; }
 
+.fx-tile-top {
+  position: absolute; top: 14px; left: 16px; right: 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  font: 700 10px/1 var(--font); letter-spacing: .06em; text-transform: uppercase;
+}
+.fx-tile-time { color: rgba(255,255,255,.85); }
+.fx-tile-badge {
+  padding: 3px 6px; background: var(--signal); color: #fff;
+  font-weight: 800; letter-spacing: .08em;
+}
+.fx-tile-badge.next { background: rgba(255,255,255,.18); color: #fff; }
+.fx-tile-play {
+  width: 34px; height: 34px; display: grid; place-items: center;
+  border: 1px solid rgba(255,255,255,.6); color: #fff;
+  transition: background .16s, color .16s;
+}
+.fx-tile-play svg { width: 15px; height: 15px; margin-left: 2px; }
+.fx-tile:hover .fx-tile-play { background: #fff; color: #000; }
+.fx-tile-name {
+  font: 800 16px/1.1 var(--font); letter-spacing: -.01em; text-transform: uppercase;
+  color: #fff;
+}
+
+/* ════ Responsive ════ */
+@media (max-width: 980px) {
+  .fx-grid { grid-template-columns: 1fr; }
+  .fx-feature { border-right: 0; border-bottom: 1px solid var(--line); min-height: clamp(420px, 70vh, 620px); }
+  .fx-rail-head { border-top: 0; }
+  .fx-tile { min-height: 140px; }
+}
 @media (max-width: 720px) {
-  .fx-stage { padding: 92px 16px 110px; }
-  .fx-player { width: 100%; padding: 22px 18px 26px; border-radius: 22px; }
+  .fx-stage { min-height: auto; }
+  .fx-livebar { height: auto; flex-wrap: wrap; }
+  .fx-lb-label { width: 100%; height: 40px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .fx-chan { flex: 1 1 100%; height: 44px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .fx-chan-2 { flex: 1 1 100%; }
+  .fx-lb-tail { width: 100%; height: 40px; border-left: 0; }
+  .fx-pines { height: 54%; }
+  .fx-moon { top: 12%; }
+  .fx-deck { left: 12px; right: 12px; width: auto; bottom: 16px; padding: 18px; }
+  .fx-deck-idle { gap: 16px; }
+  .fx-play { width: 64px; height: 64px; }
+  .fx-play svg { width: 24px; height: 24px; }
   .fx-controls { flex-direction: column; }
   .fx-leave { width: 100%; }
-  .fx-scroll { display: none; }
 }

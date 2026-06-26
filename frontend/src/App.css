@@ -2425,7 +2425,7 @@
 .brand:hover .brand-mark { background: var(--ink); color: #fff; opacity: .8; }
 .brand-emblem { width: 16px; height: 16px; display: block; }
 
-/* Display headings: tight Apple tracking, no serif */
+/* Display headings: tight tracking */
 .station-clock-now h2,
 .schedule-head h2,
 .radio-manifesto h2,
@@ -2435,3 +2435,180 @@
   font-family: var(--font);
   letter-spacing: -.035em;
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   WINNIPEG NIGHTS · NTS-STYLE — monochrome, bold uppercase, hard edges
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Topbar: solid black, hard border, no rounding ── */
+.topbar {
+  height: 52px;
+  background: rgba(5, 6, 8, .94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-inner { padding: 0 clamp(16px, 4vw, 56px); }
+
+/* Brand mark: gold square (the one brand accent) */
+.brand-mark,
+.brand:hover .brand-mark {
+  background: var(--gold);
+  color: var(--surface);
+  border-radius: 0;
+  opacity: 1;
+}
+.brand:hover .brand-mark { opacity: .82; }
+.brand-name {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .01em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* Nav: bold uppercase grotesque */
+.topbar-nav a,
+.topbar-nav button {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.topbar-nav a:hover,
+.topbar-nav button:hover { color: var(--ink); background: transparent; }
+
+/* Online pill + nick chip */
+.online-pill { font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.nick-chip, .nick-edit input {
+  border-radius: 0;
+  border-color: var(--line-strong);
+  background: var(--surface-3);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.nick-chip:hover { background: var(--surface); }
+
+/* Lang switch: hard edges, white active */
+.lang-switch { border-radius: 0; border-color: var(--line-strong); }
+.lang-switch button { font-weight: 700; }
+.lang-switch button.on { background: var(--ink); color: var(--surface); }
+.lang-switch button:hover { background: var(--surface-3); color: var(--ink); }
+
+/* Connection bars: white */
+.conn-bars i { background: rgba(242, 240, 234, .2); }
+.q-good .conn-bars i.on,
+.q-ok   .conn-bars i.on { background: var(--ink); }
+.q-weak .conn-bars i.on { background: var(--signal); }
+.conn-tray { border-radius: 0; }
+
+/* ── Schedule: NTS-style bold uppercase listing ── */
+.schedule-section { background: var(--surface-2); }
+.schedule-eyebrow {
+  color: var(--signal);
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+.schedule-head h2,
+.station-clock-now h2,
+.radio-manifesto h2 {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -.02em;
+}
+.schedule-list { border-top-color: var(--line-strong); }
+.schedule-row { border-bottom-color: var(--line); }
+.schedule-time {
+  color: var(--ink-2);
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+.schedule-body h3 {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .01em;
+  color: var(--ink);
+}
+.schedule-body p { color: var(--ink-2); }
+.station-clock-now > span,
+.station-clock-next > span,
+.schedule-list .schedule-eyebrow { color: var(--signal); }
+.station-progress { background: var(--line-strong); }
+.station-progress i { background: var(--signal); }
+
+/* Manifesto */
+.radio-manifesto { background: var(--surface); }
+.manifesto-copy dl div { border-top-color: var(--line); }
+.manifesto-copy dt { text-transform: uppercase; font-weight: 700; letter-spacing: .04em; }
+
+/* ── Chat launcher: hard-edged white pill ── */
+.chat-launcher {
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: none;
+  border: 1px solid var(--ink);
+}
+.chat-launcher:hover { transform: translateY(-1px); box-shadow: none; background: var(--surface); color: var(--ink); }
+.chat-launcher-icon { border-radius: 0; background: rgba(0,0,0,.12); }
+.chat-launcher:hover .chat-launcher-icon { background: rgba(255,255,255,.12); }
+.chat-launcher b { border-radius: 0; background: var(--signal); }
+.chat-launcher small { text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+.chat-launcher > span:nth-child(2) strong { text-transform: uppercase; letter-spacing: .03em; font-weight: 800; }
+
+/* ── Chat drawer: monochrome ── */
+.chat-drawer { background: var(--surface-2); border-right-color: var(--line-strong); }
+.chat-header { background: var(--surface); border-bottom-color: var(--line-strong); }
+.chat-server-mark { background: var(--gold); color: var(--surface); border-radius: 0; }
+.chat-context {
+  background: var(--surface-3);
+  border-bottom-color: var(--line-strong);
+}
+.chat-context > span { color: var(--signal); }
+.chat-context strong { color: var(--ink); text-transform: uppercase; letter-spacing: -.01em; }
+.chat-context p { color: var(--ink-2); }
+.chat-presence { border-bottom-color: var(--line-strong); }
+.chat-presence i { background: var(--signal); border-color: var(--surface-3); }
+.presence-dot { border-color: var(--surface-2); }
+
+.messages { background-image: linear-gradient(rgba(242, 240, 234, .035) 1px, transparent 1px); }
+.message-bubble {
+  border-radius: 0;
+  border-color: var(--line-strong);
+  background: var(--surface-3);
+  box-shadow: none;
+  color: var(--ink);
+}
+.message.mine .message-bubble { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.messages-empty { border-radius: 0; border-color: var(--line-strong); background: var(--surface-3); color: var(--ink); }
+.messages-empty strong { text-transform: uppercase; letter-spacing: -.02em; }
+
+.composer { background: var(--surface); border-top-color: var(--line-strong); }
+.composer button {
+  background: var(--ink);
+  color: var(--surface);
+  border-left-color: var(--line-strong);
+  border-radius: 0;
+  font-weight: 700;
+}
+.composer button:hover:not(:disabled) { background: var(--surface-3); color: var(--ink); }
+
+/* Settings + shortcuts */
+.settings-panel {
+  border-radius: 0;
+  border-color: var(--line-strong);
+  background: var(--surface-3);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, .7);
+}
+.settings-select { border-radius: 0; background: var(--surface-2); border-color: var(--line-strong); }
+.toggle-btn { border-radius: 0; border-color: var(--line-strong); background: var(--surface-2); }
+.toggle-btn.on { background: var(--ink); }
+.toggle-btn.on .toggle-knob { background: var(--surface); }
+.shortcuts-panel { border-radius: 0; border-color: var(--line-strong); background: var(--surface-3); box-shadow: 0 32px 80px rgba(0,0,0,.7); }
+.shortcuts-list li { border-bottom-color: var(--line); }
+.shortcuts-list kbd { border-radius: 0; background: var(--surface-2); border-color: var(--line-strong); border-bottom-width: 2px; }
+
+.chat-scrim { background: rgba(0, 0, 0, .7); }
+.typing-dots i { background: var(--ink-3); }
