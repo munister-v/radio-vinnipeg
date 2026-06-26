@@ -618,6 +618,13 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       for (const peerId of [...peersRef.current.keys()]) {
         if (!ids.has(peerId)) cleanupPeer(peerId)
       }
+      // Тримаємо вхідне аудіо живим у фоні / після блокування екрана.
+      // Цей таймер крутиться на Web Worker, тож виконується навіть при
+      // згорнутій/заблокованій вкладці, коли visibilitychange не спрацьовує.
+      audioCtxRef.current?.resume?.().catch(() => {})
+      for (const [, entry] of peersRef.current) {
+        if (entry.audio.srcObject && entry.audio.paused) entry.audio.play().catch(() => {})
+      }
     } catch { /* ignore */ }
   }, [applyMembers, ensurePeer, cleanupPeer])
 
@@ -813,40 +820,48 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     await refreshActive()
   }, [stopTimers, stopKeepAlive, releaseWakeLock, teardownMediaSession, cleanupAll, refreshActive])
 
-  const toggleMic = useCallback(async () => {
+  // Постійний мікрофон-стрім: отримуємо ОДИН раз і тримаємо, поки в розмові.
+  // PTT/мьют перемикають лише track.enabled — миттєво, без повторного
+  // getUserMedia і без renegotiation. Саме повторний захват пристрою на кожне
+  // натискання спричиняв «звук пропадає/з'являється» на телефоні (переініціалізація
+  // мікрофона + AEC/AGC). Пристрій звільняємо лише при виході з розмови.
+  const ensureMicStream = useCallback(async (): Promise<MediaStreamTrack | null> => {
+    const live = localStreamRef.current?.getAudioTracks().find((t) => t.readyState === 'live')
+    if (live) return live
+    const stream = await getMicStream(micDeviceIdRef.current)
+    localStreamRef.current = stream
+    const track = stream.getAudioTracks()[0] ?? null
+    if (track) {
+      track.enabled = false // вмикаємо за потребою (PTT/мьют)
+      track.onended = () => {
+        if (localStreamRef.current !== stream) return
+        localStreamRef.current = null
+        micOnRef.current = false
+        setMicOn(false)
+        setSpeaking(false)
+        if (callIdRef.current) setCallMic(callIdRef.current, false).catch(() => {})
+      }
+      // Привʼязуємо трек до всіх зʼєднань (replaceTrack без renegotiation).
+      for (const [, entry] of peersRef.current) {
+        const tr = audioTransceiver(entry.pc)
+        if (tr) applyMicToTransceiver(tr)
+      }
+    }
+    return track
+  }, [applyMicToTransceiver])
+
+  const setTransmitting = useCallback(async (on: boolean) => {
     const cid = callIdRef.current
     if (!cid) return
-    const next = !micOnRef.current
 
-    if (next) {
+    if (on) {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError('Цей браузер не підтримує мікрофон.')
+        return
+      }
+      let track: MediaStreamTrack | null
       try {
-        if (!navigator.mediaDevices?.getUserMedia) {
-          setError('Цей браузер не підтримує мікрофон.')
-          return
-        }
-        const stream = await getMicStream(micDeviceIdRef.current)
-        localStreamRef.current = stream
-        micOnRef.current = true
-        const track = stream.getAudioTracks()[0]
-        if (track) {
-          track.onended = () => {
-            if (localStreamRef.current !== stream) return
-            localStreamRef.current = null
-            micOnRef.current = false
-            setMicOn(false)
-            setSpeaking(false)
-            for (const [, entry] of peersRef.current) {
-              const tr = audioTransceiver(entry.pc)
-              if (tr) applyMicToTransceiver(tr)
-            }
-            if (callIdRef.current) setCallMic(callIdRef.current, false).catch(() => {})
-          }
-        }
-        setSpeaking(true)
-        for (const [, entry] of peersRef.current) {
-          const tr = audioTransceiver(entry.pc)
-          if (tr) applyMicToTransceiver(tr)
-        }
+        track = await ensureMicStream()
       } catch (err) {
         micOnRef.current = false
         if (err instanceof DOMException) {
@@ -864,24 +879,27 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
         }
         return
       }
+      if (!track) { setError('Не вдалося увімкнути мікрофон.'); return }
+      // Web Audio міг бути призупинений у фоні — без resume трек «німий».
+      audioCtxRef.current?.resume?.().catch(() => {})
+      track.enabled = true
+      micOnRef.current = true
+      setMicOn(true)
+      setSpeaking(true)
+      setError(null)
     } else {
+      const track = localStreamRef.current?.getAudioTracks()[0]
+      if (track) track.enabled = false // тиша миттєво, пристрій НЕ звільняємо
       micOnRef.current = false
-      for (const [, entry] of peersRef.current) {
-        const tr = audioTransceiver(entry.pc)
-        if (tr) applyMicToTransceiver(tr)
-      }
-      const stream = localStreamRef.current
-      if (stream) {
-        for (const t of stream.getTracks()) t.stop()
-        localStreamRef.current = null
-      }
+      setMicOn(false)
       setSpeaking(false)
     }
+    setCallMic(cid, on).catch(() => {})
+  }, [ensureMicStream])
 
-    setMicOn(next)
-    setError(null)
-    setCallMic(cid, next).catch(() => {})
-  }, [applyMicToTransceiver])
+  const toggleMic = useCallback(async () => {
+    await setTransmitting(!micOnRef.current)
+  }, [setTransmitting])
 
   // Користувач закрив вкладку — повідомляємо сервер, щоб його прибрали зі списку.
   useEffect(() => {
