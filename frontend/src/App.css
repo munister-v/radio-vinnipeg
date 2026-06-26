@@ -1947,11 +1947,11 @@
   background: var(--paper);
 }
 
-/* Yellow header stays dark-on-yellow regardless of the dark theme */
+/* Header is dark (--yellow = #0a0b0c in dark theme), so use light ink for buttons */
 .chat-drawer .chat-header {
-  --ink:   #11110f;
-  --white: #f4f1e8;
-  color: #11110f;
+  --ink:   #dedad2;
+  --white: #1d1c18;
+  color: #dedad2;
 }
 
 /* Messages area: deep background */
