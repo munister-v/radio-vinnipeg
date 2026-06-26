@@ -485,104 +485,91 @@
 }
 .radio-ticker i { width: 7px; height: 7px; border-radius: 50%; background: var(--signal); }
 
-/* ── Vintage AM frequency dial ─────────────────────────────────────── */
+/* ── Frequency band — editorial strip ──────────────────────────────── */
 .freq-dial {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  background: #e6e0ce;
-  background-image:
-    repeating-linear-gradient(
-      90deg,
-      rgba(22,21,15,.04) 0px,
-      rgba(22,21,15,.04) 1px,
-      transparent 1px,
-      transparent 14px
-    );
-  overflow: hidden;
+  background: var(--paper);
 }
 
 .freq-dial-inner {
   max-width: var(--page-width);
   margin: auto;
-  padding: 0 24px;
+  padding: 0 48px;
   border-inline: 1px solid var(--line);
-  height: 64px;
-  position: relative;
 }
 
-.freq-scale {
-  position: relative;
-  height: 100%;
+.freq-rail {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  height: 72px;
+  border-bottom: 1px solid var(--line);
 }
 
-.freq-mark {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
+.freq-stop {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: 100%;
-  pointer-events: none;
+  justify-content: flex-end;
+  padding-bottom: 14px;
+  gap: 8px;
+  position: relative;
 }
 
-.freq-tick {
+.freq-stop-tick {
   display: block;
   width: 1px;
-  height: 18px;
+  height: 10px;
   background: var(--muted);
-  opacity: .55;
-  margin-top: 10px;
-  flex-shrink: 0;
+  opacity: .4;
 }
 
-.freq-label {
-  font: 500 9px/1 var(--mono);
-  letter-spacing: .06em;
+.freq-stop-num {
+  font: 500 11px/1 var(--mono);
+  letter-spacing: .04em;
   color: var(--muted);
-  opacity: .7;
-  margin-top: 5px;
-  white-space: nowrap;
+  opacity: .6;
 }
 
-.freq-needle {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.freq-needle::before {
-  content: '';
-  display: block;
+/* active station */
+.freq-stop--active .freq-stop-tick {
+  height: 20px;
   width: 1.5px;
-  height: 100%;
   background: var(--signal);
-  box-shadow: 0 0 6px rgba(192,57,43,.35);
-  position: absolute;
-  top: 0;
+  opacity: 1;
 }
 
-.freq-needle-label {
-  position: relative;
-  z-index: 1;
-  margin-top: 8px;
-  font: 700 8px/1 var(--mono);
-  letter-spacing: .12em;
+.freq-stop--active .freq-stop-num {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -.02em;
   color: var(--signal);
-  background: #e6e0ce;
-  padding: 2px 4px;
-  border: 1px solid var(--signal);
+  opacity: 1;
+}
+
+.freq-stop-tag {
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  padding: 5px 10px;
+  font: 500 9px/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--signal);
+  white-space: nowrap;
+  border-left: 1.5px solid var(--signal);
+  border-right: 1.5px solid var(--signal);
+  border-bottom: 1px solid var(--line);
 }
 
 @media (max-width: 640px) {
-  .freq-dial-inner { border-inline: 0; padding: 0 16px; }
-  .freq-label { font-size: 8px; }
+  .freq-dial-inner { padding: 0 16px; border-inline: 0; }
+  .freq-stop-num { font-size: 10px; }
+  .freq-stop--active .freq-stop-num { font-size: 18px; }
+  .freq-stop-tag { font-size: 8px; }
 }
 
 .schedule-section {

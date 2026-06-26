@@ -171,6 +171,32 @@ function BrandEmblem({ className }: { className?: string }) {
 }
 
 
+// Frequency band strip — editorial, not skeuomorphic
+const MARKS = [
+  { khz: '630' },
+  { khz: '820' },
+  { khz: '980', station: true },
+  { khz: '1150' },
+  { khz: '1340' },
+]
+function FrequencyDial() {
+  return (
+    <div className="freq-dial" aria-hidden>
+      <div className="freq-dial-inner">
+        <div className="freq-rail">
+          {MARKS.map(({ khz, station }) => (
+            <div key={khz} className={`freq-stop${station ? ' freq-stop--active' : ''}`}>
+              <span className="freq-stop-tick" />
+              <span className="freq-stop-num">{khz}</span>
+              {station && <span className="freq-stop-tag">AM · Internet</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function formatDateSeparator(iso: string, lang: Lang): string {
   const normalized = iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z'
   const d = new Date(normalized)
@@ -625,6 +651,8 @@ export default function RadioPage({ user, onUserChange }: Props) {
         <ForestStage user={user} onStats={setVoiceStats} />
 
         <PineRow />
+
+        <FrequencyDial />
 
         <section className="schedule-section" id="schedule">
           <div className="schedule-heading">
