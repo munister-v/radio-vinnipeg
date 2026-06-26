@@ -142,6 +142,31 @@ function PineRow() {
   )
 }
 
+// AM-band frequency dial — vintage receiver strip
+const AM_BANDS = [530,600,700,800,900,1000,1100,1200,1300,1400,1500,1600]
+const NEEDLE_KHZ = 980 // imaginary RV frequency
+const DIAL_MIN = 530, DIAL_MAX = 1620
+function FrequencyDial() {
+  const pct = (khz: number) => ((khz - DIAL_MIN) / (DIAL_MAX - DIAL_MIN)) * 100
+  return (
+    <div className="freq-dial" aria-hidden>
+      <div className="freq-dial-inner">
+        <div className="freq-scale">
+          {AM_BANDS.map(khz => (
+            <div key={khz} className="freq-mark" style={{ left: `${pct(khz)}%` }}>
+              <span className="freq-tick" />
+              <span className="freq-label">{khz}</span>
+            </div>
+          ))}
+          <div className="freq-needle" style={{ left: `${pct(NEEDLE_KHZ)}%` }}>
+            <span className="freq-needle-label">RV</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function formatDateSeparator(iso: string, lang: Lang): string {
   const normalized = iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z'
   const d = new Date(normalized)
@@ -626,6 +651,8 @@ export default function RadioPage({ user, onUserChange }: Props) {
           <i />
           <span>NO REGISTRATION</span>
         </div>
+
+        <FrequencyDial />
 
         <section className="schedule-section" id="schedule">
           <div className="schedule-heading">

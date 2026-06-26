@@ -485,6 +485,106 @@
 }
 .radio-ticker i { width: 7px; height: 7px; border-radius: 50%; background: var(--signal); }
 
+/* ── Vintage AM frequency dial ─────────────────────────────────────── */
+.freq-dial {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: #e6e0ce;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(22,21,15,.04) 0px,
+      rgba(22,21,15,.04) 1px,
+      transparent 1px,
+      transparent 14px
+    );
+  overflow: hidden;
+}
+
+.freq-dial-inner {
+  max-width: var(--page-width);
+  margin: auto;
+  padding: 0 24px;
+  border-inline: 1px solid var(--line);
+  height: 64px;
+  position: relative;
+}
+
+.freq-scale {
+  position: relative;
+  height: 100%;
+}
+
+.freq-mark {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  pointer-events: none;
+}
+
+.freq-tick {
+  display: block;
+  width: 1px;
+  height: 18px;
+  background: var(--muted);
+  opacity: .55;
+  margin-top: 10px;
+  flex-shrink: 0;
+}
+
+.freq-label {
+  font: 500 9px/1 var(--mono);
+  letter-spacing: .06em;
+  color: var(--muted);
+  opacity: .7;
+  margin-top: 5px;
+  white-space: nowrap;
+}
+
+.freq-needle {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.freq-needle::before {
+  content: '';
+  display: block;
+  width: 1.5px;
+  height: 100%;
+  background: var(--signal);
+  box-shadow: 0 0 6px rgba(192,57,43,.35);
+  position: absolute;
+  top: 0;
+}
+
+.freq-needle-label {
+  position: relative;
+  z-index: 1;
+  margin-top: 8px;
+  font: 700 8px/1 var(--mono);
+  letter-spacing: .12em;
+  color: var(--signal);
+  background: #e6e0ce;
+  padding: 2px 4px;
+  border: 1px solid var(--signal);
+}
+
+@media (max-width: 640px) {
+  .freq-dial-inner { border-inline: 0; padding: 0 16px; }
+  .freq-label { font-size: 8px; }
+}
+
 .schedule-section {
   max-width: var(--page-width);
   margin: auto;
