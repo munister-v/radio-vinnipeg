@@ -1,12 +1,18 @@
 :root {
-  --yellow: #f6cf42;
-  --yellow-bright: #dcff2d;
-  --paper: #f4f1e8;
-  --white: #fffef9;
-  --ink: #11110f;
-  --muted: #69675f;
-  --line: rgba(17, 17, 15, .32);
-  --danger: #bd2d24;
+  /* Signal-desk palette: mono ink-on-paper, one broadcast red reserved for live/on-air.
+     Legacy --yellow / --yellow-bright names kept to avoid churn but re-tasked:
+       --yellow        = subtle warm surface (soft hover / own message)
+       --yellow-bright = ink (primary / active inversion) */
+  --signal: #c0392b;
+  --signal-soft: rgba(192, 57, 43, .14);
+  --yellow: #e3dccb;
+  --yellow-bright: #16150f;
+  --paper: #eae6d8;
+  --white: #f3efe4;
+  --ink: #16150f;
+  --muted: #615b4d;
+  --line: rgba(22, 21, 15, .18);
+  --danger: #c0392b;
   --font: "Inter Tight", "Arial Narrow", Arial, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --page-width: 100%;
