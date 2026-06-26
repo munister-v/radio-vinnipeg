@@ -178,7 +178,7 @@ export default function ForestStage({ user, onStats }: { user: User; onStats?: (
                 </button>
                 <div className="fx-deck-text">
                   <span className="fx-deck-kicker">
-                    {connecting ? t('voice.connecting') : members.length ? t('voice.join') : 'Курорт · Open broadcast'}
+                    {connecting ? t('voice.connecting') : members.length ? t('voice.join') : 'Курорт · 94.7 FM'}
                   </span>
                   <h1 className="fx-deck-title">Winnipeg Nights</h1>
                   <p className="fx-deck-desc">{t('hero.tagline')}</p>

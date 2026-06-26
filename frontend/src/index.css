@@ -16,6 +16,8 @@
   --line:        rgba(255, 255, 255, .15);
   --line-strong: rgba(255, 255, 255, .28);
 
+  /* Display / headline — condensed broadcast gothic */
+  --display: "Bebas Neue", "Arial Narrow", "Impact", sans-serif;
   /* Grotesque sans, NTS-style — Inter standing in for Helvetica Neue */
   --font:  "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   --serif: var(--font);

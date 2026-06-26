@@ -92,9 +92,19 @@
   min-height: clamp(440px, 64vh, 720px);
   border-right: 1px solid var(--line);
   isolation: isolate;
-  background:
-    radial-gradient(circle at 56% 28%, rgba(214, 222, 236, .1) 0%, transparent 42%),
-    linear-gradient(180deg, #050507 0%, #070809 40%, #0a0b0d 78%, #0c0d10 100%);
+  background-color: #040507;
+  background-image:
+    linear-gradient(180deg,
+      rgba(4, 5, 9, .60) 0%,
+      rgba(4, 5, 9, .18) 26%,
+      rgba(5, 6, 10, .28) 55%,
+      rgba(3, 4, 8, .80) 80%,
+      rgba(2, 3, 6, .97) 100%
+    ),
+    url('https://images.unsplash.com/photo-1531366936337-7c912a4589a7?auto=format&fit=crop&w=1920&q=80');
+  background-size: auto, cover;
+  background-position: center, center 22%;
+  background-repeat: no-repeat;
 }
 .fx-feature::after {
   content: '';
@@ -154,8 +164,9 @@
 }
 .fx-deck-title {
   margin: 0;
-  font: 800 clamp(28px, 3.4vw, 50px)/0.95 var(--font);
-  letter-spacing: -.022em; text-transform: uppercase; color: var(--ink);
+  font: 400 clamp(44px, 5.4vw, 82px)/0.86 var(--display);
+  letter-spacing: .03em;
+  color: var(--ink);
 }
 .fx-deck-desc {
   margin: 0; max-width: 38ch;
@@ -267,11 +278,32 @@
   transition: transform .4s ease;
 }
 .fx-tile:hover::before { transform: scale(1.05); }
-/* per-slot "artwork" gradients */
-.fx-tile.s0::before { background: linear-gradient(150deg, #11131f 0%, #232a45 55%, #0c0d16 100%); }   /* night */
-.fx-tile.s1::before { background: linear-gradient(150deg, #4a2a12 0%, #b5651d 55%, #e0a458 100%); }   /* morning */
-.fx-tile.s2::before { background: linear-gradient(150deg, #0d2a33 0%, #1d6b7a 55%, #3aa6b8 100%); }   /* day */
-.fx-tile.s3::before { background: linear-gradient(150deg, #2a1030 0%, #6b1d57 55%, #b8326f 100%); }   /* evening */
+/* per-slot "artwork" gradients — Winnipeg time-of-day */
+.fx-tile.s0::before {
+  /* Night 00:00 — Manitoba starfield */
+  background:
+    radial-gradient(ellipse 72% 55% at 68% 22%, rgba(72, 88, 168, .38) 0%, transparent 58%),
+    linear-gradient(155deg, #010208 0%, #040818 35%, #0b1138 60%, #070e28 85%, #020308 100%);
+}
+.fx-tile.s1::before {
+  /* Morning 08:00 — prairie golden sunrise */
+  background:
+    radial-gradient(ellipse 78% 52% at 50% 84%, rgba(228, 126, 18, .58) 0%, transparent 62%),
+    linear-gradient(160deg, #120500 0%, #4a1800 30%, #a84200 55%, #de6e18 78%, #b85a10 100%);
+}
+.fx-tile.s2::before {
+  /* Daytime 12:00 — clear Manitoba big sky */
+  background:
+    radial-gradient(ellipse 82% 58% at 50% 14%, rgba(88, 160, 255, .30) 0%, transparent 58%),
+    linear-gradient(165deg, #020a1c 0%, #082050 35%, #104090 60%, #1760c8 82%, #0c4ab8 100%);
+}
+.fx-tile.s3::before {
+  /* Evening 18:00 — sunset over prairie */
+  background:
+    radial-gradient(ellipse 72% 46% at 62% 80%, rgba(198, 52, 92, .52) 0%, transparent 58%),
+    radial-gradient(ellipse 52% 36% at 18% 28%, rgba(108, 14, 148, .30) 0%, transparent 52%),
+    linear-gradient(160deg, #050010 0%, #1c0640 28%, #480e68 52%, #8a1c78 76%, #be2865 95%, #9e2058 100%);
+}
 .fx-tile::after {
   content: ''; position: absolute; inset: 0; z-index: -1;
   background: linear-gradient(180deg, rgba(0,0,0,.1) 0%, rgba(0,0,0,.55) 100%);

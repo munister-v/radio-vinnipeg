@@ -2612,3 +2612,42 @@
 
 .chat-scrim { background: rgba(0, 0, 0, .7); }
 .typing-dots i { background: var(--ink-3); }
+
+/* ════════════════════════════════════════════════════════════════════════
+   DISPLAY FONT — Bebas Neue for broadcast headings + brand name
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* Topbar brand: condensed caps for the station name */
+.brand-name {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* Schedule + manifesto headings */
+.schedule-head h2,
+.station-clock-now h2,
+.radio-manifesto h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: .02em;
+  font-size: clamp(52px, 6.2vw, 96px);
+  line-height: .88;
+}
+
+/* Broadcast intro hero h1 (legacy layout below the NTS grid) */
+.broadcast-intro h1 {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: .02em;
+}
+
+/* Empty chat state headline */
+.messages-empty strong {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: .03em;
+  font-size: 34px;
+}
