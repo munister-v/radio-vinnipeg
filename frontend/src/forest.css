@@ -278,31 +278,43 @@
   transition: transform .4s ease;
 }
 .fx-tile:hover::before { transform: scale(1.05); }
-/* per-slot "artwork" gradients — Winnipeg time-of-day */
+/* per-slot artwork: Canadian/American photo + mood gradient overlay */
 .fx-tile.s0::before {
-  /* Night 00:00 — Manitoba starfield */
-  background:
-    radial-gradient(ellipse 72% 55% at 68% 22%, rgba(72, 88, 168, .38) 0%, transparent 58%),
-    linear-gradient(155deg, #010208 0%, #040818 35%, #0b1138 60%, #070e28 85%, #020308 100%);
+  /* Night 00:00 — Tom Thomson "The Jack Pine" (1916, Canada) */
+  background-image:
+    radial-gradient(ellipse 72% 55% at 68% 22%, rgba(42, 58, 138, .52) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(1,2,10,.42) 0%, rgba(5,10,32,.78) 100%),
+    url('/slots/s0-night.jpg');
+  background-size: auto, auto, cover;
+  background-position: center, center, center top;
 }
 .fx-tile.s1::before {
-  /* Morning 08:00 — prairie golden sunrise */
-  background:
-    radial-gradient(ellipse 78% 52% at 50% 84%, rgba(228, 126, 18, .58) 0%, transparent 62%),
-    linear-gradient(160deg, #120500 0%, #4a1800 30%, #a84200 55%, #de6e18 78%, #b85a10 100%);
+  /* Morning 08:00 — Canadian Pacific Trans-Canada passenger train */
+  background-image:
+    radial-gradient(ellipse 78% 52% at 50% 84%, rgba(228, 126, 18, .44) 0%, transparent 62%),
+    linear-gradient(180deg, rgba(8,3,0,.35) 0%, rgba(28,10,0,.72) 100%),
+    url('/slots/s1-morning.jpg');
+  background-size: auto, auto, cover;
+  background-position: center, center, center;
 }
 .fx-tile.s2::before {
-  /* Daytime 12:00 — clear Manitoba big sky */
-  background:
-    radial-gradient(ellipse 82% 58% at 50% 14%, rgba(88, 160, 255, .30) 0%, transparent 58%),
-    linear-gradient(165deg, #020a1c 0%, #082050 35%, #104090 60%, #1760c8 82%, #0c4ab8 100%);
+  /* Daytime 12:00 — Benjamin West, American colonial painter */
+  background-image:
+    radial-gradient(ellipse 82% 58% at 50% 14%, rgba(88, 160, 255, .22) 0%, transparent 58%),
+    linear-gradient(180deg, rgba(0,4,16,.32) 0%, rgba(6,18,48,.68) 100%),
+    url('/slots/s2-daytime.jpg');
+  background-size: auto, auto, cover;
+  background-position: center, center, center;
 }
 .fx-tile.s3::before {
-  /* Evening 18:00 — sunset over prairie */
-  background:
-    radial-gradient(ellipse 72% 46% at 62% 80%, rgba(198, 52, 92, .52) 0%, transparent 58%),
-    radial-gradient(ellipse 52% 36% at 18% 28%, rgba(108, 14, 148, .30) 0%, transparent 52%),
-    linear-gradient(160deg, #050010 0%, #1c0640 28%, #480e68 52%, #8a1c78 76%, #be2865 95%, #9e2058 100%);
+  /* Evening 18:00 — Gezicht op Nieuw Amsterdam (New York colonial, 1664) */
+  background-image:
+    radial-gradient(ellipse 72% 46% at 62% 80%, rgba(198, 52, 92, .40) 0%, transparent 58%),
+    radial-gradient(ellipse 52% 36% at 18% 28%, rgba(108, 14, 148, .22) 0%, transparent 52%),
+    linear-gradient(180deg, rgba(3,0,8,.38) 0%, rgba(14,4,28,.72) 100%),
+    url('/slots/s3-evening.jpg');
+  background-size: auto, auto, auto, cover;
+  background-position: center, center, center, center;
 }
 .fx-tile::after {
   content: ''; position: absolute; inset: 0; z-index: -1;
