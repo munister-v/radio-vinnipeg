@@ -485,91 +485,65 @@
 }
 .radio-ticker i { width: 7px; height: 7px; border-radius: 50%; background: var(--signal); }
 
-/* ── Frequency band — editorial strip ──────────────────────────────── */
+/* ── Frequency — one typographic moment ────────────────────────────── */
 .freq-dial {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  background: var(--paper);
 }
 
 .freq-dial-inner {
   max-width: var(--page-width);
   margin: auto;
-  padding: 0 48px;
+  padding: 32px 48px;
   border-inline: 1px solid var(--line);
-}
-
-.freq-rail {
   display: flex;
-  align-items: flex-end;
-  gap: 0;
-  height: 72px;
-  border-bottom: 1px solid var(--line);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
 }
 
-.freq-stop {
-  flex: 1;
+.freq-number {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  line-height: 1;
+}
+
+.freq-khz-big {
+  font: 700 clamp(56px, 7vw, 96px)/1 var(--mono);
+  letter-spacing: -.03em;
+  color: var(--ink);
+}
+
+.freq-khz-unit {
+  font: 500 clamp(13px, 1.4vw, 18px)/1 var(--mono);
+  letter-spacing: .06em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.freq-meta {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding-bottom: 14px;
-  gap: 8px;
-  position: relative;
+  align-items: flex-end;
+  gap: 4px;
 }
 
-.freq-stop-tick {
-  display: block;
-  width: 1px;
-  height: 10px;
-  background: var(--muted);
-  opacity: .4;
-}
-
-.freq-stop-num {
-  font: 500 11px/1 var(--mono);
-  letter-spacing: .04em;
-  color: var(--muted);
-  opacity: .6;
-}
-
-/* active station */
-.freq-stop--active .freq-stop-tick {
-  height: 20px;
-  width: 1.5px;
-  background: var(--signal);
-  opacity: 1;
-}
-
-.freq-stop--active .freq-stop-num {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -.02em;
-  color: var(--signal);
-  opacity: 1;
-}
-
-.freq-stop-tag {
-  position: absolute;
-  bottom: -1px;
-  left: 50%;
-  transform: translateX(-50%) translateY(100%);
-  padding: 5px 10px;
-  font: 500 9px/1 var(--mono);
-  letter-spacing: .14em;
+.freq-meta span {
+  font: 500 11px/1.4 var(--mono);
+  letter-spacing: .12em;
   text-transform: uppercase;
-  color: var(--signal);
-  white-space: nowrap;
-  border-left: 1.5px solid var(--signal);
-  border-right: 1.5px solid var(--signal);
-  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.freq-meta span:first-child {
+  font-size: 10px;
+  opacity: .55;
 }
 
 @media (max-width: 640px) {
-  .freq-dial-inner { padding: 0 16px; border-inline: 0; }
-  .freq-stop-num { font-size: 10px; }
-  .freq-stop--active .freq-stop-num { font-size: 18px; }
-  .freq-stop-tag { font-size: 8px; }
+  .freq-dial-inner { padding: 24px 20px; border-inline: 0; }
+  .freq-meta { display: none; }
 }
 
 .schedule-section {
