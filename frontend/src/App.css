@@ -2416,3 +2416,280 @@ body::before {
   /* Scrim: invisible on desktop (pointer-events and blur already off globally) */
   .chat-layer.is-open .chat-scrim { opacity: 0; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   СОСНОВИЙ КУРОРТ — типографічний та акцентний шар
+   ────────────────────────────────────────────────────────────────────────
+   Дисплейні заголовки — антиква Cormorant Garamond (як на дерев'яній
+   вивісці курорту). Службові підписи лишаються в IBM Plex Mono (коди
+   навігації). Акценти — лісова зелень і латунь; теракотовий жар лишається
+   за «наживо». Самодостатній шар у кінці файлу: завдяки порядку джерела
+   він перекриває попередні правила, не торкаючись 2400 рядків вище.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Антиква на всі дисплейні заголовки ── */
+.brand-name,
+.broadcast-intro h1,
+.frequency strong,
+.air-title,
+.schedule-heading h2,
+.station-clock-now h2,
+.schedule-grid h3,
+.radio-manifesto h2,
+.chat-context strong,
+.chat-server-info strong,
+.messages-empty strong,
+.shortcuts-header h2 {
+  font-family: var(--serif);
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+/* Дисплейні розміри (антиква читається дрібніше — піднімаємо кегль) */
+.brand-name           { font-size: 22px; letter-spacing: 0; }
+.broadcast-intro h1   { font-size: clamp(58px, 7.2vw, 124px); line-height: .9; }
+.frequency strong     { font-size: clamp(96px, 11vw, 180px); }
+.air-title            { font-size: clamp(54px, 5.8vw, 92px); }
+.schedule-heading h2  { font-size: clamp(50px, 6vw, 98px); }
+.station-clock-now h2 { font-size: clamp(58px, 6.4vw, 104px); }
+.schedule-grid h3     { font-size: 30px; }
+.radio-manifesto h2   { font-size: clamp(50px, 6vw, 98px); }
+.chat-context strong  { font-size: 26px; }
+.chat-server-info strong { font-size: 18px; }
+.messages-empty strong   { font-size: 34px; }
+.shortcuts-header h2     { font-size: 25px; }
+
+/* Провідні абзаци — теж антиква, редакційно й по-курортному */
+.broadcast-intro p,
+.manifesto-copy > p {
+  font-family: var(--serif);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.32;
+}
+.broadcast-intro p { font-size: clamp(20px, 1.8vw, 26px); }
+.manifesto-copy > p { font-size: clamp(20px, 1.6vw, 24px); }
+
+/* ── Акценти: зелень лісу + латунь ── */
+.section-kicker span     { color: var(--moss); }           /* нумерація розділів */
+.schedule-grid li > span { color: var(--moss); }           /* нумерація слотів */
+.msg-link                { color: var(--moss); }           /* посилання у чаті */
+.reply-preview           { border-left-color: var(--moss); }
+
+/* Темна дерев'яна панель годинника — теплі нейтралі замість холодних */
+.station-clock-now > span,
+.station-clock-next > span { color: var(--brass-bright); }
+.station-clock-now p       { color: rgba(247, 241, 226, .66); }
+.station-progress          { background: rgba(247, 241, 226, .14); }
+.station-progress i        { background: var(--brass-bright); }
+.station-clock-next        { border-top-color: rgba(198, 161, 92, .3); }
+
+/* ── Мобільні дисплейні розміри (пере-утверджуємо останніми) ── */
+@media (max-width: 720px) {
+  .brand-name           { font-size: 18px; }
+  .broadcast-intro h1   { font-size: clamp(48px, 14vw, 88px); }
+  .broadcast-intro p    { font-size: 19px; }
+  .frequency strong     { font-size: 76px; }
+  .air-title            { font-size: 58px; }
+  .schedule-heading h2  { font-size: 54px; }
+  .station-clock-now h2 { font-size: 60px; }
+  .radio-manifesto h2   { font-size: 52px; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   СОСНОВИЙ КУРОРТ · v2 — м'яка дерев'яна мова замість брутальної сітки
+   ────────────────────────────────────────────────────────────────────────
+   • Жорсткі чорні рамки → теплі деревні волосини (var(--line)).
+   • Жорсткі offset-тіні → м'яка природна тінь.
+   • Прямі кути об'єктів → делікатні скруглення.
+   • Акценти дій → лісова зелень із латунню на ховері.
+   • Тепле світло крізь крони у hero.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Пом'якшуємо структурні рамки (тільки колір) ── */
+.topbar,
+.topbar-inner,
+.topbar-nav,
+.topbar-nav a,
+.topbar-nav button,
+.broadcast-stage,
+.broadcast-intro,
+.frequency,
+.broadcast-console,
+.air-top,
+.schedule-section,
+.schedule-heading,
+.schedule-grid,
+.schedule-grid li,
+.radio-manifesto,
+.manifesto-copy dl,
+.manifesto-copy dl div,
+.radio-ticker,
+.freq-dial,
+.freq-dial-inner,
+.composer,
+.composer-wrap,
+.chat-drawer,
+.chat-header,
+.chat-context,
+.chat-presence {
+  border-color: var(--line);
+}
+
+/* ── 2. Тепле світло крізь крони у hero ── */
+.broadcast-intro {
+  background-image:
+    radial-gradient(135% 90% at 88% -10%, rgba(198, 161, 92, .14), transparent 58%),
+    radial-gradient(80% 60% at 8% 108%, rgba(74, 93, 68, .16), transparent 60%);
+}
+
+/* ── 3. Скруглення об'єктів ── */
+.settings-panel,
+.signal-deck,
+.emoji-picker,
+.gif-picker,
+.shortcuts-panel,
+.messages-empty,
+.chat-launcher,
+.conn-tray { border-radius: 14px; }
+
+.btn,
+.btn-mic,
+.player-mic-btn,
+.player-stop-btn,
+.player-play-btn,
+.nick-chip,
+.nick-edit input,
+.lang-switch,
+.toggle-btn,
+.settings-select,
+.chat-launcher-icon,
+.chat-header button,
+.shortcuts-header button,
+.message-edit-form input,
+.emoji-search,
+.gif-search,
+.gif-thumb,
+.reply-banner,
+.reply-preview,
+.message-actions { border-radius: 10px; }
+
+.message-bubble { border-radius: 16px; }
+.air-members li { border-radius: 999px; border-color: var(--line); }
+.brand-mark { border-radius: 12px; }
+.chat-server-mark { border-radius: 12px; }
+
+/* ── 4. М'які природні тіні замість offset-блоків ── */
+.settings-panel  { box-shadow: 0 18px 48px rgba(43, 30, 18, .22); }
+.emoji-picker,
+.gif-picker      { box-shadow: 0 16px 44px rgba(43, 30, 18, .22); }
+.shortcuts-panel { box-shadow: 0 24px 64px rgba(43, 30, 18, .30); }
+.message-bubble  { box-shadow: 0 2px 12px rgba(43, 30, 18, .08); }
+.message.mine .message-bubble { box-shadow: 0 2px 12px rgba(74, 93, 68, .14); }
+.message-actions { box-shadow: 0 8px 20px rgba(43, 30, 18, .16); }
+.chat-launcher   { box-shadow: 0 10px 28px rgba(43, 30, 18, .14); }
+
+/* ── 5. Акценти дій: лісова зелень → латунь на ховері ── */
+.btn-primary,
+.btn-ghost,
+.btn-mic,
+.player-mic-btn {
+  background: var(--moss);
+  border-color: var(--moss);
+  color: var(--white);
+}
+.btn-primary:hover,
+.btn-ghost:hover,
+.btn-ghost.active,
+.btn-mic:hover:not(:disabled),
+.btn-mic:disabled,
+.player-mic-btn:hover {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: var(--ink);
+}
+
+/* Велика кнопка ефіру */
+.player-play-btn {
+  background: var(--moss);
+  border-color: var(--moss);
+  color: var(--white);
+  box-shadow: 0 10px 26px rgba(74, 93, 68, .26);
+}
+.player-play-btn:hover:not(:disabled) {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: var(--ink);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(43, 30, 18, .20);
+}
+.player-play-btn--start {
+  background: transparent;
+  border-color: var(--brass);
+  color: var(--ink);
+  box-shadow: none;
+}
+.player-play-btn--start:hover:not(:disabled) {
+  background: var(--moss);
+  border-color: var(--moss);
+  color: var(--white);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(74, 93, 68, .24);
+}
+
+/* Мікрофон «наживо» лишається теракотовим (пере-утверджуємо після зелені) */
+.btn-mic.on,
+.player-mic-btn.on,
+.ptt-btn.player-mic-btn.on {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: var(--white);
+}
+.btn-mic.on:hover,
+.player-mic-btn.on:hover { background: var(--signal); color: var(--white); }
+
+/* Stop — делікатний контур */
+.player-stop-btn { border-color: var(--line); color: var(--ink); }
+.player-stop-btn:hover { background: var(--ink); color: var(--white); border-color: var(--ink); }
+
+/* Навігація / мова / тумблери — зелений акцент */
+.topbar-nav a:hover,
+.topbar-nav button:hover { background: rgba(74, 93, 68, .12); color: var(--moss); }
+.lang-switch button:hover { background: rgba(74, 93, 68, .12); }
+.lang-switch button.on { background: var(--moss); color: var(--white); }
+.toggle-btn.on { background: var(--moss); }
+.chat-launcher b { background: var(--moss); }
+.chat-launcher-icon { border-color: var(--line); }
+
+/* ── 6. Деревні нейтралі для дрібних рамок-волосин у чаті ── */
+.message-bubble,
+.messages-empty,
+.settings-select,
+.message-edit-form input,
+.emoji-search,
+.gif-search,
+.signal-deck,
+.settings-gear,
+.btn-outline { border-color: var(--line); }
+
+/* ── 7. Геральдична емблема Winnipeg Nights ── */
+.brand-mark {
+  color: var(--brass);            /* латунний знак */
+  background: var(--white);
+  border-color: var(--line);
+}
+.brand:hover .brand-mark { background: var(--ink); color: var(--brass-bright); }
+.brand-emblem { width: 28px; height: 28px; display: block; }
+
+/* Велика емблема у hero — золото на дереві, як на вивісці курорту */
+.hero-emblem {
+  width: clamp(58px, 6vw, 86px);
+  height: auto;
+  display: block;
+  margin: 0 0 26px;
+  color: var(--brass);
+  filter: drop-shadow(0 2px 10px rgba(198, 161, 92, .2));
+}
+@media (max-width: 720px) {
+  .hero-emblem { width: 56px; margin-bottom: 18px; }
+}

@@ -1,20 +1,46 @@
 :root {
-  /* Signal-desk palette: mono ink-on-paper, one broadcast red reserved for live/on-air.
-     Legacy --yellow / --yellow-bright names kept to avoid churn but re-tasked:
-       --yellow        = subtle warm surface (soft hover / own message)
-       --yellow-bright = ink (primary / active inversion) */
-  --signal: #c0392b;
-  --signal-soft: rgba(192, 57, 43, .14);
-  --yellow: #e3dccb;
-  --yellow-bright: #16150f;
-  --paper: #eae6d8;
-  --white: #f3efe4;
-  --ink: #16150f;
-  --muted: #615b4d;
-  --line: rgba(22, 21, 15, .18);
-  --danger: #c0392b;
-  --font: "Inter Tight", "Arial Narrow", Arial, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* ── Сосновий курорт ────────────────────────────────────────────────
+     Натхнення: дерев'яна навігація соснового курорту — теплий пергамент,
+     дерево-еспресо як «чорнило», лісова зелень і латунь як акценти,
+     теракотовий жар для «наживо». Світло й натурально.
+
+     Легасі-назви змінних (--yellow / --paper / --ink ...) збережені, але
+     перенастроєні на курортну палітру — увесь App.css перефарбовується
+     автоматично через них. */
+
+  /* Поверхні — пергамент і крем */
+  --paper: #efe7d3;   /* тло сторінки */
+  --white: #f7f1e2;   /* піднята поверхня (картки) */
+
+  /* «Чорнило» — темне дерево-еспресо (текст + темні панелі-таблички) */
+  --ink:   #2b1e12;
+  --muted: #6e6650;   /* приглушений теплий */
+
+  /* Тепла піщана поверхня (subtle-ховери, власне повідомлення, hero-тло) */
+  --yellow: #e4d6b4;
+  --yellow-bright: #2b1e12;   /* == ink: активна інверсія / посилання */
+
+  /* Теракотовий жар — «наживо» / on-air */
+  --signal: #b0533a;
+  --signal-soft: rgba(176, 83, 58, .14);
+  --danger: #b0533a;
+
+  /* Лісова зелень і латунь — акценти навігації */
+  --moss:  #4a5d44;
+  --sage:  #7d8e6b;
+  --brass: #9a7a3c;
+  --brass-bright: #c6a15c;
+
+  /* Латунно-деревна волосина-розділювач */
+  --line: rgba(43, 30, 18, .20);
+
+  /* Типографіка: класична антиква для дисплея + геометричний гротеск Jost
+     для тексту й службових підписів (як у європейській курортній навігації).
+     --mono лишає монопростір лише у фолбеку для рідкісних таблиць. */
+  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font:  "Jost", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:  "Jost", ui-monospace, SFMono-Regular, Menlo, monospace;
+
   --page-width: 100%;
   font-family: var(--font);
   color: var(--ink);
@@ -39,11 +65,11 @@ body {
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
-  outline: 3px solid var(--yellow-bright);
+  outline: 2px solid var(--moss);
   outline-offset: 3px;
 }
 a { color: inherit; }
-::selection { background: var(--ink); color: var(--yellow); }
+::selection { background: var(--ink); color: var(--paper); }
 * { scrollbar-width: thin; scrollbar-color: var(--ink) transparent; }
 *::-webkit-scrollbar { width: 8px; height: 8px; }
 *::-webkit-scrollbar-thumb { background: var(--ink); }

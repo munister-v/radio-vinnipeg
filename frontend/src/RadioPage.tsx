@@ -16,7 +16,8 @@ import {
   type Typer,
   type User,
 } from './api'
-import VoicePanel, { type VoiceStats } from './VoicePanel'
+import { type VoiceStats } from './VoicePanel'
+import ForestStage from './ForestStage'
 import EmojiPicker from './EmojiPicker'
 import GifPicker from './GifPicker'
 import { setBackgroundInterval, type BgTimer } from './bgTimer'
@@ -142,30 +143,33 @@ function PineRow() {
   )
 }
 
-// AM-band frequency dial — vintage receiver strip
-const AM_BANDS = [530,600,700,800,900,1000,1100,1200,1300,1400,1500,1600]
-const NEEDLE_KHZ = 980 // imaginary RV frequency
-const DIAL_MIN = 530, DIAL_MAX = 1620
-function FrequencyDial() {
-  const pct = (khz: number) => ((khz - DIAL_MIN) / (DIAL_MAX - DIAL_MIN)) * 100
+// Геральдична емблема Winnipeg Nights — латунний лінійний знак у квадраті:
+// концентричні хвилі (ефір/світанок) · шеврони (сосни) · страти (земля) ·
+// арка (портал курорту). Успадковує колір через currentColor.
+function BrandEmblem({ className }: { className?: string }) {
   return (
-    <div className="freq-dial" aria-hidden>
-      <div className="freq-dial-inner">
-        <div className="freq-scale">
-          {AM_BANDS.map(khz => (
-            <div key={khz} className="freq-mark" style={{ left: `${pct(khz)}%` }}>
-              <span className="freq-tick" />
-              <span className="freq-label">{khz}</span>
-            </div>
-          ))}
-          <div className="freq-needle" style={{ left: `${pct(NEEDLE_KHZ)}%` }}>
-            <span className="freq-needle-label">RV</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <svg className={className} viewBox="0 0 48 48" fill="none"
+      stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="3" width="42" height="42" rx="6" strokeWidth="2" />
+      <line x1="24" y1="4" x2="24" y2="44" strokeWidth="1.1" opacity=".45" />
+      <line x1="4" y1="24" x2="44" y2="24" strokeWidth="1.1" opacity=".45" />
+      {/* TL — концентричні хвилі / світанок */}
+      <path d="M10.5 4 A6.5 6.5 0 0 1 4 10.5" strokeWidth="2" />
+      <path d="M16 4 A12 12 0 0 1 4 16" strokeWidth="2" />
+      <path d="M21.5 4 A17.5 17.5 0 0 1 4 21.5" strokeWidth="2" />
+      {/* TR — шеврони / сосни */}
+      <path d="M27 20 L34 13 L41 20" strokeWidth="2" />
+      <path d="M27 14.5 L34 7.5 L41 14.5" strokeWidth="2" />
+      {/* BL — страти / земля */}
+      <path d="M7 30 H21" strokeWidth="2" />
+      <path d="M7 35 H21" strokeWidth="2" />
+      <path d="M7 40 H21" strokeWidth="2" />
+      {/* BR — арка / портал */}
+      <path d="M28 42 V34 a6 6 0 0 1 12 0 V42" strokeWidth="2" />
+    </svg>
   )
 }
+
 
 function formatDateSeparator(iso: string, lang: Lang): string {
   const normalized = iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z'
@@ -554,7 +558,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
       <header className="topbar">
         <div className="topbar-inner">
           <a className="brand" href="#air" aria-label={t('top.toAir')}>
-            <span className="brand-mark" aria-hidden>RV</span>
+            <span className="brand-mark" aria-hidden><BrandEmblem className="brand-emblem" /></span>
             <div className="brand-titles">
               <span className="brand-eyebrow">{t('top.brandEyebrow')}</span>
               <span className="brand-name">Radio Vinnipeg</span>
@@ -618,41 +622,9 @@ export default function RadioPage({ user, onUserChange }: Props) {
       </header>
 
       <main>
-        <section className="broadcast-stage" id="air">
-          <div className="broadcast-intro">
-            <div className="aurora-bg" aria-hidden />
-            <div className="section-kicker"><span>01</span> {t('hero.kicker')}</div>
-            <h1>Radio<br />Vinnipeg</h1>
-            <div className="geo-coord" aria-hidden>49°46′N · 97°14′W · Winnipeg MB</div>
-            <p>{t('hero.tagline')}</p>
-          </div>
-          <div className="frequency" aria-label="Radio Vinnipeg — 24/7">
-            <span>{t('freq.onair')}</span>
-            <strong>24/7</strong>
-            <small>{t('freq.web')}</small>
-          </div>
-          <div className="broadcast-console">
-            <VoicePanel user={user} onStats={setVoiceStats} />
-          </div>
-        </section>
+        <ForestStage user={user} onStats={setVoiceStats} />
 
         <PineRow />
-
-        <div className="radio-ticker" aria-hidden>
-          <span>LIVE BROADCAST</span>
-          <i />
-          <span>WINNIPEG · MB</span>
-          <i />
-          <span>49°46′N · 97°14′W</span>
-          <i />
-          <span>OPEN MICROPHONE</span>
-          <i />
-          <span>INDEPENDENT RADIO</span>
-          <i />
-          <span>NO REGISTRATION</span>
-        </div>
-
-        <FrequencyDial />
 
         <section className="schedule-section" id="schedule">
           <div className="schedule-heading">

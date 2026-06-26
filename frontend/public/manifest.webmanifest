@@ -4,8 +4,8 @@
   "description": "Open live broadcast — join group voice conversation and chat. No sign-up.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#f6cf42",
+  "background_color": "#efe7d3",
+  "theme_color": "#efe7d3",
   "orientation": "any",
   "categories": ["entertainment", "music"],
   "icons": [
