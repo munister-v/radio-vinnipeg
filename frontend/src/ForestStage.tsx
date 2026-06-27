@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import type { User } from './api'
+import type { User, NowPlaying } from './api'
+import { getNowPlaying, setNowPlaying } from './api'
 import SettingsPanel from './SettingsPanel'
 import { useSettings } from './useSettings'
 import { useVoice } from './useVoice'
@@ -72,11 +73,26 @@ function GearGlyph() {
   )
 }
 
-export default function ForestStage({ user, onStats }: { user: User; onStats?: (s: VoiceStats) => void }) {
+export default function ForestStage({ user, onStats, room = 'lounge' }: { user: User; onStats?: (s: VoiceStats) => void; room?: string }) {
   const { t, lang } = useI18n()
   const settings = useSettings()
   const { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic } =
-    useVoice(user.id, { volume: settings.volume, micDeviceId: settings.micDeviceId })
+    useVoice(user.id, { volume: settings.volume, micDeviceId: settings.micDeviceId, room })
+
+  // Now Playing
+  const [np, setNp] = useState<NowPlaying>(null)
+  const [npInput, setNpInput] = useState('')
+  const [npOpen, setNpOpen] = useState(false)
+  const npRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    setNp(null)
+    setNpInput('')
+    const load = () => getNowPlaying(room).then(setNp).catch(() => {})
+    load()
+    const t = window.setInterval(load, 4000)
+    return () => { window.clearInterval(t); if (npRef.current) clearTimeout(npRef.current) }
+  }, [room])
 
   const onStatsRef = useRef(onStats)
   useEffect(() => { onStatsRef.current = onStats })
@@ -246,6 +262,43 @@ export default function ForestStage({ user, onStats }: { user: User; onStats?: (
 
                 {error && <p className="fx-error">{error}</p>}
                 {settingsOpen && <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} />}
+              </div>
+            )}
+
+            {/* ── YouTube Now Playing ── */}
+            {(np?.video_id || joined) && (
+              <div className="fx-np">
+                {np?.video_id ? (
+                  <>
+                    <div className="fx-np-info">
+                      <span className="fx-np-label">▶ {np.is_playing ? 'PLAYING' : 'PAUSED'}</span>
+                      <span className="fx-np-title">{np.title || np.video_id}</span>
+                      <button className="fx-np-stop" onClick={() => setNowPlaying(room, { video_id: '' }).then(setNp).catch(() => {})} title="Stop">✕</button>
+                    </div>
+                    <iframe
+                      className="fx-yt"
+                      src={`https://www.youtube.com/embed/${np.video_id}?autoplay=1&start=${Math.floor(np.position_sec)}&enablejsapi=1`}
+                      allow="autoplay; encrypted-media"
+                      allowFullScreen
+                      title={np.title || 'YouTube'}
+                    />
+                  </>
+                ) : (
+                  <button className="fx-np-add" onClick={() => setNpOpen((v) => !v)}>
+                    + YouTube
+                  </button>
+                )}
+                {npOpen && (
+                  <form className="fx-np-form" onSubmit={async (e) => {
+                    e.preventDefault()
+                    if (!npInput.trim()) return
+                    const res = await setNowPlaying(room, { video_id: npInput.trim(), is_playing: true, position_sec: 0 }).catch(() => null)
+                    if (res) { setNp(res); setNpOpen(false); setNpInput('') }
+                  }}>
+                    <input className="fx-np-input" value={npInput} onChange={(e) => setNpInput(e.target.value)} placeholder="YouTube URL or video ID" autoFocus />
+                    <button type="submit">▶</button>
+                  </form>
+                )}
               </div>
             )}
           </div>

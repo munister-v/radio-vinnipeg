@@ -84,7 +84,7 @@ type AnalyserEntry = {
  *  • Приєднатися можна без мікрофона (лише слухати). Мікрофон вмикається будь-
  *    коли: ми змінюємо напрям транспондера → renegotiation, і нас починають чути.
  */
-export function useVoice(myUserId: number | null, opts?: { volume?: number; micDeviceId?: string }) {
+export function useVoice(myUserId: number | null, opts?: { volume?: number; micDeviceId?: string; room?: string }) {
   const [members, setMembers] = useState<VoiceMember[]>([])
   const [joined, setJoined] = useState(false)
   const [micOn, setMicOn] = useState(false)
@@ -109,6 +109,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const membersTimerRef = useRef<BgTimer | null>(null)
   const volumeRef = useRef<number>(opts?.volume ?? 1)
   const micDeviceIdRef = useRef<string>(opts?.micDeviceId ?? '')
+  const roomRef = useRef<string>(opts?.room ?? 'lounge')
   // Аудіо-елементи, чий play() браузер заблокував (autoplay policy) — ретраїмо на жесті.
   const blockedAudiosRef = useRef<Set<HTMLAudioElement>>(new Set())
   const [audioBlocked, setAudioBlocked] = useState(false)
@@ -139,6 +140,10 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   useEffect(() => {
     micDeviceIdRef.current = opts?.micDeviceId ?? ''
   }, [opts?.micDeviceId])
+
+  useEffect(() => {
+    roomRef.current = opts?.room ?? 'lounge'
+  }, [opts?.room])
 
   // ── Список учасників: серверні дані + локальний прапорець «говорить» ──────
   const applyMembers = useCallback(() => {
@@ -781,7 +786,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   // Стан розмови до приєднання (скільки людей уже всередині).
   const refreshActive = useCallback(async () => {
     try {
-      const data = await getActiveCall()
+      const data = await getActiveCall(roomRef.current)
       if (data) {
         callIdRef.current = data.call_id
         if (!joinedRef.current) {
@@ -812,7 +817,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       startKeepAlive()
       startNoSleep()
       await loadIceServers()
-      const res = await apiJoinCall()
+      const res = await apiJoinCall(roomRef.current)
       callIdRef.current = res.call_id
       // Start from the latest existing signal so we don't replay stale
       // offers/answers from previous sessions in this call (join-bug fix).

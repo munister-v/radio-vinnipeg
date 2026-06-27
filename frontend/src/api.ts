@@ -197,12 +197,33 @@ export async function getCallConfig() {
   return request<{ ice_servers: RTCIceServer[] }>('/calls/config')
 }
 
-export async function getActiveCall() {
-  return request<ActiveCall>('/calls/active')
+export async function getActiveCall(room = 'lounge') {
+  return request<ActiveCall>(`/calls/active?room=${room}`)
 }
 
-export async function joinCall() {
-  return request<{ call_id: number; members: CallMember[]; latest_signal_id: number }>('/calls/join', { method: 'POST' })
+export async function joinCall(room = 'lounge') {
+  return request<{ call_id: number; members: CallMember[]; latest_signal_id: number }>(`/calls/join?room=${room}`, { method: 'POST' })
+}
+
+export async function createRoom(title: string) {
+  return request<Room>('/rooms', { method: 'POST', body: JSON.stringify({ title }) })
+}
+
+export type NowPlaying = {
+  video_id: string; title: string; is_playing: boolean
+  position_sec: number; server_time: number; updated_at: string
+} | null
+
+export async function getNowPlaying(room: string) {
+  return request<NowPlaying>(`/rooms/${room}/now-playing`)
+}
+
+export async function setNowPlaying(room: string, data: {
+  video_id?: string; title?: string; position_sec?: number; is_playing?: boolean
+}) {
+  return request<NowPlaying>(`/rooms/${room}/now-playing`, {
+    method: 'PUT', body: JSON.stringify(data),
+  })
 }
 
 export async function leaveCall(callId: number) {

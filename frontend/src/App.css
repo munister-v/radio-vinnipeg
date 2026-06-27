@@ -2631,6 +2631,13 @@
   text-align: center;
 }
 .room-tab.active .room-tab-live { background: rgba(255,255,255,.25); }
+.room-tab-add {
+  font-size: 16px;
+  font-weight: 400;
+  opacity: .55;
+  padding: 0 8px;
+}
+.room-tab-add:hover { opacity: 1; }
 
 /* ── Chat clear button ─────────────────────────────────────── */
 .chat-clear-btn {

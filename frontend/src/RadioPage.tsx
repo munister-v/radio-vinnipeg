@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   ApiError,
   clearRoomChat,
+  createRoom,
   deleteMessage,
   editMessage,
   fetchMessages,
@@ -626,11 +627,21 @@ export default function RadioPage({ user, onUserChange }: Props) {
               {r.in_call > 0 && <span className="room-tab-live">{r.in_call}</span>}
             </button>
           ))}
+          <button
+            className="room-tab room-tab-add"
+            title="Створити канал"
+            onClick={async () => {
+              const title = window.prompt('Назва каналу:')
+              if (!title?.trim()) return
+              const room = await createRoom(title.trim()).catch(() => null)
+              if (room) { setRooms((prev) => [...prev, room]); setCurrentRoom(room.slug) }
+            }}
+          >+</button>
         </div>
       )}
 
       <main>
-        <ForestStage user={user} onStats={setVoiceStats} />
+        <ForestStage user={user} onStats={setVoiceStats} room={currentRoom} />
 
         <section className="schedule-section" id="schedule">
           <div className="schedule-head">
