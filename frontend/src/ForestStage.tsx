@@ -104,11 +104,25 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [pttHeld, setPttHeld] = useState(false)
   const pttBusyRef = useRef(false)
+  // Якщо користувач явно вийшов — не авто-підключаємось знову.
+  const explicitLeaveRef = useRef(false)
+  // Пасивний слухач: підключились автоматично, мік вимкнено.
+  const [passive, setPassive] = useState(false)
 
   const total = members.length + (joined ? 1 : 0)
   const speakers = members.filter((m) => m.speaking)
   const someoneSpeaking = speakers.length > 0 || (joined && micOn && speaking)
   const active = joined || members.length > 0
+
+  // Авто-підключення як тихий слухач, коли хтось у кімнаті.
+  // Слухач отримує аудіо через WebRTC без кліку — «увімкнулось радіо».
+  const joinRef = useRef(join)
+  useEffect(() => { joinRef.current = join }, [join])
+  useEffect(() => {
+    if (joined || connecting || members.length === 0 || explicitLeaveRef.current) return
+    setPassive(true)
+    joinRef.current()
+  }, [joined, connecting, members.length])
 
   // Schedule slots (mirror RadioPage) → drives the tile rail + channel 2
   const SLOT_STARTS = [0, 8, 12, 18]
@@ -203,9 +217,13 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
             ) : (
               <div className="fx-deck-live">
                 <div className="fx-deck-livehead">
-                  <span className="fx-deck-live-title">Winnipeg Nights</span>
+                  <span className="fx-deck-live-title">
+                    {passive ? '🔊 Listening' : 'Winnipeg Nights'}
+                  </span>
                   <span className="fx-deck-live-status">
-                    {t('voice.inCallYou', { n: total, ppl: peopleWord(total, lang) })}
+                    {passive
+                      ? `${total} ${peopleWord(total, lang)} on air`
+                      : t('voice.inCallYou', { n: total, ppl: peopleWord(total, lang) })}
                   </span>
                   <button className="fx-gear" onClick={() => setSettingsOpen((v) => !v)} aria-label={t('voice.soundSettings')}>
                     <GearGlyph />
@@ -230,7 +248,12 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                 </div>
 
                 <div className="fx-controls">
-                  {settings.pttMode ? (
+                  {passive ? (
+                    /* Пасивний слухач — кнопка «Вийти в ефір» */
+                    <button className="fx-mic" onClick={() => { setPassive(false); toggleMic() }}>
+                      <MicGlyph />{t('voice.start')}
+                    </button>
+                  ) : settings.pttMode ? (
                     <button
                       className={`fx-mic ${pttHeld ? 'live' : ''}`}
                       onMouseDown={() => { if (!micOn && !pttBusyRef.current) { pttBusyRef.current = true; setPttHeld(true); toggleMic().finally(() => { pttBusyRef.current = false }) } }}
@@ -246,7 +269,11 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                       <MicGlyph off={!micOn} />{micOn ? t('voice.muteMic') : t('voice.unmuteMic')}
                     </button>
                   )}
-                  <button className="fx-leave" onClick={leave}>{t('voice.leave')}</button>
+                  <button className="fx-leave" onClick={() => {
+                    explicitLeaveRef.current = true
+                    setPassive(false)
+                    leave()
+                  }}>{passive ? '✕ Stop' : t('voice.leave')}</button>
                 </div>
 
                 <div className="fx-parts" aria-label={t('voice.participants')}>
