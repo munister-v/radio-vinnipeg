@@ -104,8 +104,23 @@ export async function logout() {
 
 // ── Chat ─────────────────────────────────────────────────────────────────────
 
-export async function fetchMessages() {
-  return request<ChatMessage[]>('/chat/messages')
+export type Room = {
+  slug: string
+  title: string
+  in_call: number
+  now_playing: { video_id: string; title: string; is_playing: boolean } | null
+}
+
+export async function fetchRooms() {
+  return request<Room[]>('/rooms')
+}
+
+export async function fetchMessages(room = 'lounge') {
+  return request<ChatMessage[]>(`/chat/messages?room=${room}`)
+}
+
+export async function clearRoomChat(room = 'lounge') {
+  return request<void>(`/chat/messages?room=${room}`, { method: 'DELETE' })
 }
 
 export type Typer = { nickname: string; color: string }
@@ -116,12 +131,12 @@ export type PollResult = {
   reaction_updates: ReactionUpdate[]
 }
 
-export async function pollMessages(afterId: number): Promise<PollResult> {
-  return request<PollResult>(`/chat/poll?after_id=${afterId}`)
+export async function pollMessages(afterId: number, room = 'lounge'): Promise<PollResult> {
+  return request<PollResult>(`/chat/poll?after_id=${afterId}&room=${room}`)
 }
 
-export async function sendTyping(): Promise<void> {
-  return request<void>('/chat/typing', { method: 'POST' })
+export async function sendTyping(room = 'lounge'): Promise<void> {
+  return request<void>(`/chat/typing?room=${room}`, { method: 'POST' })
 }
 
 export async function reactToMessage(msgId: number, emoji: string) {
@@ -138,8 +153,8 @@ export async function editMessage(msgId: number, text: string) {
   })
 }
 
-export async function sendMessage(text: string, replyToId?: number) {
-  return request<ChatMessage>('/chat/messages', {
+export async function sendMessage(text: string, replyToId?: number, room = 'lounge') {
+  return request<ChatMessage>(`/chat/messages?room=${room}`, {
     method: 'POST',
     body: JSON.stringify({ text, reply_to_id: replyToId ?? null }),
   })

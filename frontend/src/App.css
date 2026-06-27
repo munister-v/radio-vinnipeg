@@ -2485,14 +2485,13 @@
 /* Online pill + nick chip */
 .online-pill { font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 .nick-chip, .nick-edit input {
-  border-radius: 0;
-  border-color: var(--line-strong);
-  background: var(--surface-3);
+  border: none;
+  background: transparent;
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: .04em;
 }
-.nick-chip:hover { background: var(--surface); }
+.nick-chip:hover { background: var(--surface-3); border-radius: 6px; }
 
 /* Lang switch: hard edges, white active */
 .lang-switch { border-radius: 0; border-color: var(--line-strong); }
@@ -2587,6 +2586,70 @@
 .message.mine .message-bubble { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 .messages-empty { border-radius: 0; border-color: var(--line-strong); background: var(--surface-3); color: var(--ink); }
 .messages-empty strong { text-transform: uppercase; letter-spacing: -.02em; }
+
+/* ── Rooms bar ─────────────────────────────────────────────── */
+.rooms-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 16px;
+  height: 38px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line-strong);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.rooms-bar::-webkit-scrollbar { display: none; }
+.room-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  font: 500 11px/1 var(--font);
+  letter-spacing: .04em;
+  white-space: nowrap;
+  transition: background .12s ease, color .12s ease;
+}
+.room-tab:hover { background: var(--surface-3); color: var(--ink); }
+.room-tab.active { background: var(--ink); color: var(--surface); }
+.room-tab-hash { opacity: .5; }
+.room-tab.active .room-tab-hash { opacity: .7; }
+.room-tab-live {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--live);
+  color: #fff;
+  font: 700 9px/16px var(--font);
+  text-align: center;
+}
+.room-tab.active .room-tab-live { background: rgba(255,255,255,.25); }
+
+/* ── Chat clear button ─────────────────────────────────────── */
+.chat-clear-btn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--ink-2);
+  border-radius: 6px;
+  transition: background .12s ease, color .12s ease;
+}
+.chat-clear-btn:hover { background: rgba(220,50,50,.12); color: #dc3232; }
+
+@media (max-width: 720px) {
+  .rooms-bar { padding: 0 8px; }
+}
 
 .composer { background: var(--surface); border-top-color: var(--line-strong); }
 .composer button {

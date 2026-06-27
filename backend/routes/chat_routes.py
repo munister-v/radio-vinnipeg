@@ -368,6 +368,18 @@ def react_message(msg_id: int):
     return jsonify({'ok': True, 'data': {'message_id': msg_id, 'reactions': reactions}})
 
 
+@chat_bp.delete('/messages')
+@auth_required
+@rate_limit(10, 60, key_func=lambda: f'chat:clear:{_client_ip()}')
+def clear_messages():
+    """Очистити всі повідомлення в кімнаті (після завершення дзвінка або вручну)."""
+    with get_connection() as conn:
+        room_id = _room_id(conn)
+        conn.execute('DELETE FROM messages WHERE room_id = %s', (room_id,))
+        conn.execute('DELETE FROM message_reactions WHERE message_id NOT IN (SELECT id FROM messages)')
+    return jsonify({'ok': True})
+
+
 @chat_bp.get('/online')
 @auth_optional
 def online_users():

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   ApiError,
+  clearRoomChat,
   deleteMessage,
   editMessage,
   fetchMessages,
   fetchOnline,
+  fetchRooms,
   pollMessages,
   reactToMessage,
   renameMe,
@@ -13,6 +15,7 @@ import {
   sendTyping,
   type ChatMessage,
   type Reaction,
+  type Room,
   type Typer,
   type User,
 } from './api'
@@ -241,6 +244,9 @@ export default function RadioPage({ user, onUserChange }: Props) {
   const [scrollUnread, setScrollUnread] = useState(0)
   const [notifSound, setNotifSound] = useState(true)
   const [voiceStats, setVoiceStats] = useState<VoiceStats>(null)
+  const [currentRoom, setCurrentRoom] = useState('lounge')
+  const [rooms, setRooms] = useState<Room[]>([])
+  const currentRoomRef = useRef('lounge')
   const notifSoundRef = useRef(true)
   const prevOnlineLenRef = useRef(0)
   const [mentionMatches, setMentionMatches] = useState<{ nickname: string; color: string }[]>([])
@@ -255,12 +261,27 @@ export default function RadioPage({ user, onUserChange }: Props) {
   const gifBtnRef = useRef<HTMLButtonElement>(null)
   const pollRef = useRef<BgTimer | null>(null)
 
+  // Sync currentRoomRef whenever state changes (for use inside closures)
+  useEffect(() => { currentRoomRef.current = currentRoom }, [currentRoom])
+
+  // Rooms list — poll every 6s for in_call counts
+  useEffect(() => {
+    const load = () => fetchRooms().then(setRooms).catch(() => {})
+    load()
+    const t = window.setInterval(load, 6000)
+    return () => window.clearInterval(t)
+  }, [])
+
   useEffect(() => {
     let cancelled = false
+    // Clear previous room messages on switch
+    setMessages([])
+    lastIdRef.current = 0
+    initialLoadDoneRef.current = false
 
     async function init() {
       try {
-        const initial = await fetchMessages()
+        const initial = await fetchMessages(currentRoom)
         if (cancelled) return
         setMessages(initial)
         if (initial.length) {
@@ -277,7 +298,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
 
     const tick = async () => {
       try {
-        const result = await pollMessages(lastIdRef.current)
+        const result = await pollMessages(lastIdRef.current, currentRoomRef.current)
         const fresh = result.messages
         if (fresh.length) {
           lastIdRef.current = fresh[fresh.length - 1].id
@@ -319,7 +340,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('online', onVisible)
     }
-  }, [])
+  }, [currentRoom]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (chatOpen) {
@@ -373,6 +394,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
   useEffect(() => {
     if (prevOnlineLenRef.current > 0 && online.length === 0) {
       const timer = window.setTimeout(() => {
+        clearRoomChat(currentRoomRef.current).catch(() => {})
         setMessages([])
         lastIdRef.current = 0
         initialLoadDoneRef.current = false
@@ -411,7 +433,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
       const now = Date.now()
       if (now - lastTypingSentRef.current > 2500) {
         lastTypingSentRef.current = now
-        sendTyping().catch(() => {})
+        sendTyping(currentRoomRef.current).catch(() => {})
       }
     }
     // @mention autocomplete
@@ -466,7 +488,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
     const rid = replyTo?.id
     setReplyTo(null)
     try {
-      const msg = await sendMessage(text, rid)
+      const msg = await sendMessage(text, rid, currentRoomRef.current)
       setMessages((prev) => [...prev, msg])
       lastIdRef.current = msg.id
       setDraft('')
@@ -588,6 +610,25 @@ export default function RadioPage({ user, onUserChange }: Props) {
         </div>
       </header>
 
+      {/* ── Rooms bar ── */}
+      {rooms.length > 0 && (
+        <div className="rooms-bar" role="tablist" aria-label="Channels">
+          {rooms.map((r) => (
+            <button
+              key={r.slug}
+              role="tab"
+              aria-selected={currentRoom === r.slug}
+              className={`room-tab${currentRoom === r.slug ? ' active' : ''}`}
+              onClick={() => setCurrentRoom(r.slug)}
+            >
+              <span className="room-tab-hash">#</span>
+              <span className="room-tab-name">{r.slug}</span>
+              {r.in_call > 0 && <span className="room-tab-live">{r.in_call}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
       <main>
         <ForestStage user={user} onStats={setVoiceStats} />
 
@@ -657,8 +698,24 @@ export default function RadioPage({ user, onUserChange }: Props) {
         <button className="chat-scrim" type="button" onClick={closeChat} aria-label={t('chat.close')} />
         <section className="chat-drawer" id="radio-chat" role="dialog" aria-modal="true" aria-label={t('chat.headerTitle')}>
           <header className="chat-header">
-            <span className="chat-channel-name"># lounge</span>
+            <span className="chat-channel-name"># {currentRoom}</span>
             <div className="chat-header-actions">
+              <button
+                type="button"
+                className="chat-clear-btn"
+                onClick={async () => {
+                  if (!window.confirm('Очистити чат?')) return
+                  await clearRoomChat(currentRoomRef.current).catch(() => {})
+                  setMessages([])
+                  lastIdRef.current = 0
+                }}
+                title="Очистити чат"
+                aria-label="Очистити чат"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                </svg>
+              </button>
               <button
                 type="button"
                 className="chat-notif-btn"
