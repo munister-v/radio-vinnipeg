@@ -115,9 +115,12 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
 
   // Визначення активності голосу (Web Audio).
   const audioCtxRef = useRef<AudioContext | null>(null)
-  // Тихий зациклений вузол — тримає аудіо-сесію живою при блокуванні екрана,
-  // щоб вхідний голос не глух, коли телефон засинає.
+  // Тихий зациклений вузол — тримає аудіо-сесію живою при блокуванні екрана.
   const keepAliveRef = useRef<AudioBufferSourceNode | null>(null)
+  // Елемент <audio> з реальним WAV-блобом (NoSleep-трюк): iOS не вважає
+  // AudioContext-тишу «активним медіа» і зупиняє аудіо-сесію на локскрині,
+  // але розпізнає <audio>.play() як відтворення і тримає її живою.
+  const noSleepElRef = useRef<HTMLAudioElement | null>(null)
   const analysersRef = useRef<Map<number, AnalyserEntry>>(new Map())
   const speakingRef = useRef<Map<number, boolean>>(new Map())
   const speakTimerRef = useRef<number | null>(null)
@@ -183,6 +186,37 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const stopKeepAlive = useCallback(() => {
     try { keepAliveRef.current?.stop() } catch { /* ignore */ }
     keepAliveRef.current = null
+    if (noSleepElRef.current) {
+      noSleepElRef.current.pause()
+      noSleepElRef.current.src = ''
+      noSleepElRef.current.remove()
+      noSleepElRef.current = null
+    }
+  }, [])
+
+  // Створюємо NoSleep <audio> — мінімальний зациклений WAV (44 bytes, 1 sample).
+  // iOS Safari розпізнає <audio>.play() як активне відтворення і не вбиває
+  // аудіо-сесію при блокуванні екрана, на відміну від AudioContext-тиші.
+  const startNoSleep = useCallback(() => {
+    if (noSleepElRef.current) return
+    try {
+      // PCM WAV: 8-bit, 8000 Hz, 1 channel, 1 sample (value 128 = silence)
+      const wav = new Uint8Array([
+        0x52,0x49,0x46,0x46,0x25,0x00,0x00,0x00,0x57,0x41,0x56,0x45,
+        0x66,0x6d,0x74,0x20,0x10,0x00,0x00,0x00,0x01,0x00,0x01,0x00,
+        0x40,0x1f,0x00,0x00,0x40,0x1f,0x00,0x00,0x01,0x00,0x08,0x00,
+        0x64,0x61,0x74,0x61,0x01,0x00,0x00,0x00,0x80,
+      ])
+      const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }))
+      const el = new Audio(url)
+      el.loop = true
+      el.volume = 0.001
+      el.setAttribute('playsinline', '')
+      ;(el as HTMLAudioElement & { playsInline?: boolean }).playsInline = true
+      document.body.appendChild(el)
+      noSleepElRef.current = el
+      el.play().catch(() => {})
+    } catch { /* непідтримувано */ }
   }, [])
 
   const detachAnalyser = useCallback((key: number) => {
@@ -373,8 +407,12 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
         artist: 'Winnipeg Nights',
       })
       navigator.mediaSession.playbackState = 'playing'
-      navigator.mediaSession.setActionHandler('play', () => { navigator.mediaSession.playbackState = 'playing' })
-      navigator.mediaSession.setActionHandler('pause', () => { navigator.mediaSession.playbackState = 'playing' })
+      const resist = () => { navigator.mediaSession.playbackState = 'playing' }
+      navigator.mediaSession.setActionHandler('play', resist)
+      navigator.mediaSession.setActionHandler('pause', resist)
+      // 'stop' — iOS натискає цю кнопку на локскрині і вбиває аудіо-сесію.
+      // Резистуємо: ігноруємо зупинку, повертаємо 'playing'.
+      try { navigator.mediaSession.setActionHandler('stop', resist) } catch { /* older Safari */ }
     } catch { /* ignore */ }
   }, [])
 
@@ -385,6 +423,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       navigator.mediaSession.playbackState = 'none'
       navigator.mediaSession.setActionHandler('play', null)
       navigator.mediaSession.setActionHandler('pause', null)
+      try { navigator.mediaSession.setActionHandler('stop', null) } catch { /* ignore */ }
     } catch { /* ignore */ }
   }, [])
 
@@ -769,8 +808,9 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     setError(null)
     setConnecting(true)
     try {
-      ensureAudioCtx() // розблокувати аудіо в межах кліку користувача
+      ensureAudioCtx()
       startKeepAlive()
+      startNoSleep()
       await loadIceServers()
       const res = await apiJoinCall()
       callIdRef.current = res.call_id
@@ -793,7 +833,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     } finally {
       setConnecting(false)
     }
-  }, [ensureAudioCtx, startKeepAlive, loadIceServers, applyMembers, ensurePeer, startTimers, pollMembers, pollSignals, acquireWakeLock, setupMediaSession])
+  }, [ensureAudioCtx, startKeepAlive, startNoSleep, loadIceServers, applyMembers, ensurePeer, startTimers, pollMembers, pollSignals, acquireWakeLock, setupMediaSession])
 
   const leave = useCallback(async () => {
     const cid = callIdRef.current
@@ -927,8 +967,9 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     const recoverMobileSession = () => {
       if (document.visibilityState === 'hidden' || !joinedRef.current) return
       ensureAudioCtx()
-      startKeepAlive() // якщо ОС зупинила тихий вузол — піднімаємо знову
-      acquireWakeLock() // wake lock автоматично знімається браузером при згортанні
+      startKeepAlive()
+      startNoSleep()   // iOS: тримаємо аудіо-сесію через реальний <audio>
+      acquireWakeLock()
       setupMediaSession()
       for (const [, entry] of peersRef.current) {
         entry.audio.play().catch(() => {})
@@ -937,6 +978,17 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
           entry.pc.iceConnectionState === 'disconnected'
         ) {
           try { entry.pc.restartIce() } catch { /* next member poll recreates it */ }
+        }
+      }
+      // Якщо мікрофон був увімкнений, а iOS завершила трек під час локскрину —
+      // перезахоплюємо пристрій щоб голос знову пішов до peers.
+      if (micOnRef.current) {
+        const track = localStreamRef.current?.getAudioTracks()[0]
+        if (!track || track.readyState === 'ended') {
+          ensureMicStream().then((t) => { if (t) t.enabled = true }).catch(() => {})
+        } else {
+          track.enabled = true
+          audioCtxRef.current?.resume?.().catch(() => {})
         }
       }
       startTimers()
@@ -952,7 +1004,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       window.removeEventListener('online', recoverMobileSession)
       window.removeEventListener('pageshow', recoverMobileSession)
     }
-  }, [ensureAudioCtx, startKeepAlive, startTimers, pollMembers, pollSignals, acquireWakeLock, setupMediaSession])
+  }, [ensureAudioCtx, startKeepAlive, startNoSleep, startTimers, pollMembers, pollSignals, acquireWakeLock, setupMediaSession, ensureMicStream])
 
   useEffect(() => {
     return () => {
