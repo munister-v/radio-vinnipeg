@@ -179,7 +179,7 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
         <a className="fx-chan fx-chan-2" href="#schedule">
           <span className="fx-chan-n">2</span>
           <span className="fx-chan-title">{t(`slot.${activeSlot}.label`)}</span>
-          <span className="fx-chan-loc">94.7 FM</span>
+          <span className="fx-chan-loc">Winnipeg</span>
         </a>
 
         <span className="fx-lb-tail">{total} {peopleWord(total, lang)}</span>
@@ -208,7 +208,7 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                 </button>
                 <div className="fx-deck-text">
                   <span className="fx-deck-kicker">
-                    {connecting ? t('voice.connecting') : members.length ? t('voice.join') : 'Курорт · 94.7 FM'}
+                    {connecting ? t('voice.connecting') : members.length ? t('voice.join') : 'Winnipeg Nights'}
                   </span>
                   <h1 className="fx-deck-title">Winnipeg Nights</h1>
                   <p className="fx-deck-desc">{t('hero.tagline')}</p>

@@ -22,6 +22,7 @@ import {
 } from './api'
 import { type VoiceStats } from './VoicePanel'
 import ForestStage from './ForestStage'
+import MusicRadio from './MusicRadio'
 import EmojiPicker from './EmojiPicker'
 import GifPicker from './GifPicker'
 import { setBackgroundInterval, type BgTimer } from './bgTimer'
@@ -642,6 +643,8 @@ export default function RadioPage({ user, onUserChange }: Props) {
 
       <main>
         <ForestStage user={user} onStats={setVoiceStats} room={currentRoom} />
+
+        <MusicRadio />
 
         <section className="schedule-section" id="schedule">
           <div className="schedule-head">
