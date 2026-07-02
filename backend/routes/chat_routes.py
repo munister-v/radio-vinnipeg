@@ -1,4 +1,4 @@
-"""Чат для слухачів Radio Vinnipeg Nights — спільна кімната 'lounge'."""
+"""Чат для слухачів Winnipeg Nights — спільна кімната 'lounge'."""
 from __future__ import annotations
 
 import time

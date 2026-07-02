@@ -43,7 +43,7 @@ def _get_city(ip: str) -> str:
         return _geo_cache[ip]
     try:
         url = f'http://ip-api.com/json/{ip}?fields=status,city'
-        req = urllib.request.Request(url, headers={'User-Agent': 'RadioVinnipeg/1.0'})
+        req = urllib.request.Request(url, headers={'User-Agent': 'WinnipegNights/1.0'})
         with urllib.request.urlopen(req, timeout=2) as resp:
             data = json.loads(resp.read())
         city = data.get('city', '') if data.get('status') == 'success' else ''

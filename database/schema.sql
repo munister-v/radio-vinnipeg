@@ -1,4 +1,4 @@
--- Radio Vinnipeg Nights — схема SQLite
+-- Winnipeg Nights — схема SQLite
 PRAGMA foreign_keys = ON;
 
 -- Слухачі: радіо повністю відкрите, авторизація НЕ потрібна.

@@ -1,7 +1,7 @@
 {
-  "name": "Radio Vinnipeg",
-  "short_name": "Radio VNP",
-  "description": "Open live broadcast — join group voice conversation and chat. No sign-up.",
+  "name": "Winnipeg Nights",
+  "short_name": "Winnipeg",
+  "description": "Winnipeg Nights — open live broadcast with group voice conversation and chat.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#efe7d3",

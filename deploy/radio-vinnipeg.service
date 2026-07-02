@@ -1,4 +1,4 @@
-# Systemd — сервіс Radio Vinnipeg Nights (Gunicorn)
+# Systemd — сервіс Winnipeg Nights (Gunicorn)
 # Встановлення:
 #   sudo cp deploy/radio-vinnipeg.service /etc/systemd/system/
 #   sudo systemctl daemon-reload
@@ -6,7 +6,7 @@
 #   sudo systemctl start radio-vinnipeg
 
 [Unit]
-Description=Radio Vinnipeg Nights (Gunicorn)
+Description=Winnipeg Nights (Gunicorn)
 After=network.target
 Wants=network-online.target
 

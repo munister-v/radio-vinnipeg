@@ -1,4 +1,4 @@
-"""Головний Flask-застосунок Radio Vinnipeg Nights."""
+"""Головний Flask-застосунок Winnipeg Nights."""
 from __future__ import annotations
 
 from pathlib import Path

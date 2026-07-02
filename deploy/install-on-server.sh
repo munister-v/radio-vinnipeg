@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Розгортання Radio Vinnipeg Nights на сервері (Ubuntu/Debian).
+# Розгортання Winnipeg Nights на сервері (Ubuntu/Debian).
 # Запускати з кореня репозиторію на сервері: bash deploy/install-on-server.sh
 set -euo pipefail
 

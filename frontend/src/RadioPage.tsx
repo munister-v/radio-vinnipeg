@@ -25,7 +25,6 @@ import ForestStage from './ForestStage'
 import MusicRadio from './MusicRadio'
 import EmojiPicker from './EmojiPicker'
 import GifPicker from './GifPicker'
-import { setBackgroundInterval, type BgTimer } from './bgTimer'
 import { useI18n, type Lang } from './i18n'
 
 function playMessagePing() {
@@ -168,7 +167,10 @@ type Props = {
   onUserChange: (u: User) => void
 }
 
-const POLL_INTERVAL_MS = 3000
+const CHAT_POLL_VISIBLE_MS = 5000
+const CHAT_POLL_HIDDEN_MS = 30_000
+const ROOMS_POLL_VISIBLE_MS = 10_000
+const ROOMS_POLL_HIDDEN_MS = 45_000
 
 const slotTimes = [
   { start: 0, end: 8 },
@@ -193,8 +195,21 @@ function StationClock() {
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 30_000)
-    return () => window.clearInterval(timer)
+    let timer: number | null = null
+    const tick = () => {
+      setNow(new Date())
+      timer = window.setTimeout(tick, document.visibilityState === 'hidden' ? 120_000 : 30_000)
+    }
+    timer = window.setTimeout(tick, 30_000)
+    const onVisibilityChange = () => {
+      if (timer) window.clearTimeout(timer)
+      tick()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      if (timer) window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   }, [])
 
   const hour = now.getHours()
@@ -261,17 +276,40 @@ export default function RadioPage({ user, onUserChange }: Props) {
   const composerInputRef = useRef<HTMLInputElement>(null)
   const emojiBtnRef = useRef<HTMLButtonElement>(null)
   const gifBtnRef = useRef<HTMLButtonElement>(null)
-  const pollRef = useRef<BgTimer | null>(null)
+  const pollRef = useRef<number | null>(null)
+  const chatOpenRef = useRef(false)
+
+  useEffect(() => {
+    chatOpenRef.current = chatOpen
+  }, [chatOpen])
 
   // Sync currentRoomRef whenever state changes (for use inside closures)
   useEffect(() => { currentRoomRef.current = currentRoom }, [currentRoom])
 
   // Rooms list — poll every 6s for in_call counts
   useEffect(() => {
+    let timer: number | null = null
+    let cancelled = false
     const load = () => fetchRooms().then(setRooms).catch(() => {})
+    const schedule = (delay: number) => {
+      timer = window.setTimeout(async () => {
+        if (cancelled) return
+        await load()
+        schedule(document.visibilityState === 'hidden' ? ROOMS_POLL_HIDDEN_MS : ROOMS_POLL_VISIBLE_MS)
+      }, delay)
+    }
     load()
-    const t = window.setInterval(load, 6000)
-    return () => window.clearInterval(t)
+    schedule(ROOMS_POLL_VISIBLE_MS)
+    const onVisibilityChange = () => {
+      if (timer) window.clearTimeout(timer)
+      schedule(document.visibilityState === 'hidden' ? ROOMS_POLL_HIDDEN_MS : 500)
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      cancelled = true
+      if (timer) window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   }, [])
 
   useEffect(() => {
@@ -306,7 +344,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
           lastIdRef.current = fresh[fresh.length - 1].id
           setMessages((prev) => [...prev, ...fresh])
           if (initialLoadDoneRef.current) {
-            if (!chatOpen && notifSoundRef.current) playMessagePing()
+            if (!chatOpenRef.current && notifSoundRef.current) playMessagePing()
             // If scrolled away, count as unread
             setScrollUnread((n) => {
               const container = messagesRef.current
@@ -324,21 +362,37 @@ export default function RadioPage({ user, onUserChange }: Props) {
             return upd ? { ...m, reactions: upd.reactions } : m
           }))
         }
-        setOnline(await fetchOnline())
+        if (document.visibilityState === 'visible' || chatOpenRef.current) {
+          setOnline(await fetchOnline())
+        }
       } catch {
         // ignore transient errors — chat is best-effort
       }
     }
-    // Воркер-таймер: опитування чату не «залипає» при згорнутій/заблокованій вкладці.
-    pollRef.current = setBackgroundInterval(tick, POLL_INTERVAL_MS)
+    const pollChat = async () => {
+      await tick()
+      if (!cancelled) {
+        pollRef.current = window.setTimeout(
+          pollChat,
+          document.visibilityState === 'hidden' ? CHAT_POLL_HIDDEN_MS : CHAT_POLL_VISIBLE_MS,
+        )
+      }
+    }
+    pollRef.current = window.setTimeout(pollChat, CHAT_POLL_VISIBLE_MS)
     // Миттєвий догін при поверненні на вкладку.
-    const onVisible = () => { if (document.visibilityState === 'visible') tick() }
+    const onVisible = () => {
+      if (pollRef.current) window.clearTimeout(pollRef.current)
+      pollRef.current = window.setTimeout(
+        pollChat,
+        document.visibilityState === 'hidden' ? CHAT_POLL_HIDDEN_MS : 400,
+      )
+    }
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('online', onVisible)
 
     return () => {
       cancelled = true
-      pollRef.current?.stop()
+      if (pollRef.current) window.clearTimeout(pollRef.current)
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('online', onVisible)
     }

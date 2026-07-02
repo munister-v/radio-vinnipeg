@@ -1,4 +1,4 @@
-# Gunicorn — конфігурація для Radio Vinnipeg Nights
+# Gunicorn — конфігурація для Winnipeg Nights
 # Запуск: gunicorn -c deploy/gunicorn.conf.py backend.app:app
 
 import os

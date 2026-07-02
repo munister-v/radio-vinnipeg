@@ -15,7 +15,9 @@ import {
 import { setBackgroundInterval, type BgTimer } from './bgTimer'
 
 const SIGNAL_POLL_MS = 1000
+const SIGNAL_POLL_HIDDEN_MS = 5000
 const QUALITY_POLL_MS = 3000
+const QUALITY_POLL_HIDDEN_MS = 15_000
 
 // Якість з'єднання за даними WebRTC getStats(): 'good' | 'ok' | 'weak'.
 export type ConnectionQuality = 'good' | 'ok' | 'weak' | null
@@ -28,7 +30,7 @@ async function getMicStream(deviceId?: string): Promise<MediaStream> {
     noiseSuppression: true,
     autoGainControl: true,
     channelCount: { ideal: 1 },
-    sampleRate: { ideal: 48000 },
+    sampleRate: { ideal: 24000 },
     ...(deviceId ? { deviceId: { ideal: deviceId } } : {}),
   }
   try {
@@ -46,6 +48,7 @@ async function getMicStream(deviceId?: string): Promise<MediaStream> {
   }
 }
 const MEMBERS_POLL_MS = 2500
+const MEMBERS_POLL_HIDDEN_MS = 15_000
 const SPEAK_TICK_MS = 180
 const SPEAK_THRESHOLD = 0.02 // RMS поріг «хтось говорить»
 
@@ -251,6 +254,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   }, [ensureAudioCtx, detachAnalyser])
 
   const speakTick = useCallback(() => {
+    if (document.visibilityState === 'hidden') return
     let changed = false
     for (const [key, a] of analysersRef.current) {
       a.analyser.getByteTimeDomainData(a.data)
@@ -550,7 +554,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   // Хто кого ініціює: більший id → ініціатор.
   const ensurePeer = useCallback(
     (peerId: number) => {
-      if (!myUserId || peersRef.current.has(peerId)) return
+      if (!myUserId || peerId === myUserId || peersRef.current.has(peerId)) return
       createPeer(peerId, { initiator: myUserId > peerId })
     },
     [myUserId, createPeer],
@@ -644,10 +648,11 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     if (!cid || !joinedRef.current) return
     try {
       const list = await getCallMembers(cid)
-      serverMembersRef.current = list
+      const remoteList = list.filter((m) => m.user_id !== myUserId)
+      serverMembersRef.current = remoteList
       applyMembers()
-      const ids = new Set(list.map((m) => m.user_id))
-      for (const m of list) {
+      const ids = new Set(remoteList.map((m) => m.user_id))
+      for (const m of remoteList) {
         // If this peer exists but its connection is dead (failed/closed),
         // drop it so ensurePeer recreates a fresh one. This handles the
         // case where a user briefly disconnects and rejoins with the same
@@ -670,7 +675,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
         if (entry.audio.srcObject && entry.audio.paused) entry.audio.play().catch(() => {})
       }
     } catch { /* ignore */ }
-  }, [applyMembers, ensurePeer, cleanupPeer])
+  }, [myUserId, applyMembers, ensurePeer, cleanupPeer])
 
   const loadIceServers = useCallback(async () => {
     try {
@@ -763,16 +768,24 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const startTimers = useCallback(() => {
     signalTimerRef.current?.stop()
     membersTimerRef.current?.stop()
-    if (speakTimerRef.current) window.clearInterval(speakTimerRef.current)
-    // Сигналінг + ростер — на воркер-таймері (живе у фоні/при блокуванні).
-    signalTimerRef.current = setBackgroundInterval(pollSignals, SIGNAL_POLL_MS)
-    membersTimerRef.current = setBackgroundInterval(pollMembers, MEMBERS_POLL_MS)
-    // Детектор гучності потрібен лише для видимого UI — звичайний таймер.
-    speakTimerRef.current = window.setInterval(speakTick, SPEAK_TICK_MS)
-    // Watchdog якості (getStats + reconnect) — на воркер-таймері, живе при блокуванні.
     qualityTimerRef.current?.stop()
-    qualityTimerRef.current = setBackgroundInterval(pollQuality, QUALITY_POLL_MS)
-  }, [pollSignals, pollMembers, speakTick, pollQuality])
+    if (speakTimerRef.current) window.clearInterval(speakTimerRef.current)
+    const hidden = document.visibilityState === 'hidden'
+    // Сигналінг + ростер — на воркер-таймері (живе у фоні/при блокуванні).
+    signalTimerRef.current = setBackgroundInterval(pollSignals, hidden ? SIGNAL_POLL_HIDDEN_MS : SIGNAL_POLL_MS)
+    membersTimerRef.current = setBackgroundInterval(pollMembers, hidden ? MEMBERS_POLL_HIDDEN_MS : MEMBERS_POLL_MS)
+    // Детектор гучності потрібен лише для видимого UI — звичайний таймер.
+    if (hidden) {
+      speakTimerRef.current = null
+      speakingRef.current.clear()
+      setSpeaking(false)
+      applyMembers()
+    } else {
+      speakTimerRef.current = window.setInterval(speakTick, SPEAK_TICK_MS)
+    }
+    // Watchdog якості (getStats + reconnect) — на воркер-таймері, живе при блокуванні.
+    qualityTimerRef.current = setBackgroundInterval(pollQuality, hidden ? QUALITY_POLL_HIDDEN_MS : QUALITY_POLL_MS)
+  }, [pollSignals, pollMembers, speakTick, pollQuality, applyMembers])
 
   const stopTimers = useCallback(() => {
     signalTimerRef.current?.stop(); signalTimerRef.current = null
@@ -790,7 +803,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       if (data) {
         callIdRef.current = data.call_id
         if (!joinedRef.current) {
-          serverMembersRef.current = data.members
+          serverMembersRef.current = data.members.filter((m) => m.user_id !== myUserId)
           applyMembers()
         }
       } else if (!joinedRef.current) {
@@ -799,12 +812,12 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
         applyMembers()
       }
     } catch { /* ignore */ }
-  }, [applyMembers])
+  }, [myUserId, applyMembers])
 
   useEffect(() => {
     refreshActive()
     const t = window.setInterval(() => {
-      if (!joinedRef.current) refreshActive()
+      if (!joinedRef.current && document.visibilityState === 'visible') refreshActive()
     }, MEMBERS_POLL_MS)
     return () => window.clearInterval(t)
   }, [refreshActive])
@@ -824,21 +837,21 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       afterIdRef.current = res.latest_signal_id ?? 0
       joinedRef.current = true
       setJoined(true)
-      serverMembersRef.current = res.members
+      const remoteMembers = res.members.filter((m) => m.user_id !== myUserId)
+      serverMembersRef.current = remoteMembers
       applyMembers()
-      for (const m of res.members) ensurePeer(m.user_id)
+      for (const m of remoteMembers) ensurePeer(m.user_id)
       startTimers()
       // Не чекаємо на інтервали — одразу підхоплюємо сигнали/учасників.
       pollMembers()
       pollSignals()
-      acquireWakeLock()
       setupMediaSession()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не вдалося приєднатись до розмови.')
     } finally {
       setConnecting(false)
     }
-  }, [ensureAudioCtx, startKeepAlive, startNoSleep, loadIceServers, applyMembers, ensurePeer, startTimers, pollMembers, pollSignals, acquireWakeLock, setupMediaSession])
+  }, [myUserId, ensureAudioCtx, startKeepAlive, startNoSleep, loadIceServers, applyMembers, ensurePeer, startTimers, pollMembers, pollSignals, setupMediaSession])
 
   const leave = useCallback(async () => {
     const cid = callIdRef.current
@@ -970,11 +983,18 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   // Після повернення відновлюємо звук, polling та ICE без повторного входу.
   useEffect(() => {
     const recoverMobileSession = () => {
-      if (document.visibilityState === 'hidden' || !joinedRef.current) return
+      if (!joinedRef.current) return
+      if (document.visibilityState === 'hidden') {
+        startTimers()
+        releaseWakeLock()
+        speakingRef.current.clear()
+        setSpeaking(false)
+        applyMembers()
+        return
+      }
       ensureAudioCtx()
       startKeepAlive()
       startNoSleep()   // iOS: тримаємо аудіо-сесію через реальний <audio>
-      acquireWakeLock()
       setupMediaSession()
       for (const [, entry] of peersRef.current) {
         entry.audio.play().catch(() => {})
@@ -1009,7 +1029,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       window.removeEventListener('online', recoverMobileSession)
       window.removeEventListener('pageshow', recoverMobileSession)
     }
-  }, [ensureAudioCtx, startKeepAlive, startNoSleep, startTimers, pollMembers, pollSignals, acquireWakeLock, setupMediaSession, ensureMicStream])
+  }, [ensureAudioCtx, startKeepAlive, startNoSleep, startTimers, pollMembers, pollSignals, releaseWakeLock, applyMembers, setupMediaSession, ensureMicStream])
 
   useEffect(() => {
     return () => {

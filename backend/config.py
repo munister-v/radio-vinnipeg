@@ -1,4 +1,4 @@
-"""Конфігурація застосунку Radio Vinnipeg Nights (з .env)."""
+"""Конфігурація застосунку Winnipeg Nights (з .env)."""
 from pathlib import Path
 import os
 
@@ -23,7 +23,7 @@ BASE_PATH = (os.getenv('BASE_PATH') or '').rstrip('/')
 MESSENGER_ENCRYPTION_KEYS = os.getenv('MESSENGER_ENCRYPTION_KEYS', '').strip()
 
 # Назва ефіру/чату
-STATION_NAME = os.getenv('STATION_NAME', 'Vinnipeg Nights')
+STATION_NAME = os.getenv('STATION_NAME', 'Winnipeg Nights')
 
 # Rate limiting
 AUTH_RATE_LIMIT_ENABLED = (os.getenv('AUTH_RATE_LIMIT_ENABLED', '1') == '1')
