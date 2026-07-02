@@ -174,6 +174,8 @@ function normalizeRoomSlug(value: string | null | undefined): string {
 function roomFromLocation(): string {
   if (typeof window === 'undefined') return DEFAULT_ROOM
   const url = new URL(window.location.href)
+  const pathRoom = url.pathname.match(/^\/(?:room|r)\/([^/]+)/)?.[1]
+  if (pathRoom) return normalizeRoomSlug(pathRoom)
   const queryRoom = url.searchParams.get('room')
   if (queryRoom) return normalizeRoomSlug(queryRoom)
   const hash = window.location.hash.replace(/^#/, '')
@@ -183,7 +185,8 @@ function roomFromLocation(): string {
 
 function roomUrl(slug: string): string {
   const url = new URL(window.location.href)
-  url.searchParams.set('room', normalizeRoomSlug(slug))
+  url.pathname = `/room/${normalizeRoomSlug(slug)}`
+  url.search = ''
   url.hash = 'air'
   return url.toString()
 }
@@ -280,6 +283,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
   const [currentRoom, setCurrentRoom] = useState(() => roomFromLocation())
   const [rooms, setRooms] = useState<Room[]>([])
   const [copiedRoom, setCopiedRoom] = useState<string | null>(null)
+  const currentRoomData = rooms.find((room) => room.slug === currentRoom) ?? null
   const currentRoomRef = useRef('lounge')
   const notifSoundRef = useRef(true)
   const prevOnlineLenRef = useRef(0)
@@ -314,10 +318,15 @@ export default function RadioPage({ user, onUserChange }: Props) {
   }, [])
 
   useEffect(() => {
-    const url = new URL(window.location.href)
-    if (url.searchParams.get('room') === currentRoom && url.hash === '#air') return
-    window.history.replaceState(null, '', roomUrl(currentRoom))
+    const nextUrl = roomUrl(currentRoom)
+    if (window.location.href === nextUrl) return
+    window.history.replaceState(null, '', nextUrl)
   }, [currentRoom])
+
+  useEffect(() => {
+    const label = currentRoomData ? roomLabel(currentRoomData) : currentRoom
+    document.title = `${label} · Winnipeg Nights`
+  }, [currentRoom, currentRoomData])
 
   // Rooms list — poll every 6s for in_call counts
   useEffect(() => {
@@ -646,6 +655,13 @@ export default function RadioPage({ user, onUserChange }: Props) {
     }
   }
 
+  const activeRoomLabel = currentRoomData ? roomLabel(currentRoomData) : currentRoom
+  const activeRoomStatus = currentRoomData?.now_playing?.title
+    ? currentRoomData.now_playing.title
+    : currentRoomData && currentRoomData.in_call > 0
+      ? `${currentRoomData.in_call} live voice${currentRoomData.in_call === 1 ? '' : 's'}`
+      : 'Ready for listeners'
+
   const unreadCount = chatOpen ? 0 : messages.filter((message) => message.id > lastReadId).length
 
   return (
@@ -718,47 +734,63 @@ export default function RadioPage({ user, onUserChange }: Props) {
 
       {/* ── Rooms bar ── */}
       {rooms.length > 0 && (
-        <div className="rooms-bar" role="tablist" aria-label="Channels">
-          {rooms.map((r) => (
-            <div className={`room-link-group${currentRoom === r.slug ? ' active' : ''}`} key={r.slug}>
-              <button
-                role="tab"
-                aria-selected={currentRoom === r.slug}
-                className={`room-tab${currentRoom === r.slug ? ' active' : ''}`}
-                onClick={() => setCurrentRoom(r.slug)}
-                title={r.title}
-              >
-                <span className="room-tab-hash">#</span>
-                <span className="room-tab-copy">
-                  <span className="room-tab-name">{roomLabel(r)}</span>
-                  <span className="room-tab-meta">
-                    {r.now_playing?.title ? r.now_playing.title : r.in_call > 0 ? 'live voice' : r.slug}
+        <>
+          <div className="rooms-bar" role="tablist" aria-label="Channels">
+            {rooms.map((r) => (
+              <div className={`room-link-group${currentRoom === r.slug ? ' active' : ''}`} key={r.slug}>
+                <button
+                  role="tab"
+                  aria-selected={currentRoom === r.slug}
+                  className={`room-tab${currentRoom === r.slug ? ' active' : ''}`}
+                  onClick={() => setCurrentRoom(r.slug)}
+                  title={r.title}
+                >
+                  <span className="room-tab-hash">#</span>
+                  <span className="room-tab-copy">
+                    <span className="room-tab-name">{roomLabel(r)}</span>
+                    <span className="room-tab-meta">
+                      {r.now_playing?.title ? r.now_playing.title : r.in_call > 0 ? 'live voice' : r.slug}
+                    </span>
                   </span>
-                </span>
-                {r.in_call > 0 && <span className="room-tab-live">{r.in_call}</span>}
-              </button>
-              <button
-                type="button"
-                className={`room-link-btn${copiedRoom === r.slug ? ' copied' : ''}`}
-                onClick={() => copyRoomLink(r)}
-                title={copiedRoom === r.slug ? 'Copied' : `Copy ${roomLabel(r)} link`}
-                aria-label={copiedRoom === r.slug ? 'Room link copied' : `Copy ${roomLabel(r)} room link`}
-              >
-                {copiedRoom === r.slug ? '✓' : '↗'}
-              </button>
+                  {r.in_call > 0 && <span className="room-tab-live">{r.in_call}</span>}
+                </button>
+                <button
+                  type="button"
+                  className={`room-link-btn${copiedRoom === r.slug ? ' copied' : ''}`}
+                  onClick={() => copyRoomLink(r)}
+                  title={copiedRoom === r.slug ? 'Copied' : `Copy ${roomLabel(r)} link`}
+                  aria-label={copiedRoom === r.slug ? 'Room link copied' : `Copy ${roomLabel(r)} room link`}
+                >
+                  {copiedRoom === r.slug ? '✓' : '↗'}
+                </button>
+              </div>
+            ))}
+            <button
+              className="room-tab room-tab-add"
+              title="Створити канал"
+              onClick={async () => {
+                const title = window.prompt('Назва каналу:')
+                if (!title?.trim()) return
+                const room = await createRoom(title.trim()).catch(() => null)
+                if (room) { setRooms((prev) => [...prev, room]); setCurrentRoom(room.slug) }
+              }}
+            >+</button>
+          </div>
+          <section className="room-summary" aria-label={`${activeRoomLabel} room`}>
+            <div className="room-summary-main">
+              <span className="room-summary-kicker">Current room</span>
+              <h2>#{activeRoomLabel}</h2>
+              <p>{activeRoomStatus}</p>
             </div>
-          ))}
-          <button
-            className="room-tab room-tab-add"
-            title="Створити канал"
-            onClick={async () => {
-              const title = window.prompt('Назва каналу:')
-              if (!title?.trim()) return
-              const room = await createRoom(title.trim()).catch(() => null)
-              if (room) { setRooms((prev) => [...prev, room]); setCurrentRoom(room.slug) }
-            }}
-          >+</button>
-        </div>
+            <div className="room-summary-actions">
+              <code>{typeof window !== 'undefined' ? new URL(roomUrl(currentRoom)).pathname : `/room/${currentRoom}`}</code>
+              <button type="button" onClick={() => currentRoomData && copyRoomLink(currentRoomData)}>
+                {copiedRoom === currentRoom ? 'Copied' : 'Copy link'}
+              </button>
+              <button type="button" onClick={openChat}>Open chat</button>
+            </div>
+          </section>
+        </>
       )}
 
       <main>

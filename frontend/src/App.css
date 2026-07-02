@@ -2707,6 +2707,79 @@
   background: var(--signal);
   color: #fff;
 }
+.room-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px clamp(14px, 3vw, 32px);
+  background:
+    linear-gradient(90deg, rgba(201, 169, 110, .10), transparent 42%),
+    var(--surface);
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--ink);
+}
+.room-summary-main {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.room-summary-kicker {
+  color: var(--signal);
+  font: 800 9px/1 var(--font);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.room-summary h2 {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 400 clamp(28px, 3vw, 42px)/.9 var(--display);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.room-summary p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink-2);
+  font: 600 12px/1.25 var(--font);
+  white-space: nowrap;
+}
+.room-summary-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.room-summary-actions code {
+  max-width: min(32vw, 280px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font: 700 11px/1 var(--mono);
+  white-space: nowrap;
+}
+.room-summary-actions button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font: 800 10px/1 var(--font);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  transition: background .14s ease, color .14s ease, border-color .14s ease;
+}
+.room-summary-actions button:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
 
 /* ── Chat clear button ─────────────────────────────────────── */
 .chat-clear-btn {
@@ -2728,6 +2801,21 @@
   .room-tab { min-width: 132px; height: 44px; }
   .room-link-btn { height: 44px; }
   .room-tab-meta { max-width: 110px; }
+  .room-summary {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px 12px;
+  }
+  .room-summary-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .room-summary-actions code {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+  .room-summary-actions button { min-height: 44px; }
 }
 
 .composer { background: var(--surface); border-top-color: var(--line-strong); }
