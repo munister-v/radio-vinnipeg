@@ -164,6 +164,29 @@ const CHAT_POLL_VISIBLE_MS = 5000
 const CHAT_POLL_HIDDEN_MS = 30_000
 const ROOMS_POLL_VISIBLE_MS = 10_000
 const ROOMS_POLL_HIDDEN_MS = 45_000
+const DEFAULT_ROOM = 'lounge'
+
+function normalizeRoomSlug(value: string | null | undefined): string {
+  const slug = (value || '').toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
+  return slug || DEFAULT_ROOM
+}
+
+function roomFromLocation(): string {
+  if (typeof window === 'undefined') return DEFAULT_ROOM
+  const url = new URL(window.location.href)
+  const queryRoom = url.searchParams.get('room')
+  if (queryRoom) return normalizeRoomSlug(queryRoom)
+  const hash = window.location.hash.replace(/^#/, '')
+  const hashRoom = hash.match(/^\/?room[=/]([^&/]+)/)?.[1]
+  return normalizeRoomSlug(hashRoom)
+}
+
+function roomUrl(slug: string): string {
+  const url = new URL(window.location.href)
+  url.searchParams.set('room', normalizeRoomSlug(slug))
+  url.hash = 'air'
+  return url.toString()
+}
 
 const slotTimes = [
   { start: 0, end: 8 },
@@ -254,8 +277,9 @@ export default function RadioPage({ user, onUserChange }: Props) {
   const [scrollUnread, setScrollUnread] = useState(0)
   const [notifSound, setNotifSound] = useState(true)
   const [voiceStats, setVoiceStats] = useState<VoiceStats>(null)
-  const [currentRoom, setCurrentRoom] = useState('lounge')
+  const [currentRoom, setCurrentRoom] = useState(() => roomFromLocation())
   const [rooms, setRooms] = useState<Room[]>([])
+  const [copiedRoom, setCopiedRoom] = useState<string | null>(null)
   const currentRoomRef = useRef('lounge')
   const notifSoundRef = useRef(true)
   const prevOnlineLenRef = useRef(0)
@@ -278,6 +302,22 @@ export default function RadioPage({ user, onUserChange }: Props) {
 
   // Sync currentRoomRef whenever state changes (for use inside closures)
   useEffect(() => { currentRoomRef.current = currentRoom }, [currentRoom])
+
+  useEffect(() => {
+    const onLocationRoom = () => setCurrentRoom(roomFromLocation())
+    window.addEventListener('popstate', onLocationRoom)
+    window.addEventListener('hashchange', onLocationRoom)
+    return () => {
+      window.removeEventListener('popstate', onLocationRoom)
+      window.removeEventListener('hashchange', onLocationRoom)
+    }
+  }, [])
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('room') === currentRoom && url.hash === '#air') return
+    window.history.replaceState(null, '', roomUrl(currentRoom))
+  }, [currentRoom])
 
   // Rooms list — poll every 6s for in_call counts
   useEffect(() => {
@@ -304,6 +344,12 @@ export default function RadioPage({ user, onUserChange }: Props) {
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [])
+
+  useEffect(() => {
+    if (!rooms.length) return
+    if (rooms.some((room) => room.slug === currentRoom)) return
+    setCurrentRoom(DEFAULT_ROOM)
+  }, [rooms, currentRoom])
 
   useEffect(() => {
     let cancelled = false
@@ -589,6 +635,17 @@ export default function RadioPage({ user, onUserChange }: Props) {
     setChatOpen(false)
   }
 
+  const copyRoomLink = async (room: Room) => {
+    const link = roomUrl(room.slug)
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopiedRoom(room.slug)
+      window.setTimeout(() => setCopiedRoom((v) => v === room.slug ? null : v), 1400)
+    } catch {
+      window.prompt('Room link:', link)
+    }
+  }
+
   const unreadCount = chatOpen ? 0 : messages.filter((message) => message.id > lastReadId).length
 
   return (
@@ -663,23 +720,33 @@ export default function RadioPage({ user, onUserChange }: Props) {
       {rooms.length > 0 && (
         <div className="rooms-bar" role="tablist" aria-label="Channels">
           {rooms.map((r) => (
-            <button
-              key={r.slug}
-              role="tab"
-              aria-selected={currentRoom === r.slug}
-              className={`room-tab${currentRoom === r.slug ? ' active' : ''}`}
-              onClick={() => setCurrentRoom(r.slug)}
-              title={r.title}
-            >
-              <span className="room-tab-hash">#</span>
-              <span className="room-tab-copy">
-                <span className="room-tab-name">{roomLabel(r)}</span>
-                <span className="room-tab-meta">
-                  {r.now_playing?.title ? r.now_playing.title : r.in_call > 0 ? 'live voice' : r.slug}
+            <div className={`room-link-group${currentRoom === r.slug ? ' active' : ''}`} key={r.slug}>
+              <button
+                role="tab"
+                aria-selected={currentRoom === r.slug}
+                className={`room-tab${currentRoom === r.slug ? ' active' : ''}`}
+                onClick={() => setCurrentRoom(r.slug)}
+                title={r.title}
+              >
+                <span className="room-tab-hash">#</span>
+                <span className="room-tab-copy">
+                  <span className="room-tab-name">{roomLabel(r)}</span>
+                  <span className="room-tab-meta">
+                    {r.now_playing?.title ? r.now_playing.title : r.in_call > 0 ? 'live voice' : r.slug}
+                  </span>
                 </span>
-              </span>
-              {r.in_call > 0 && <span className="room-tab-live">{r.in_call}</span>}
-            </button>
+                {r.in_call > 0 && <span className="room-tab-live">{r.in_call}</span>}
+              </button>
+              <button
+                type="button"
+                className={`room-link-btn${copiedRoom === r.slug ? ' copied' : ''}`}
+                onClick={() => copyRoomLink(r)}
+                title={copiedRoom === r.slug ? 'Copied' : `Copy ${roomLabel(r)} link`}
+                aria-label={copiedRoom === r.slug ? 'Room link copied' : `Copy ${roomLabel(r)} room link`}
+              >
+                {copiedRoom === r.slug ? '✓' : '↗'}
+              </button>
+            </div>
           ))}
           <button
             className="room-tab room-tab-add"

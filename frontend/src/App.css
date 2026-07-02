@@ -2600,6 +2600,13 @@
   scrollbar-width: none;
 }
 .rooms-bar::-webkit-scrollbar { display: none; }
+.room-link-group {
+  display: inline-flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+}
+.room-link-group.active { border-color: var(--ink); }
 .room-tab {
   display: inline-flex;
   align-items: center;
@@ -2607,7 +2614,7 @@
   min-width: 148px;
   height: 42px;
   padding: 0 12px;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: 0;
   background: transparent;
   color: var(--ink-2);
@@ -2622,7 +2629,6 @@
 .room-tab.active {
   background: var(--ink);
   color: var(--surface);
-  border-color: var(--ink);
 }
 .room-tab-hash {
   display: grid;
@@ -2675,6 +2681,32 @@
   opacity: .8;
 }
 .room-tab-add:hover { opacity: 1; }
+.room-link-btn {
+  width: 38px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  font: 800 13px/1 var(--font);
+  transition: background .12s ease, color .12s ease;
+}
+.room-link-btn:hover {
+  background: rgba(242, 240, 234, .08);
+  color: var(--ink);
+}
+.room-link-group.active .room-link-btn {
+  background: var(--ink);
+  border-left-color: rgba(5, 5, 6, .18);
+  color: var(--surface);
+}
+.room-link-btn.copied {
+  background: var(--signal);
+  color: #fff;
+}
 
 /* ── Chat clear button ─────────────────────────────────────── */
 .chat-clear-btn {
@@ -2694,6 +2726,7 @@
 @media (max-width: 720px) {
   .rooms-bar { padding: 6px 8px; }
   .room-tab { min-width: 132px; height: 44px; }
+  .room-link-btn { height: 44px; }
   .room-tab-meta { max-width: 110px; }
 }
 
