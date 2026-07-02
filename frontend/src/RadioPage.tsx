@@ -127,7 +127,10 @@ function BrandEmblem({ className }: { className?: string }) {
 }
 
 function roomLabel(room: Room): string {
-  return room.title.replace(/^Winnipeg Nights\s*·\s*/i, '').trim() || room.slug
+  return room.title
+    .replace(/^Winn?ipeg Nights\s*·\s*/i, '')
+    .replace(/^Vinnipeg Nights\s*·\s*/i, '')
+    .trim() || room.slug
 }
 
 

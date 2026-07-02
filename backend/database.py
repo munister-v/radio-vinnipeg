@@ -70,6 +70,7 @@ def run_migrations() -> None:
         if 'city' not in ucols:
             conn.execute("ALTER TABLE users ADD COLUMN city TEXT DEFAULT ''")
 
+        conn.execute("UPDATE rooms SET title = REPLACE(title, 'Vinnipeg', 'Winnipeg')")
         _seed_rooms(conn)
 
 
