@@ -39,7 +39,7 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 0 20px 0 0;
   color: inherit;
   text-decoration: none;
@@ -47,8 +47,8 @@
 }
 
 .brand-mark {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -57,7 +57,7 @@
   color: #fff;
   transition: opacity .16s ease;
 }
-.brand-mark svg { width: 16px; height: 16px; }
+.brand-mark svg { width: 23px; height: 23px; }
 .brand:hover .brand-mark { opacity: .75; }
 
 /* logo pulse animations kept for brand mark */
@@ -2465,7 +2465,7 @@
 .brand-name {
   font-size: 14px;
   font-weight: 800;
-  letter-spacing: .01em;
+  letter-spacing: .045em;
   text-transform: uppercase;
   color: var(--ink);
 }
@@ -2591,10 +2591,10 @@
 .rooms-bar {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 16px;
-  height: 38px;
-  background: var(--surface-2);
+  gap: 1px;
+  padding: 6px clamp(10px, 3vw, 32px);
+  min-height: 54px;
+  background: linear-gradient(180deg, #0d0e10 0%, var(--surface-2) 100%);
   border-bottom: 1px solid var(--line-strong);
   overflow-x: auto;
   scrollbar-width: none;
@@ -2603,39 +2603,76 @@
 .room-tab {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 5px;
+  gap: 9px;
+  min-width: 148px;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 0;
   background: transparent;
   color: var(--ink-2);
   cursor: pointer;
-  font: 500 11px/1 var(--font);
-  letter-spacing: .04em;
+  font: 700 10px/1 var(--font);
+  letter-spacing: .08em;
   white-space: nowrap;
-  transition: background .12s ease, color .12s ease;
+  text-transform: uppercase;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
 }
-.room-tab:hover { background: var(--surface-3); color: var(--ink); }
-.room-tab.active { background: var(--ink); color: var(--surface); }
-.room-tab-hash { opacity: .5; }
-.room-tab.active .room-tab-hash { opacity: .7; }
+.room-tab:hover { background: rgba(242, 240, 234, .06); color: var(--ink); }
+.room-tab.active {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+.room-tab-hash {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  background: rgba(242, 240, 234, .08);
+  color: var(--signal);
+  flex: 0 0 auto;
+}
+.room-tab.active .room-tab-hash { background: var(--surface); color: var(--ink); }
+.room-tab-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  text-align: left;
+}
+.room-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.room-tab-meta {
+  max-width: 136px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink-3);
+  font: 600 9px/1 var(--font);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.room-tab.active .room-tab-meta { color: rgba(5, 5, 6, .62); }
 .room-tab-live {
-  min-width: 16px;
-  height: 16px;
+  min-width: 18px;
+  height: 18px;
   padding: 0 4px;
-  border-radius: 8px;
-  background: var(--live);
+  border-radius: 0;
+  background: var(--signal);
   color: #fff;
-  font: 700 9px/16px var(--font);
+  font: 800 9px/18px var(--font);
   text-align: center;
 }
-.room-tab.active .room-tab-live { background: rgba(255,255,255,.25); }
+.room-tab.active .room-tab-live { background: var(--signal); color: #fff; }
 .room-tab-add {
-  font-size: 16px;
-  font-weight: 400;
-  opacity: .55;
-  padding: 0 8px;
+  min-width: 48px;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  border-color: var(--line);
+  opacity: .8;
 }
 .room-tab-add:hover { opacity: 1; }
 
@@ -2655,7 +2692,9 @@
 .chat-clear-btn:hover { background: rgba(220,50,50,.12); color: #dc3232; }
 
 @media (max-width: 720px) {
-  .rooms-bar { padding: 0 8px; }
+  .rooms-bar { padding: 6px 8px; }
+  .room-tab { min-width: 132px; height: 44px; }
+  .room-tab-meta { max-width: 110px; }
 }
 
 .composer { background: var(--surface); border-top-color: var(--line-strong); }
@@ -2693,9 +2732,9 @@
 /* Topbar brand: condensed caps for the station name */
 .brand-name {
   font-family: var(--display);
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 400;
-  letter-spacing: .06em;
+  letter-spacing: .075em;
   text-transform: uppercase;
 }
 

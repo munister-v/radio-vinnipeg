@@ -114,6 +114,113 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 256px 256px;
 }
+.fx-brand-lockup {
+  position: absolute;
+  z-index: 5;
+  top: clamp(18px, 3vw, 34px);
+  left: clamp(18px, 3vw, 34px);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ink);
+}
+.fx-brand-seal {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(242, 240, 234, .72);
+  background: rgba(5, 6, 8, .34);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font: 400 24px/.8 var(--display);
+  letter-spacing: .06em;
+}
+.fx-brand-copy {
+  display: grid;
+  gap: 5px;
+  text-transform: uppercase;
+}
+.fx-brand-copy b {
+  font: 800 13px/1 var(--font);
+  letter-spacing: .12em;
+}
+.fx-brand-copy small {
+  color: rgba(242, 240, 234, .64);
+  font: 700 9px/1 var(--font);
+  letter-spacing: .16em;
+}
+.fx-preview-card {
+  position: absolute;
+  z-index: 5;
+  top: clamp(96px, 13vh, 140px);
+  right: clamp(18px, 3vw, 42px);
+  width: min(360px, calc(100% - 36px));
+  padding: 18px;
+  border: 1px solid rgba(242, 240, 234, .20);
+  background:
+    linear-gradient(180deg, rgba(7, 8, 12, .34), rgba(7, 8, 12, .70)),
+    rgba(6, 7, 9, .38);
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  color: var(--ink);
+}
+.fx-preview-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--signal);
+  font: 800 10px/1 var(--font);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.fx-preview-kicker i {
+  width: 7px;
+  height: 7px;
+  background: var(--ink-3);
+}
+.fx-preview-kicker i.on { background: var(--signal); }
+.fx-preview-card h2 {
+  margin: 14px 0 8px;
+  font: 400 clamp(48px, 5.6vw, 82px)/.82 var(--display);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.fx-preview-card p {
+  margin: 0;
+  max-width: 31ch;
+  color: rgba(242, 240, 234, .68);
+  font: 500 13px/1.45 var(--font);
+}
+.fx-preview-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin: 18px 0 0;
+  background: rgba(242, 240, 234, .14);
+}
+.fx-preview-card dl div {
+  min-width: 0;
+  padding: 10px;
+  background: rgba(7, 8, 12, .62);
+}
+.fx-preview-card dt {
+  margin: 0 0 6px;
+  color: rgba(242, 240, 234, .46);
+  font: 800 8px/1 var(--font);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.fx-preview-card dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+  font: 800 11px/1 var(--font);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 .fx-moon {
   position: absolute; z-index: 1;
   top: 16%; left: 56%; transform: translateX(-50%);
@@ -350,6 +457,7 @@
 @media (max-width: 980px) {
   .fx-grid { grid-template-columns: 1fr; }
   .fx-feature { border-right: 0; border-bottom: 1px solid var(--line); min-height: clamp(420px, 70vh, 620px); }
+  .fx-preview-card { top: 86px; right: 18px; width: min(330px, calc(100% - 36px)); }
   .fx-rail-head { border-top: 0; }
   .fx-tile { min-height: 140px; }
 }
@@ -362,6 +470,20 @@
   .fx-lb-tail { width: 100%; height: 40px; border-left: 0; }
   .fx-pines { height: 54%; }
   .fx-moon { top: 12%; }
+  .fx-brand-lockup { top: 16px; left: 12px; }
+  .fx-brand-seal { width: 44px; height: 44px; font-size: 20px; }
+  .fx-brand-copy small { display: none; }
+  .fx-preview-card {
+    top: 76px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    padding: 14px;
+  }
+  .fx-preview-card h2 { font-size: clamp(38px, 12vw, 54px); }
+  .fx-preview-card p { display: none; }
+  .fx-preview-card dl { margin-top: 12px; }
+  .fx-preview-card dl div { padding: 8px; }
   .fx-deck { left: 12px; right: 12px; width: auto; bottom: 16px; padding: 18px; }
   .fx-deck-idle { gap: 16px; }
   .fx-play { width: 64px; height: 64px; }

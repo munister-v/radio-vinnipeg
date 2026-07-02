@@ -1,13 +1,8 @@
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <rect width="64" height="64" fill="#dcff2d"/>
-  <g fill="none" stroke="#11110f" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Передавач: щогла + сигнал, що випромінюється -->
-    <circle cx="32" cy="21" r="5" fill="#11110f" stroke="none"/>
-    <path d="M32 26v22"/>
-    <path d="M23 48h18"/>
-    <path d="M23 12a13 13 0 0 0 0 18"/>
-    <path d="M41 12a13 13 0 0 1 0 18"/>
-    <path d="M16 6a22 22 0 0 0 0 30"/>
-    <path d="M48 6a22 22 0 0 1 0 30"/>
-  </g>
+  <rect width="64" height="64" fill="#c9a96e"/>
+  <rect x="6" y="6" width="52" height="52" fill="#050506"/>
+  <path d="M16 43h32" stroke="#c9a96e" stroke-width="3" stroke-linecap="round" opacity=".58"/>
+  <path d="M18 38 25 18l7 20 7-20 8 20" fill="none" stroke="#f2f0ea" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M21 15a17 17 0 0 1 22 0M16 10a25 25 0 0 1 32 0" fill="none" stroke="#c9a96e" stroke-width="2.3" stroke-linecap="round"/>
+  <circle cx="32" cy="49" r="2.4" fill="#ff3b2e"/>
 </svg>

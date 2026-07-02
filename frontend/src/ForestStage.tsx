@@ -113,6 +113,10 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
   const speakers = members.filter((m) => m.speaking)
   const someoneSpeaking = speakers.length > 0 || (joined && micOn && speaking)
   const active = joined || members.length > 0
+  const roomTitle = room
+    .split('-')
+    .map((part) => part ? part[0].toUpperCase() + part.slice(1) : part)
+    .join(' ')
 
   // Авто-підключення як тихий слухач, коли хтось у кімнаті.
   // Слухач отримує аудіо через WebRTC без кліку — «увімкнулось радіо».
@@ -191,6 +195,24 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
         <div className="fx-feature">
           <div className="fx-moon" aria-hidden />
           <PineTrees />
+          <div className="fx-brand-lockup" aria-hidden>
+            <span className="fx-brand-seal">WN</span>
+            <span className="fx-brand-copy">
+              <b>Winnipeg Nights</b>
+              <small>Open radio / live rooms</small>
+            </span>
+          </div>
+
+          <div className="fx-preview-card">
+            <span className="fx-preview-kicker"><i className={active ? 'on' : ''} /> Radio preview</span>
+            <h2>Winnipeg Nights</h2>
+            <p>Forest-dark broadcast, live guest rooms and late-night music from the browser.</p>
+            <dl>
+              <div><dt>Room</dt><dd>{roomTitle}</dd></div>
+              <div><dt>Voices</dt><dd>{total}</dd></div>
+              <div><dt>Status</dt><dd>{active ? 'On air' : 'Standby'}</dd></div>
+            </dl>
+          </div>
 
           <div className="fx-deck">
             {!joined ? (

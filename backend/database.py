@@ -8,6 +8,16 @@ from typing import Iterator
 from .config import DATABASE_PATH, SCHEMA_PATH, STATION_NAME
 
 
+DEFAULT_ROOMS = (
+    ('lounge', f'{STATION_NAME} · Lounge'),
+    ('music', f'{STATION_NAME} · Music'),
+    ('talk', f'{STATION_NAME} · Talk'),
+    ('night-line', f'{STATION_NAME} · Night Line'),
+    ('requests', f'{STATION_NAME} · Requests'),
+    ('after-hours', f'{STATION_NAME} · After Hours'),
+)
+
+
 def dict_factory(cursor: sqlite3.Cursor, row: tuple) -> dict:
     """Повертає рядок SQLite у вигляді словника."""
     return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
@@ -60,19 +70,20 @@ def run_migrations() -> None:
         if 'city' not in ucols:
             conn.execute("ALTER TABLE users ADD COLUMN city TEXT DEFAULT ''")
 
+        _seed_rooms(conn)
+
+
+def _seed_rooms(conn) -> None:
+    for slug, title in DEFAULT_ROOMS:
+        conn.execute(
+            'INSERT OR IGNORE INTO rooms (slug, title) VALUES (%s, %s)',
+            (slug, title),
+        )
+
 
 def init_db() -> None:
     """Створює таблиці (якщо не існують) та базову кімнату чату."""
     with get_connection() as conn:
         schema_sql = SCHEMA_PATH.read_text(encoding='utf-8')
         conn._conn.executescript(schema_sql)
-        # Базові кімнати ефіру (інші користувачі створюють самі).
-        for slug, title in (
-            ('lounge', f'{STATION_NAME} · Lounge'),
-            ('music', f'{STATION_NAME} · Music'),
-            ('talk', f'{STATION_NAME} · Talk'),
-        ):
-            conn.execute(
-                'INSERT OR IGNORE INTO rooms (slug, title) VALUES (%s, %s)',
-                (slug, title),
-            )
+        _seed_rooms(conn)

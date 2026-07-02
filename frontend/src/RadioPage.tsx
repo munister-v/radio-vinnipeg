@@ -113,31 +113,21 @@ function MessageContent({ text }: { text: string }) {
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥']
 
 
-// Геральдична емблема Winnipeg Nights — латунний лінійний знак у квадраті:
-// концентричні хвилі (ефір/світанок) · шеврони (сосни) · страти (земля) ·
-// арка (портал курорту). Успадковує колір через currentColor.
+// Winnipeg Nights mark: compact monogram, signal arcs and night horizon.
 function BrandEmblem({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 48 48" fill="none"
-      stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <rect x="3" y="3" width="42" height="42" rx="6" strokeWidth="2" />
-      <line x1="24" y1="4" x2="24" y2="44" strokeWidth="1.1" opacity=".45" />
-      <line x1="4" y1="24" x2="44" y2="24" strokeWidth="1.1" opacity=".45" />
-      {/* TL — концентричні хвилі / світанок */}
-      <path d="M10.5 4 A6.5 6.5 0 0 1 4 10.5" strokeWidth="2" />
-      <path d="M16 4 A12 12 0 0 1 4 16" strokeWidth="2" />
-      <path d="M21.5 4 A17.5 17.5 0 0 1 4 21.5" strokeWidth="2" />
-      {/* TR — шеврони / сосни */}
-      <path d="M27 20 L34 13 L41 20" strokeWidth="2" />
-      <path d="M27 14.5 L34 7.5 L41 14.5" strokeWidth="2" />
-      {/* BL — страти / земля */}
-      <path d="M7 30 H21" strokeWidth="2" />
-      <path d="M7 35 H21" strokeWidth="2" />
-      <path d="M7 40 H21" strokeWidth="2" />
-      {/* BR — арка / портал */}
-      <path d="M28 42 V34 a6 6 0 0 1 12 0 V42" strokeWidth="2" />
+    <svg className={className} viewBox="0 0 48 48" fill="none" aria-hidden>
+      <rect x="3.5" y="3.5" width="41" height="41" stroke="currentColor" strokeWidth="2" />
+      <path d="M10 33h28" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity=".55" />
+      <path d="M13 29l5-12 5 12 5-12 7 12" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 13a13 13 0 0 1 18 0M11 9a19 19 0 0 1 26 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" opacity=".72" />
+      <circle cx="24" cy="37.5" r="1.9" fill="currentColor" />
     </svg>
   )
+}
+
+function roomLabel(room: Room): string {
+  return room.title.replace(/^Winnipeg Nights\s*·\s*/i, '').trim() || room.slug
 }
 
 
@@ -676,9 +666,15 @@ export default function RadioPage({ user, onUserChange }: Props) {
               aria-selected={currentRoom === r.slug}
               className={`room-tab${currentRoom === r.slug ? ' active' : ''}`}
               onClick={() => setCurrentRoom(r.slug)}
+              title={r.title}
             >
               <span className="room-tab-hash">#</span>
-              <span className="room-tab-name">{r.slug}</span>
+              <span className="room-tab-copy">
+                <span className="room-tab-name">{roomLabel(r)}</span>
+                <span className="room-tab-meta">
+                  {r.now_playing?.title ? r.now_playing.title : r.in_call > 0 ? 'live voice' : r.slug}
+                </span>
+              </span>
               {r.in_call > 0 && <span className="room-tab-live">{r.in_call}</span>}
             </button>
           ))}
