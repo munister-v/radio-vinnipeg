@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import './music-radio.css'
 
 /* ────────────────────────────────────────────────────────────────────────
-   Music Radio — SomaFM public Icecast streams, no backend, no signup.
-   80s / 90s American & British hits, free for listeners.
+   Music Radio — public Icecast streams, no backend, no signup.
+   70s / 80s / 90s classic pop, rock, soul and late-night radio.
    ──────────────────────────────────────────────────────────────────────── */
 
 const STATIONS = [
@@ -14,6 +14,52 @@ const STATIONS = [
     url: 'https://ice4.somafm.com/u80s-128-mp3',
     tag: '80s',
     color: '#c6a15c',
+    provider: 'SomaFM',
+  },
+  {
+    id: 'rp-main',
+    name: 'Paradise Mix',
+    desc: 'Classic rock, pop, world and deep cuts — Doors / Sting territory',
+    url: 'https://stream.radioparadise.com/aac-320',
+    tag: 'classic',
+    color: '#d65d3f',
+    provider: 'Radio Paradise',
+  },
+  {
+    id: 'rp-rock',
+    name: 'Paradise Rock',
+    desc: 'Album rock and guitar classics for The Doors, Police, Bowie moods',
+    url: 'https://stream.radioparadise.com/rock-320',
+    tag: 'rock',
+    color: '#b44e88',
+    provider: 'Radio Paradise',
+  },
+  {
+    id: 'rp-mellow',
+    name: 'Paradise Mellow',
+    desc: 'Softer classic pop and late-night singer-songwriter radio',
+    url: 'https://stream.radioparadise.com/mellow-320',
+    tag: 'mellow',
+    color: '#4f83c5',
+    provider: 'Radio Paradise',
+  },
+  {
+    id: 'rp-global',
+    name: 'Paradise Global',
+    desc: 'Global grooves, classic discoveries and road-trip radio',
+    url: 'https://stream.radioparadise.com/global-320',
+    tag: 'global',
+    color: '#4fa38c',
+    provider: 'Radio Paradise',
+  },
+  {
+    id: 'rp-eclectic',
+    name: 'Paradise Eclectic',
+    desc: 'A wider crate: rock, soul, world, electronic and surprises',
+    url: 'https://stream.radioparadise.com/eclectic-320',
+    tag: 'deep cuts',
+    color: '#9b6fc8',
+    provider: 'Radio Paradise',
   },
   {
     id: 'poptron',
@@ -22,6 +68,25 @@ const STATIONS = [
     url: 'https://ice4.somafm.com/poptron-128-mp3',
     tag: '80s–90s',
     color: '#7daa6e',
+    provider: 'SomaFM',
+  },
+  {
+    id: 'seventies',
+    name: 'Left Coast 70s',
+    desc: 'Mellow album rock, AM gold and California 70s sunshine',
+    url: 'https://ice4.somafm.com/seventies-128-mp3',
+    tag: '70s',
+    color: '#d09a4b',
+    provider: 'SomaFM',
+  },
+  {
+    id: '7soul',
+    name: 'Seven Inch Soul',
+    desc: 'Vintage 45s, Motown-adjacent soul and dancefloor oldies',
+    url: 'https://ice4.somafm.com/7soul-128-mp3',
+    tag: '60s-70s',
+    color: '#bf6b5a',
+    provider: 'SomaFM',
   },
   {
     id: 'secretagent',
@@ -30,6 +95,7 @@ const STATIONS = [
     url: 'https://ice4.somafm.com/secretagent-128-mp3',
     tag: '60s–70s',
     color: '#8a7bbf',
+    provider: 'SomaFM',
   },
   {
     id: 'beatblender',
@@ -38,6 +104,7 @@ const STATIONS = [
     url: 'https://ice4.somafm.com/beatblender-128-mp3',
     tag: '90s–00s',
     color: '#5d9cb5',
+    provider: 'SomaFM',
   },
 ] as const
 
@@ -61,6 +128,25 @@ export default function MusicRadio() {
   const [error, setError] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const noSleepRef = useRef<HTMLAudioElement | null>(null)
+  const activeRef = useRef<Station | null>(null)
+  const userStoppedRef = useRef(true)
+  const reconnectTimerRef = useRef<number | null>(null)
+
+  const clearReconnect = () => {
+    if (reconnectTimerRef.current === null) return
+    window.clearTimeout(reconnectTimerRef.current)
+    reconnectTimerRef.current = null
+  }
+
+  const disposeAudio = () => {
+    clearReconnect()
+    const audio = audioRef.current
+    audioRef.current = null
+    if (!audio) return
+    audio.pause()
+    audio.removeAttribute('src')
+    audio.load()
+  }
 
   // NoSleep WAV for iOS lock screen
   const startNoSleep = () => {
@@ -79,38 +165,77 @@ export default function MusicRadio() {
   }
 
   const stop = () => {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = '' }
+    userStoppedRef.current = true
+    activeRef.current = null
+    disposeAudio()
     setPlaying(false); setLoading(false); setError(null)
     stopNoSleep()
     if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'none' } catch {} }
   }
 
+  const scheduleReconnect = (station: Station) => {
+    if (userStoppedRef.current || reconnectTimerRef.current !== null) return
+    reconnectTimerRef.current = window.setTimeout(() => {
+      reconnectTimerRef.current = null
+      if (!userStoppedRef.current && activeRef.current?.id === station.id) play(station)
+    }, 1400)
+  }
+
   const play = (station: Station) => {
-    stop()
+    userStoppedRef.current = false
+    disposeAudio()
+    activeRef.current = station
     setActive(station); setLoading(true); setError(null)
     startNoSleep()
 
     const audio = new Audio(station.url)
     audio.volume = vol
+    audio.preload = 'none'
     audio.setAttribute('playsinline', '')
     ;(audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true
     audioRef.current = audio
 
-    audio.addEventListener('canplay', () => { setLoading(false); setPlaying(true) }, { once: true })
-    audio.addEventListener('error', () => { setLoading(false); setError('Stream unavailable — try another station'); setPlaying(false) }, { once: true })
-    audio.addEventListener('pause', () => { if (audioRef.current === audio) audio.play().catch(() => {}) })
-    audio.play().catch(() => { setLoading(false); setError('Playback blocked — tap again') })
+    const markPlaying = () => {
+      if (audioRef.current !== audio) return
+      setLoading(false)
+      setPlaying(true)
+      setError(null)
+    }
+    audio.addEventListener('canplay', markPlaying, { once: true })
+    audio.addEventListener('playing', markPlaying)
+    audio.addEventListener('error', () => {
+      if (userStoppedRef.current || audioRef.current !== audio) return
+      setLoading(false); setError('Reconnecting stream…'); setPlaying(false); scheduleReconnect(station)
+    })
+    audio.addEventListener('stalled', () => { if (audioRef.current === audio) scheduleReconnect(station) })
+    audio.addEventListener('ended', () => { if (audioRef.current === audio) scheduleReconnect(station) })
+    audio.addEventListener('pause', () => {
+      if (audioRef.current === audio && !userStoppedRef.current) audio.play().catch(() => {})
+    })
+    audio.play()
+      .then(markPlaying)
+      .catch(() => { setLoading(false); setError('Playback blocked — tap again') })
 
     if ('mediaSession' in navigator) {
       try {
         navigator.mediaSession.metadata = new MediaMetadata({
-          title: station.name, artist: 'SomaFM', album: station.desc,
+          title: station.name, artist: station.provider, album: station.desc,
         })
         navigator.mediaSession.playbackState = 'playing'
-        const resist = () => { try { navigator.mediaSession.playbackState = 'playing' } catch {} }
-        navigator.mediaSession.setActionHandler('play', resist)
-        navigator.mediaSession.setActionHandler('pause', resist)
-        try { navigator.mediaSession.setActionHandler('stop', resist) } catch {}
+        const resume = () => { if (audioRef.current && !userStoppedRef.current) audioRef.current.play().catch(() => {}) }
+        const next = () => {
+          const i = STATIONS.findIndex((s) => s.id === station.id)
+          play(STATIONS[(i + 1) % STATIONS.length])
+        }
+        const previous = () => {
+          const i = STATIONS.findIndex((s) => s.id === station.id)
+          play(STATIONS[(i - 1 + STATIONS.length) % STATIONS.length])
+        }
+        navigator.mediaSession.setActionHandler('play', resume)
+        navigator.mediaSession.setActionHandler('pause', resume)
+        try { navigator.mediaSession.setActionHandler('stop', stop) } catch {}
+        try { navigator.mediaSession.setActionHandler('nexttrack', next) } catch {}
+        try { navigator.mediaSession.setActionHandler('previoustrack', previous) } catch {}
       } catch {}
     }
   }
@@ -119,15 +244,31 @@ export default function MusicRadio() {
     if (audioRef.current) audioRef.current.volume = vol
   }, [vol])
 
+  useEffect(() => {
+    const keepAlive = () => {
+      const audio = audioRef.current
+      if (!audio || userStoppedRef.current || !active) return
+      if (audio.paused || audio.readyState < 2) audio.play().catch(() => scheduleReconnect(active))
+    }
+    document.addEventListener('visibilitychange', keepAlive)
+    window.addEventListener('online', keepAlive)
+    window.addEventListener('focus', keepAlive)
+    return () => {
+      document.removeEventListener('visibilitychange', keepAlive)
+      window.removeEventListener('online', keepAlive)
+      window.removeEventListener('focus', keepAlive)
+    }
+  }, [active])
+
   useEffect(() => () => { stop() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className="mr-root" id="music">
       <header className="mr-header">
         <div className="mr-header-text">
-          <span className="mr-eyebrow">SomaFM · Free Public Radio</span>
+          <span className="mr-eyebrow">Free Public Radio</span>
           <h2 className="mr-title">Music Radio</h2>
-          <p className="mr-sub">80s &amp; 90s American &amp; British — streaming live, no ads</p>
+          <p className="mr-sub">70s, 80s &amp; 90s pop, rock and soul — streaming live, no ads</p>
         </div>
         {playing && active && (
           <div className="mr-now">
@@ -162,7 +303,10 @@ export default function MusicRadio() {
                 disabled={isLoading}
                 aria-label={isPlaying ? 'Stop' : `Play ${s.name}`}
               >
-                {isLoading ? '…' : isPlaying ? '■' : '▶'}
+                <span
+                  className={`mr-play-icon ${isLoading ? 'loading' : isPlaying ? 'pause' : 'play'}`}
+                  aria-hidden
+                />
               </button>
             </div>
           )
@@ -183,7 +327,7 @@ export default function MusicRadio() {
       )}
 
       <p className="mr-credit">
-        Streams provided by <a href="https://somafm.com" target="_blank" rel="noopener">SomaFM</a> — independent, listener-supported, non-commercial.
+        Streams provided by <a href="https://somafm.com" target="_blank" rel="noopener">SomaFM</a> and <a href="https://radioparadise.com" target="_blank" rel="noopener">Radio Paradise</a> — independent, listener-supported, non-commercial.
       </p>
     </section>
   )
