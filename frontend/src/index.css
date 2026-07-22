@@ -1,20 +1,20 @@
 :root {
-  /* ── NTS-style monochrome system ──────────────────────────────────── */
-  --ink:   #f2f0ea;         /* off-white — primary */
-  --ink-2: #9c9c94;         /* grey — secondary */
-  --ink-3: #5f5f59;         /* dim grey — tertiary */
+  /* ── Warm-dark system (softened toward the EPRIS cream/espresso palette) ─ */
+  --ink:   #f1ebdd;         /* warm cream — primary */
+  --ink-2: #9e988a;         /* warm grey — secondary */
+  --ink-3: #625d52;         /* dim warm grey — tertiary */
 
-  --surface:   #050506;     /* deepest black */
-  --surface-2: #0a0b0c;     /* page background */
-  --surface-3: #16171a;     /* panel / card */
+  --surface:   #0a0806;     /* deepest espresso */
+  --surface-2: #12100c;     /* page background — warm charcoal */
+  --surface-3: #1d1913;     /* panel / card — warm */
 
-  --gold:   #c9a96e;        /* reserved: brand mark only */
-  --tint:   #f2f0ea;        /* link/accent — white */
-  --signal: #ff3b2e;        /* NTS live red */
+  --gold:   #c9a96e;        /* brand mark + subtle warm accent */
+  --tint:   #f1ebdd;        /* link/accent — warm cream */
+  --signal: #ff3b2e;        /* live red */
   --danger: #ff3b2e;
 
-  --line:        rgba(255, 255, 255, .15);
-  --line-strong: rgba(255, 255, 255, .28);
+  --line:        rgba(240, 232, 214, .14);
+  --line-strong: rgba(240, 232, 214, .26);
 
   /* Display / headline — condensed broadcast gothic */
   --display: "Bebas Neue", "Arial Narrow", "Impact", sans-serif;

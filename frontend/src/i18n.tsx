@@ -28,6 +28,8 @@ const en: Dict = {
   'top.online': 'On air · {n}',
   'top.changeNick': 'Change nickname',
   'top.toAir': 'Winnipeg Nights — to the broadcast',
+  'room.create': 'Create channel',
+  'room.createPrompt': 'Channel name:',
   // Hero
   'hero.kicker': 'Independent live broadcast',
   'hero.tagline': 'Open radio where a listener can become the voice on air',
@@ -146,6 +148,8 @@ const uk: Dict = {
   'top.online': 'Ефір відкрито · {n}',
   'top.changeNick': 'Змінити нік',
   'top.toAir': 'Winnipeg Nights — до ефіру',
+  'room.create': 'Створити канал',
+  'room.createPrompt': 'Назва каналу:',
   'hero.kicker': 'Незалежний живий ефір',
   'hero.tagline': 'Відкрите радіо, де слухач може стати голосом ефіру',
   'freq.onair': 'ON AIR',

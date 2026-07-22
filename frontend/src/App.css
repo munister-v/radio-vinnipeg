@@ -933,8 +933,18 @@
   .brand-mark { width: 38px; height: 38px; }
   .brand-eyebrow, .online-pill { display: none; }
   .brand-name { margin: 0; font-size: 16px; line-height: 1.05; }
-  .topbar-right { padding: 8px 12px; }
-  .nick-chip { max-width: 145px; min-height: 40px; overflow: hidden; }
+  .topbar-right { padding: 8px 12px; flex: 0 1 auto; min-width: 0; gap: 8px; }
+  .nick-chip { max-width: 145px; min-height: 40px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+}
+
+/* Very narrow phones: keep the top bar on a single row without clipping the
+   nickname chip off the right edge. */
+@media (max-width: 460px) {
+  .brand { padding: 9px 10px; gap: 8px; }
+  .brand-mark { width: 32px; height: 32px; }
+  .brand-name { font-size: 14px; }
+  .topbar-right { padding: 8px 10px; gap: 6px; }
+  .nick-chip { max-width: 104px; padding: 0 10px; }
   .broadcast-stage { min-height: auto; grid-template-columns: 1fr; border-inline: 0; }
   .broadcast-intro {
     min-height: auto;
@@ -2857,6 +2867,17 @@
   font-weight: 400;
   letter-spacing: .075em;
   text-transform: uppercase;
+}
+/* Mobile top bar: shrink the (Bebas, condensed) brand so the language
+   switch + nickname chip fit on one row without the chip being clipped.
+   Placed after the base rule above so the cascade actually wins. */
+@media (max-width: 720px) {
+  .brand-name { font-size: 17px; letter-spacing: .05em; }
+}
+@media (max-width: 460px) {
+  .brand-name { font-size: 15px; }
+  .lang-switch button { padding: 5px 7px; }
+  .nick-chip { max-width: 124px; }
 }
 
 /* Schedule + manifesto headings */

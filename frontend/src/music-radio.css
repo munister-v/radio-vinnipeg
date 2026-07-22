@@ -1,6 +1,6 @@
 /* ── Music Radio section ───────────────────────────────────────────── */
 .mr-root {
-  --mr-bg: #090909;
+  --mr-bg: #0f0c09;
   --mr-panel: rgba(242, 240, 234, .055);
   --mr-panel-hover: rgba(242, 240, 234, .095);
   --mr-panel-active: rgba(198, 161, 92, .14);

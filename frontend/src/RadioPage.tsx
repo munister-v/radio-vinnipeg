@@ -767,9 +767,10 @@ export default function RadioPage({ user, onUserChange }: Props) {
             ))}
             <button
               className="room-tab room-tab-add"
-              title="Створити канал"
+              title={t('room.create')}
+              aria-label={t('room.create')}
               onClick={async () => {
-                const title = window.prompt('Назва каналу:')
+                const title = window.prompt(t('room.createPrompt'))
                 if (!title?.trim()) return
                 const room = await createRoom(title.trim()).catch(() => null)
                 if (room) { setRooms((prev) => [...prev, room]); setCurrentRoom(room.slug) }
