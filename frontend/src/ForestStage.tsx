@@ -174,16 +174,16 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
           <span className="fx-chan-n">1</span>
           <PlayGlyph />
           <span className="fx-chan-title">
-            {active ? 'Vinnipeg Nights · on air' : 'Vinnipeg Nights · open mic'}
+            {active ? 'Winnipeg Nights · on air' : 'Winnipeg Nights · open mic'}
           </span>
-          <span className="fx-chan-loc">Vinnipeg</span>
+          <span className="fx-chan-loc">Winnipeg</span>
         </button>
 
         {/* Channel 2 — scheduled programme */}
         <a className="fx-chan fx-chan-2" href="#schedule">
           <span className="fx-chan-n">2</span>
           <span className="fx-chan-title">{t(`slot.${activeSlot}.label`)}</span>
-          <span className="fx-chan-loc">Vinnipeg</span>
+          <span className="fx-chan-loc">Winnipeg</span>
         </a>
 
         <span className="fx-lb-tail">{total} {peopleWord(total, lang)}</span>
@@ -198,14 +198,14 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
           <div className="fx-brand-lockup" aria-hidden>
             <span className="fx-brand-seal">WN</span>
             <span className="fx-brand-copy">
-              <b>Vinnipeg Nights</b>
+              <b>Winnipeg Nights</b>
               <small>Open radio / live rooms</small>
             </span>
           </div>
 
           <div className="fx-preview-card">
             <span className="fx-preview-kicker"><i className={active ? 'on' : ''} /> Radio preview</span>
-            <h2>Vinnipeg Nights</h2>
+            <h2>Winnipeg Nights</h2>
             <p>Forest-dark broadcast, live guest rooms and late-night music from the browser.</p>
             <dl>
               <div><dt>Room</dt><dd>{roomTitle}</dd></div>
@@ -230,9 +230,9 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                 </button>
                 <div className="fx-deck-text">
                   <span className="fx-deck-kicker">
-                    {connecting ? t('voice.connecting') : members.length ? t('voice.join') : 'Vinnipeg Nights'}
+                    {connecting ? t('voice.connecting') : members.length ? t('voice.join') : 'Winnipeg Nights'}
                   </span>
-                  <h1 className="fx-deck-title">Vinnipeg Nights</h1>
+                  <h1 className="fx-deck-title">Winnipeg Nights</h1>
                   <p className="fx-deck-desc">{t('hero.tagline')}</p>
                 </div>
               </div>
@@ -240,7 +240,7 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
               <div className="fx-deck-live">
                 <div className="fx-deck-livehead">
                   <span className="fx-deck-live-title">
-                    {passive ? '🔊 Listening' : 'Vinnipeg Nights'}
+                    {passive ? '🔊 Listening' : 'Winnipeg Nights'}
                   </span>
                   <span className="fx-deck-live-status">
                     {passive

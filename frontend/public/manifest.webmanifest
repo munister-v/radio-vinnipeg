@@ -1,7 +1,7 @@
 {
-  "name": "Vinnipeg Nights",
-  "short_name": "Vinnipeg",
-  "description": "Vinnipeg Nights — open live broadcast with group voice conversation and chat.",
+  "name": "Winnipeg Nights",
+  "short_name": "Winnipeg",
+  "description": "Winnipeg Nights — open live broadcast with group voice conversation and chat.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#efe7d3",
