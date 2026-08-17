@@ -413,7 +413,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'Радіорозмова наживо',
-        artist: 'Winnipeg Nights',
+        artist: 'Vinnipeg Nights',
       })
       navigator.mediaSession.playbackState = 'playing'
       const resist = () => { navigator.mediaSession.playbackState = 'playing' }

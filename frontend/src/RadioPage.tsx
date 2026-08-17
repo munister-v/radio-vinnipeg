@@ -113,7 +113,7 @@ function MessageContent({ text }: { text: string }) {
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥']
 
 
-// Winnipeg Nights mark: compact monogram, signal arcs and night horizon.
+// Vinnipeg Nights mark: compact monogram, signal arcs and night horizon.
 function BrandEmblem({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 48 48" fill="none" aria-hidden>
@@ -325,7 +325,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
 
   useEffect(() => {
     const label = currentRoomData ? roomLabel(currentRoomData) : currentRoom
-    document.title = `${label} · Winnipeg Nights`
+    document.title = `${label} · Vinnipeg Nights`
   }, [currentRoom, currentRoomData])
 
   // Rooms list — poll every 6s for in_call counts
@@ -672,10 +672,10 @@ export default function RadioPage({ user, onUserChange }: Props) {
             <span className="brand-mark" aria-hidden><BrandEmblem className="brand-emblem" /></span>
             <div className="brand-titles">
               <span className="brand-eyebrow">{t('top.brandEyebrow')}</span>
-              <span className="brand-name">Winnipeg Nights</span>
+              <span className="brand-name">Vinnipeg Nights</span>
             </div>
           </a>
-          <nav className="topbar-nav" aria-label="Winnipeg Nights">
+          <nav className="topbar-nav" aria-label="Vinnipeg Nights">
             <a href="#air">{t('nav.air')}</a>
             <a href="#schedule">{t('nav.schedule')}</a>
             <a href="#about">{t('nav.about')}</a>
@@ -849,10 +849,10 @@ export default function RadioPage({ user, onUserChange }: Props) {
         <b aria-label={t('chat.unreadAria', { n: unreadCount })}>{unreadCount}</b>
       </button>
 
-      <aside className="mobile-air-dock" aria-label="Winnipeg Nights">
+      <aside className="mobile-air-dock" aria-label="Vinnipeg Nights">
         <a href="#air">
           <span><i />ON AIR</span>
-          <strong>Winnipeg Nights</strong>
+          <strong>Vinnipeg Nights</strong>
         </a>
         <button type="button" onClick={openChat} aria-label={t('chat.open')}>
           {t('chat.dockChat')}{unreadCount > 0 ? ` · ${unreadCount}` : ''}
