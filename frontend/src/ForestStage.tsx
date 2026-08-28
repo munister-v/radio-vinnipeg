@@ -7,7 +7,19 @@ import { useVoice } from './useVoice'
 import type { VoiceStats } from './VoicePanel'
 import { useI18n, peopleWord } from './i18n'
 import { useYouTubePlayer } from './useYouTubePlayer'
+import { FX_PRESETS, fxIsActive, type FxParams } from './micFx'
 import './forest.css'
+
+const FX_KNOBS: { key: keyof FxParams; label: string }[] = [
+  { key: 'drive',  label: 'Drive' },
+  { key: 'echo',   label: 'Echo' },
+  { key: 'reverb', label: 'Reverb' },
+  { key: 'radio',  label: 'Radio' },
+]
+
+function fxSame(a: FxParams, b: FxParams): boolean {
+  return FX_KNOBS.every(({ key }) => Math.abs(a[key] - b[key]) < 0.001)
+}
 
 /* Deterministic pine-forest silhouette — three depth layers */
 function pinePath(count: number, minH: number, maxH: number, seed: number): string {
@@ -78,7 +90,7 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
   const { t, lang } = useI18n()
   const settings = useSettings()
   const { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic } =
-    useVoice(user.id, { volume: settings.volume, micDeviceId: settings.micDeviceId, room })
+    useVoice(user.id, { volume: settings.volume, micDeviceId: settings.micDeviceId, room, fx: settings.fx })
 
   // Now Playing
   const [np, setNp] = useState<NowPlaying>(null)
@@ -270,6 +282,35 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                   <input type="range" min="0" max="1" step="0.02" value={settings.volume}
                     onChange={(e) => settings.setVolume(parseFloat(e.target.value))} aria-label={t('set.volume')} />
                   <span className="fx-vol-val">{Math.round(settings.volume * 100)}%</span>
+                </div>
+
+                {/* ── Ефекти мікрофона ── */}
+                <div className={`fx-rack ${fxIsActive(settings.fx) ? 'on' : ''}`}>
+                  <div className="fx-rack-head">
+                    <span className="fx-rack-label">FX</span>
+                    <div className="fx-rack-presets">
+                      {FX_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          className={`fx-preset ${fxSame(settings.fx, preset.params) ? 'on' : ''}`}
+                          onClick={() => settings.setFx(preset.params)}
+                        >{preset.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="fx-knobs">
+                    {FX_KNOBS.map(({ key, label }) => (
+                      <label key={key} className="fx-knob">
+                        <span className="fx-knob-name">{label}</span>
+                        <input
+                          type="range" min="0" max="1" step="0.05"
+                          value={settings.fx[key]}
+                          onChange={(e) => settings.setFx({ ...settings.fx, [key]: parseFloat(e.target.value) })}
+                        />
+                        <span className="fx-knob-val">{Math.round(settings.fx[key] * 100)}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="fx-controls">

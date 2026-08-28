@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { FX_OFF, type FxParams } from './micFx'
 
 function ls(key: string, def: string): string {
   try { return localStorage.getItem(key) ?? def } catch { return def }
@@ -8,6 +9,7 @@ function lsSet(key: string, val: string) {
 }
 
 export type Settings = {
+  fx: FxParams            // ефекти мікрофона в ефірі
   volume: number          // 0–1, гучність вхідного аудіо
   micDeviceId: string     // deviceId вибраного мікрофона ('' = системний)
   pttMode: boolean        // push-to-talk замість toggle
@@ -15,6 +17,7 @@ export type Settings = {
   setVolume: (v: number) => void
   setMicDevice: (id: string) => void
   setPttMode: (on: boolean) => void
+  setFx: (p: FxParams) => void
   refreshDevices: () => void
 }
 
@@ -23,6 +26,14 @@ export function useSettings(): Settings {
   const [micDeviceId, setMicDeviceIdState] = useState(() => ls('rv_mic', ''))
   const [pttMode, setPttModeState] = useState(() => ls('rv_ptt', 'false') === 'true')
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
+  const [fxRaw, setFxRaw] = useState<FxParams>(() => {
+    try { return { ...FX_OFF, ...JSON.parse(ls('rv_fx', '{}')) } } catch { return FX_OFF }
+  })
+  // Стабільна ідентичність: інакше useVoice перечитував би ефекти щорендера.
+  const fx = useMemo<FxParams>(
+    () => ({ drive: fxRaw.drive, echo: fxRaw.echo, reverb: fxRaw.reverb, radio: fxRaw.radio }),
+    [fxRaw.drive, fxRaw.echo, fxRaw.reverb, fxRaw.radio],
+  )
 
   const refreshDevices = useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return
@@ -56,5 +67,10 @@ export function useSettings(): Settings {
     lsSet('rv_ptt', String(on))
   }, [])
 
-  return { volume, micDeviceId, pttMode, devices, setVolume, setMicDevice, setPttMode, refreshDevices }
+  const setFx = useCallback((p: FxParams) => {
+    setFxRaw(p)
+    lsSet('rv_fx', JSON.stringify(p))
+  }, [])
+
+  return { volume, micDeviceId, pttMode, devices, fx, setVolume, setMicDevice, setPttMode, setFx, refreshDevices }
 }

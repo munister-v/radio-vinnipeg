@@ -13,6 +13,7 @@ import {
   type CallMember,
 } from './api'
 import { setBackgroundInterval, type BgTimer } from './bgTimer'
+import { MicFx, FX_OFF, type FxParams } from './micFx'
 
 const SIGNAL_POLL_MS = 1000
 const SIGNAL_POLL_HIDDEN_MS = 5000
@@ -87,7 +88,7 @@ type AnalyserEntry = {
  *  • Приєднатися можна без мікрофона (лише слухати). Мікрофон вмикається будь-
  *    коли: ми змінюємо напрям транспондера → renegotiation, і нас починають чути.
  */
-export function useVoice(myUserId: number | null, opts?: { volume?: number; micDeviceId?: string; room?: string }) {
+export function useVoice(myUserId: number | null, opts?: { volume?: number; micDeviceId?: string; room?: string; fx?: FxParams }) {
   const [members, setMembers] = useState<VoiceMember[]>([])
   const [joined, setJoined] = useState(false)
   const [micOn, setMicOn] = useState(false)
@@ -113,6 +114,11 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const volumeRef = useRef<number>(opts?.volume ?? 1)
   const micDeviceIdRef = useRef<string>(opts?.micDeviceId ?? '')
   const roomRef = useRef<string>(opts?.room ?? 'lounge')
+  // Ефекти мікрофона: ланцюг Web Audio між захопленням і піром.
+  const fxRef = useRef<FxParams>(opts?.fx ?? FX_OFF)
+  const micFxRef = useRef<MicFx | null>(null)
+  // Сирий стрім із пристрою тримаємо окремо: його треки треба зупиняти при виході.
+  const rawStreamRef = useRef<MediaStream | null>(null)
   // Аудіо-елементи, чий play() браузер заблокував (autoplay policy) — ретраїмо на жесті.
   const blockedAudiosRef = useRef<Set<HTMLAudioElement>>(new Set())
   const [audioBlocked, setAudioBlocked] = useState(false)
@@ -147,6 +153,12 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   useEffect(() => {
     roomRef.current = opts?.room ?? 'lounge'
   }, [opts?.room])
+
+  // Ручки ефектів крутяться на живому ланцюгу: без replaceTrack, без розриву звуку.
+  useEffect(() => {
+    fxRef.current = opts?.fx ?? FX_OFF
+    micFxRef.current?.update(fxRef.current)
+  }, [opts?.fx?.drive, opts?.fx?.echo, opts?.fx?.reverb, opts?.fx?.radio])
 
   // ── Список учасників: серверні дані + локальний прапорець «говорить» ──────
   const applyMembers = useCallback(() => {
@@ -365,6 +377,12 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
 
   const cleanupAll = useCallback(() => {
     for (const [userId] of peersRef.current) cleanupPeer(userId)
+    micFxRef.current?.dispose()
+    micFxRef.current = null
+    if (rawStreamRef.current) {
+      for (const t of rawStreamRef.current.getTracks()) t.stop()
+      rawStreamRef.current = null
+    }
     if (localStreamRef.current) {
       for (const t of localStreamRef.current.getTracks()) t.stop()
       localStreamRef.current = null
@@ -886,11 +904,30 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const ensureMicStream = useCallback(async (): Promise<MediaStreamTrack | null> => {
     const live = localStreamRef.current?.getAudioTracks().find((t) => t.readyState === 'live')
     if (live) return live
-    const stream = await getMicStream(micDeviceIdRef.current)
+    const raw = await getMicStream(micDeviceIdRef.current)
+    rawStreamRef.current = raw
+
+    // Мікрофон іде через ланцюг ефектів. Ланцюг створюється завжди, навіть на
+    // «сухих» налаштуваннях, щоб потім вмикати ефекти без renegotiation.
+    // Якщо Web Audio недоступний — віддаємо сирий стрім як був.
+    let stream = raw
+    try {
+      const ctx = ensureAudioCtx()
+      if (ctx) {
+        micFxRef.current?.dispose()
+        const fx = new MicFx(ctx, raw)
+        fx.update(fxRef.current)
+        micFxRef.current = fx
+        stream = fx.stream
+      }
+    } catch { micFxRef.current = null }
+
     localStreamRef.current = stream
     const track = stream.getAudioTracks()[0] ?? null
     if (track) {
       track.enabled = false // вмикаємо за потребою (PTT/мьют)
+      const rawTrack = raw.getAudioTracks()[0]
+      if (rawTrack) rawTrack.onended = () => { track.stop() }
       track.onended = () => {
         if (localStreamRef.current !== stream) return
         localStreamRef.current = null
@@ -906,7 +943,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       }
     }
     return track
-  }, [applyMicToTransceiver])
+  }, [applyMicToTransceiver, ensureAudioCtx])
 
   const setTransmitting = useCallback(async (on: boolean) => {
     const cid = callIdRef.current

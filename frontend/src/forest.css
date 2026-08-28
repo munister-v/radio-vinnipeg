@@ -305,6 +305,33 @@
 .fx-vol input { flex: 1; min-width: 0; height: 3px; accent-color: var(--ink); cursor: pointer; }
 .fx-vol-val { font: 600 10px/1 var(--mono); color: var(--ink-3); min-width: 32px; text-align: right; }
 
+/* ── Рек ефектів мікрофона ────────────────────────────────────────── */
+.fx-rack {
+  width: 100%;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 92%, var(--ink));
+}
+.fx-rack.on { border-color: var(--signal); }
+.fx-rack-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fx-rack-label { font: 700 10px/1 var(--mono); letter-spacing: .18em; color: var(--ink-3); }
+.fx-rack.on .fx-rack-label { color: var(--signal); }
+.fx-rack-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.fx-preset {
+  padding: 5px 10px; min-height: 26px;
+  border: 1px solid var(--line-strong); background: transparent; color: var(--ink-2); cursor: pointer;
+  font: 700 9px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase;
+  transition: background .16s, color .16s, border-color .16s;
+}
+.fx-preset:hover { color: var(--ink); border-color: var(--ink); }
+.fx-preset.on { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.fx-knobs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
+.fx-knob { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fx-knob-name { font: 600 9px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); flex: 0 0 42px; }
+.fx-knob input { flex: 1; min-width: 0; height: 3px; accent-color: var(--signal); cursor: pointer; }
+.fx-knob-val { font: 600 9px/1 var(--mono); color: var(--ink-3); min-width: 20px; text-align: right; }
+@media (max-width: 560px) { .fx-knobs { grid-template-columns: 1fr; } }
+
 .fx-controls { display: flex; gap: 8px; width: 100%; }
 .fx-mic {
   flex: 1; min-height: 44px;
