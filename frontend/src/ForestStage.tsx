@@ -6,6 +6,7 @@ import { useSettings } from './useSettings'
 import { useVoice } from './useVoice'
 import type { VoiceStats } from './VoicePanel'
 import { useI18n, peopleWord } from './i18n'
+import { useYouTubePlayer } from './useYouTubePlayer'
 import './forest.css'
 
 /* Deterministic pine-forest silhouette — three depth layers */
@@ -81,6 +82,8 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
 
   // Now Playing
   const [np, setNp] = useState<NowPlaying>(null)
+  // Плеєр живе поза циклом опитування: хук синкує його командами, а не новим src.
+  const ytHost = useYouTubePlayer(np)
   const [npInput, setNpInput] = useState('')
   const [npOpen, setNpOpen] = useState(false)
   const npRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -324,13 +327,9 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                       <span className="fx-np-title">{np.title || np.video_id}</span>
                       <button className="fx-np-stop" onClick={() => setNowPlaying(room, { video_id: '' }).then(setNp).catch(() => {})} title="Stop">✕</button>
                     </div>
-                    <iframe
-                      className="fx-yt"
-                      src={`https://www.youtube.com/embed/${np.video_id}?autoplay=1&start=${Math.floor(np.position_sec)}&enablejsapi=1`}
-                      allow="autoplay; encrypted-media"
-                      allowFullScreen
-                      title={np.title || 'YouTube'}
-                    />
+                    <div className="fx-yt">
+                      <div ref={ytHost} />
+                    </div>
                   </>
                 ) : (
                   <button className="fx-np-add" onClick={() => setNpOpen((v) => !v)}>
