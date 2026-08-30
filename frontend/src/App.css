@@ -1080,22 +1080,14 @@
   color: var(--muted);
 }
 
-/* Controls row: mic + stop (+ переклад, коли він доступний) */
+/* Controls row: mic + stop */
 .player-controls {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
   padding-top: 14px;
 }
-/* З кнопкою перекладу ряд стає з трьох частин; на вузькому екрані вона іде
-   другим рядом на всю ширину, щоб мікрофон не стискався до іконки. */
-.player-controls:has(.player-tr-btn) { grid-template-columns: 1fr auto auto; }
-@media (max-width: 520px) {
-  .player-controls:has(.player-tr-btn) { grid-template-columns: 1fr auto; }
-  .player-tr-btn { grid-column: 1 / -1; }
-}
 .player-mic-btn,
-.player-tr-btn,
 .player-stop-btn {
   min-height: 68px;
   display: inline-flex;
@@ -1117,58 +1109,6 @@
 .player-mic-btn.on .player-btn-icon { animation: mic-pulse 1.4s ease-in-out infinite; }
 .player-stop-btn { min-width: 110px; background: transparent; color: var(--ink); }
 .player-stop-btn:hover { background: var(--ink); color: var(--white); }
-.player-tr-btn { min-width: 92px; background: transparent; color: var(--ink); }
-.player-tr-btn:hover { background: var(--ink); color: var(--white); }
-.player-tr-btn.on { background: var(--ink); color: var(--white); }
-
-/* ── Переклад ефіру ──────────────────────────────────────────────────────── */
-.air-translate {
-  margin-top: 14px;
-  border: 1px solid var(--ink);
-  padding: 12px 14px 10px;
-}
-.air-translate-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--line, rgba(0,0,0,.12));
-}
-.air-translate-title {
-  font: 600 9px/1 var(--mono);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-/* Крапка світиться, поки шматок звуку в дорозі до розпізнавання. */
-.air-translate-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--line, rgba(0,0,0,.2));
-  transition: background .2s ease;
-}
-.air-translate-dot.on { background: var(--danger); animation: mic-pulse 1.4s ease-in-out infinite; }
-.air-translate-clear {
-  margin-left: auto;
-  border: none; background: none; cursor: pointer;
-  font: 600 9px/1 var(--mono); letter-spacing: .1em;
-  color: var(--muted); text-transform: uppercase;
-}
-.air-translate-clear:hover { color: var(--ink); }
-.air-translate-lines {
-  list-style: none;
-  margin: 0; padding: 10px 0 0;
-  max-height: 220px; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 6px;
-  font-size: 14px; line-height: 1.5;
-}
-.air-translate-lines li:last-child { font-weight: 600; }
-.air-translate-empty {
-  margin: 0; padding: 12px 0 4px;
-  font-size: 13px; color: var(--muted);
-}
-.air-translate-hint {
-  margin: 0; padding-top: 8px;
-  font-size: 11px; line-height: 1.45; color: var(--muted);
-}
 
 .player-btn-icon { width: 26px; height: 26px; display: grid; place-items: center; flex: 0 0 auto; }
 .player-btn-icon svg { width: 20px; height: 20px; }

@@ -6,6 +6,8 @@ import { useSettings } from './useSettings'
 import { useVoice } from './useVoice'
 import type { VoiceStats } from './VoicePanel'
 import { useI18n, peopleWord } from './i18n'
+import { useTranslation } from './useTranslation'
+import { fetchTranslationHealth } from './api'
 import { useYouTubePlayer } from './useYouTubePlayer'
 import { FX_PRESETS, fxIsActive, type FxParams } from './micFx'
 import './forest.css'
@@ -25,6 +27,15 @@ function fxSame(a: FxParams, b: FxParams): boolean {
 function PlayGlyph() {
   return <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M8 5.4l12 6.6-12 6.6V5.4Z" /></svg>
 }
+function TranslateGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden width="16" height="16">
+      <path d="M3 5.5h8M7 4v1.5M9.2 5.5c0 3.2-2.3 5.9-5.2 7M5.4 8.6c.9 2 2.6 3.5 4.8 4.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m12.6 20 3.9-9.4L20.4 20M13.9 17.1h5.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function MicGlyph({ off }: { off?: boolean }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -55,8 +66,22 @@ function GearGlyph() {
 export default function ForestStage({ user, onStats, room = 'lounge' }: { user: User; onStats?: (s: VoiceStats) => void; room?: string }) {
   const { t, lang } = useI18n()
   const settings = useSettings()
-  const { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic } =
+  const { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, getTranslationStream } =
     useVoice(user.id, { volume: settings.volume, micDeviceId: settings.micDeviceId, room, fx: settings.fx })
+
+  // Переклад ефіру англійською. Кнопка з'являється, тільки якщо бекенд
+  // відповідає, що модель піднята: без неї вмикати нічого.
+  const [trAvailable, setTrAvailable] = useState(false)
+  const [trOn, setTrOn] = useState(false)
+  useEffect(() => {
+    let alive = true
+    fetchTranslationHealth()
+      .then((h) => { if (alive) setTrAvailable(!!h.enabled) })
+      .catch(() => { if (alive) setTrAvailable(false) })
+    return () => { alive = false }
+  }, [])
+  const translation = useTranslation(getTranslationStream, trOn && joined)
+  useEffect(() => { if (!joined) setTrOn(false) }, [joined])
 
   // Now Playing
   const [np, setNp] = useState<NowPlaying>(null)
@@ -250,12 +275,44 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                       <MicGlyph off={!micOn} />{micOn ? t('voice.muteMic') : t('voice.unmuteMic')}
                     </button>
                   )}
+                  {trAvailable && (
+                    <button
+                      className={`fx-tr ${trOn ? 'live' : ''}`}
+                      onClick={() => setTrOn(v => !v)}
+                      aria-pressed={trOn}
+                      aria-label={trOn ? t('tr.toggleOn') : t('tr.toggleOff')}
+                    >
+                      <TranslateGlyph />{trOn ? 'EN ON' : 'EN'}
+                    </button>
+                  )}
                   <button className="fx-leave" onClick={() => {
                     explicitLeaveRef.current = true
                     setPassive(false)
                     leave()
                   }}>{passive ? '✕ Stop' : t('voice.leave')}</button>
                 </div>
+
+                {trOn && (
+                  <div className="fx-translate" aria-live="polite">
+                    <div className="fx-translate-top">
+                      <span className="fx-translate-title">{t('tr.title')}</span>
+                      <span className={`fx-translate-dot ${translation.busy ? 'on' : ''}`} aria-hidden />
+                      {translation.lines.length > 0 && (
+                        <button className="fx-translate-clear" onClick={translation.clear}>{t('tr.clear')}</button>
+                      )}
+                    </div>
+                    {translation.error ? (
+                      <p className="fx-translate-empty">{translation.error}</p>
+                    ) : translation.lines.length === 0 ? (
+                      <p className="fx-translate-empty">{translation.busy ? t('tr.listening') : t('tr.waiting')}</p>
+                    ) : (
+                      <ol className="fx-translate-lines">
+                        {translation.lines.map(l => <li key={l.id}>{l.text}</li>)}
+                      </ol>
+                    )}
+                    <p className="fx-translate-hint">{t('tr.hint')}</p>
+                  </div>
+                )}
 
                 <div className="fx-parts" aria-label={t('voice.participants')}>
                   <span className={`fx-part me ${micOn ? 'mic' : ''} ${speaking && micOn ? 'speaking' : ''}`}>
