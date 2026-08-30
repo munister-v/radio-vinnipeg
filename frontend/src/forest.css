@@ -377,6 +377,19 @@
   background: var(--line-strong); transition: background .2s;
 }
 .fx-translate-dot.on { background: var(--signal); }
+.fx-translate-tts {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-left: auto;
+  border: 1px solid var(--line-strong); background: transparent; color: var(--ink-2);
+  padding: 4px 8px; cursor: pointer;
+  font: 700 9px/1 var(--font); letter-spacing: .1em; text-transform: uppercase;
+  transition: background .16s, color .16s;
+}
+.fx-translate-tts:hover { background: var(--ink); color: var(--surface); }
+.fx-translate-tts.on { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+/* Коли кнопка голосу є, вона забирає відступ ліворуч, а «очистити» стає поруч. */
+.fx-translate-tts ~ .fx-translate-clear { margin-left: 0; }
+
 .fx-translate-clear {
   margin-left: auto; border: none; background: none; cursor: pointer;
   font: 700 9px/1 var(--font); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2);

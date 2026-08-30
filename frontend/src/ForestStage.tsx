@@ -7,6 +7,7 @@ import { useVoice } from './useVoice'
 import type { VoiceStats } from './VoicePanel'
 import { useI18n, peopleWord } from './i18n'
 import { useTranslation } from './useTranslation'
+import { useSpeech } from './useSpeech'
 import { fetchTranslationHealth } from './api'
 import { useYouTubePlayer } from './useYouTubePlayer'
 import { FX_PRESETS, fxIsActive, type FxParams } from './micFx'
@@ -27,6 +28,17 @@ function fxSame(a: FxParams, b: FxParams): boolean {
 function PlayGlyph() {
   return <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M8 5.4l12 6.6-12 6.6V5.4Z" /></svg>
 }
+function SpeakGlyph({ muted }: { muted?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden width="14" height="14">
+      <path d="M4 9.5h3.2L12 5.5v13l-4.8-4H4v-5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      {muted
+        ? <path d="m16 9.5 5 5m0-5-5 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        : <path d="M15.8 9c1.1.9 1.1 5.1 0 6M18.6 6.7c2.2 2 2.2 8.6 0 10.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />}
+    </svg>
+  )
+}
+
 function TranslateGlyph() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden width="16" height="16">
@@ -66,7 +78,7 @@ function GearGlyph() {
 export default function ForestStage({ user, onStats, room = 'lounge' }: { user: User; onStats?: (s: VoiceStats) => void; room?: string }) {
   const { t, lang } = useI18n()
   const settings = useSettings()
-  const { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, getTranslationStream } =
+  const { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, getTranslationStream, duckRemote } =
     useVoice(user.id, { volume: settings.volume, micDeviceId: settings.micDeviceId, room, fx: settings.fx })
 
   // Переклад ефіру англійською. Кнопка з'являється, тільки якщо бекенд
@@ -82,6 +94,29 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
   }, [])
   const translation = useTranslation(getTranslationStream, trOn && joined)
   useEffect(() => { if (!joined) setTrOn(false) }, [joined])
+
+  // Озвучення перекладу. Синтез робить браузер, тож це справа кожного слухача
+  // окремо: хтось слухає голосом, хтось читає текстом.
+  const [ttsOn, setTtsOn] = useState(false)
+  // Беремо say окремо: сам об'єкт хука створюється щоразу заново, і ефект
+  // нижче перезапускався б на кожен рендер.
+  const speech = useSpeech(ttsOn && trOn && joined, {
+    // Поки говорить синтез, кімнату приглушуємо: інакше два голоси накладаються.
+    onSpeakingChange: (sp) => duckRemote(sp ? 0.22 : 1),
+  })
+  const { say } = speech
+  useEffect(() => { if (!trOn || !joined) setTtsOn(false) }, [trOn, joined])
+  // Озвучуємо тільки нові рядки, і тільки якщо озвучення увімкнули ДО них:
+  // інакше при вмиканні кнопки хором пішла б уся стрічка з початку розмови.
+  const spokenRef = useRef<number>(0)
+  useEffect(() => {
+    if (!ttsOn) { spokenRef.current = translation.lines.length ? translation.lines[translation.lines.length - 1].id : 0; return }
+    for (const line of translation.lines) {
+      if (line.id <= spokenRef.current) continue
+      spokenRef.current = line.id
+      say(line.text)
+    }
+  }, [ttsOn, translation.lines, say])
 
   // Now Playing
   const [np, setNp] = useState<NowPlaying>(null)
@@ -297,6 +332,16 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                     <div className="fx-translate-top">
                       <span className="fx-translate-title">{t('tr.title')}</span>
                       <span className={`fx-translate-dot ${translation.busy ? 'on' : ''}`} aria-hidden />
+                      {speech.available && (
+                        <button
+                          className={`fx-translate-tts ${ttsOn ? 'on' : ''}`}
+                          onClick={() => setTtsOn(v => !v)}
+                          aria-pressed={ttsOn}
+                          title={ttsOn ? t('tr.voiceOn') : t('tr.voiceOff')}
+                        >
+                          <SpeakGlyph muted={!ttsOn} />{ttsOn ? t('tr.voiceOn') : t('tr.voiceOff')}
+                        </button>
+                      )}
                       {translation.lines.length > 0 && (
                         <button className="fx-translate-clear" onClick={translation.clear}>{t('tr.clear')}</button>
                       )}
@@ -310,7 +355,10 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                         {translation.lines.map(l => <li key={l.id}>{l.text}</li>)}
                       </ol>
                     )}
-                    <p className="fx-translate-hint">{t('tr.hint')}</p>
+                    <p className="fx-translate-hint">
+                      {t('tr.hint')}
+                      {ttsOn && micOn ? ' ' + t('tr.echoWarn') : ''}
+                    </p>
                   </div>
                 )}
 

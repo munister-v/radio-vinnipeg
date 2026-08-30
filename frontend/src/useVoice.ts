@@ -142,13 +142,26 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const qualityTimerRef = useRef<BgTimer | null>(null)
   const prevPacketsRef = useRef<Map<number, { lost: number; recv: number }>>(new Map())
 
+  // Приглушення на час озвучення перекладу. Тримається окремим множником, щоб
+  // не чіпати сам повзунок гучності: користувач повернеться до свого рівня.
+  const duckRef = useRef(1)
+
+  const applyPeerVolume = useCallback(() => {
+    for (const [, { audio }] of peersRef.current) {
+      audio.volume = volumeRef.current * duckRef.current
+    }
+  }, [])
+
+  const duckRemote = useCallback((factor: number) => {
+    duckRef.current = Math.max(0, Math.min(1, factor))
+    applyPeerVolume()
+  }, [applyPeerVolume])
+
   // ── Синхронізуємо volume/deviceId з opts без перестворення peers ────────────
   useEffect(() => {
     volumeRef.current = opts?.volume ?? 1
-    for (const [, { audio }] of peersRef.current) {
-      audio.volume = volumeRef.current
-    }
-  }, [opts?.volume])
+    applyPeerVolume()
+  }, [opts?.volume, applyPeerVolume])
 
   useEffect(() => {
     micDeviceIdRef.current = opts?.micDeviceId ?? ''
@@ -487,7 +500,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       })
       const audio = document.createElement('audio')
       audio.autoplay = true
-      audio.volume = volumeRef.current
+      audio.volume = volumeRef.current * duckRef.current
       ;(audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true
       audio.setAttribute('playsinline', '')
       audio.style.display = 'none'
@@ -1115,5 +1128,5 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     return ensureTranslationBus(ctx).stream
   }, [ensureTranslationBus])
 
-  return { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, getTranslationStream }
+  return { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, getTranslationStream, duckRemote }
 }
