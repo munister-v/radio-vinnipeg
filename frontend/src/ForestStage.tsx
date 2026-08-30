@@ -479,6 +479,10 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                     ) : (
                       <ol
                         className="fx-translate-lines"
+                        // Озвучує тільки нові репліки. На всій панелі aria-live
+                        // читав ще й зміну налаштувань.
+                        aria-live="polite"
+                        aria-atomic="false"
                         ref={linesRef}
                         onScroll={(e) => {
                           const el = e.currentTarget
