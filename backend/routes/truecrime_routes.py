@@ -17,9 +17,11 @@ def list_items():
         limit = int(request.args.get('limit') or 24)
     except ValueError:
         limit = 24
-    items = truecrime.get_items(limit=limit, kind=kind)
+    items = truecrime.get_items(limit=limit, kind=kind,
+                                region=request.args.get('region'))
     return jsonify({'ok': True, 'data': {
         'items': items,
         'updated_at': truecrime.updated_at(),
-        'sources': [{'slug': s, 'name': n, 'kind': k} for s, n, k, _ in truecrime.FEEDS],
+        'sources': [{'slug': s, 'name': n, 'kind': k, 'region': r}
+                    for s, n, k, r, _ in truecrime.FEEDS],
     }})

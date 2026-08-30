@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS truecrime_items (
     source       TEXT NOT NULL,
     source_slug  TEXT NOT NULL,
     media_kind   TEXT NOT NULL,
+    region       TEXT NOT NULL DEFAULT 'us',
     title        TEXT NOT NULL,
     summary      TEXT,
     link         TEXT,

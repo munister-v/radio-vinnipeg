@@ -16,7 +16,8 @@ import { useI18n } from './i18n'
 
 const REFRESH_MS = 5 * 60 * 1000
 
-type Filter = 'all' | 'video' | 'audio'
+type KindFilter = 'all' | 'video' | 'audio'
+type RegionFilter = 'all' | 'ca' | 'us'
 
 function timeAgo(epoch: number, lang: string): string {
   if (!epoch) return ''
@@ -40,22 +41,29 @@ export default function TrueCrime() {
   const { lang, t } = useI18n()
   const [items, setItems] = useState<CrimeItem[]>([])
   const [updatedAt, setUpdatedAt] = useState(0)
-  const [filter, setFilter] = useState<Filter>('all')
+  const [kindFilter, setKindFilter] = useState<KindFilter>('all')
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>('all')
   const [openVideo, setOpenVideo] = useState<string | null>(null)
   const [playingAudio, setPlayingAudio] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
+  // Фільтруємо на сервері, а не в браузері: американських роликів виходить
+  // помітно більше, і в перших 40 за датою канадських могло не бути жодного.
   const load = useCallback(async () => {
     try {
-      const feed = await fetchTrueCrime(40)
+      const feed = await fetchTrueCrime(
+        40,
+        kindFilter === 'all' ? undefined : kindFilter,
+        regionFilter === 'all' ? undefined : regionFilter,
+      )
       setItems(feed.items)
       setUpdatedAt(feed.updated_at)
       setFailed(false)
     } catch {
       setFailed(true)
     }
-  }, [])
+  }, [kindFilter, regionFilter])
 
   useEffect(() => {
     load()
@@ -86,7 +94,7 @@ export default function TrueCrime() {
     el.onended = () => setPlayingAudio(null)
   }
 
-  const shown = items.filter((i) => filter === 'all' || i.media_kind === filter)
+  const shown = items
 
   return (
     <section className="tc-root" id="cases">
@@ -97,15 +105,26 @@ export default function TrueCrime() {
           <p className="tc-sub">{t('crime.sub')}</p>
         </div>
         <div className="tc-meta">
-          <div className="tc-filters" role="tablist" aria-label={t('crime.heading')}>
-            {(['all', 'video', 'audio'] as Filter[]).map((f) => (
+          <div className="tc-filters" role="group" aria-label={t('crime.heading')}>
+            {(['all', 'ca', 'us'] as RegionFilter[]).map((f) => (
               <button
                 key={f}
                 type="button"
-                role="tab"
-                aria-selected={filter === f}
-                className={`tc-filter${filter === f ? ' on' : ''}`}
-                onClick={() => setFilter(f)}
+                aria-pressed={regionFilter === f}
+                className={`tc-filter${regionFilter === f ? ' on' : ''}`}
+                onClick={() => setRegionFilter(f)}
+              >
+                {t(`crime.region.${f}`)}
+              </button>
+            ))}
+            <span className="tc-filter-split" aria-hidden />
+            {(['all', 'video', 'audio'] as KindFilter[]).map((f) => (
+              <button
+                key={f}
+                type="button"
+                aria-pressed={kindFilter === f}
+                className={`tc-filter${kindFilter === f ? ' on' : ''}`}
+                onClick={() => setKindFilter(f)}
               >
                 {t(`crime.filter.${f}`)}
               </button>
@@ -158,6 +177,7 @@ export default function TrueCrime() {
 
                 <div className="tc-body">
                   <span className="tc-line">
+                    <span className={`tc-flag ${item.region}`}>{t(`crime.region.${item.region}`)}</span>
                     <span className="tc-source">{item.source}</span>
                     <span className="tc-dot" aria-hidden>·</span>
                     <span className="tc-kind">{t(`crime.kind.${item.media_kind}`)}</span>

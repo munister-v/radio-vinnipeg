@@ -267,6 +267,7 @@ export type CrimeItem = {
   source: string
   source_slug: string
   media_kind: 'audio' | 'video'
+  region: 'us' | 'ca'
   title: string
   summary: string | null
   link: string | null
@@ -283,8 +284,13 @@ export type CrimeFeed = {
   sources: { slug: string; name: string; kind: string }[]
 }
 
-export async function fetchTrueCrime(limit = 24, kind?: 'audio' | 'video') {
+export async function fetchTrueCrime(
+  limit = 24,
+  kind?: 'audio' | 'video',
+  region?: 'us' | 'ca',
+) {
   const q = new URLSearchParams({ limit: String(limit) })
   if (kind) q.set('kind', kind)
+  if (region) q.set('region', region)
   return request<CrimeFeed>(`/truecrime?${q.toString()}`)
 }

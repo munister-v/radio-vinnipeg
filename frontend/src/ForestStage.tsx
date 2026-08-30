@@ -211,10 +211,10 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
           <div className="fx-moon" aria-hidden />
           <PineTrees />
           <div className="fx-brand-lockup" aria-hidden>
-            <span className="fx-brand-seal">WN</span>
+            <span className="fx-brand-seal">Case file</span>
             <span className="fx-brand-copy">
               <b>Winnipeg Nights</b>
-              <small>Open radio / live rooms</small>
+              <small>Live radio / American &amp; Canadian true crime</small>
             </span>
           </div>
 

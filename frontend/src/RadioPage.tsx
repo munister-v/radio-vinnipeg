@@ -112,14 +112,22 @@ const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥']
 
 
 // Winnipeg Nights mark: compact monogram, signal arcs and night horizon.
+/**
+ * Знак станції: відбиток пальця — найпряміша true-crime емблема, і вона
+ * лишається читабельною на 15 px, бо це лише кілька концентричних дуг.
+ * Рамку малює CSS (.brand-mark), тож у самій графіці її немає.
+ */
 function BrandEmblem({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 48 48" fill="none" aria-hidden>
-      <rect x="3.5" y="3.5" width="41" height="41" stroke="currentColor" strokeWidth="2" />
-      <path d="M10 33h28" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity=".55" />
-      <path d="M13 29l5-12 5 12 5-12 7 12" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M15 13a13 13 0 0 1 18 0M11 9a19 19 0 0 1 26 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" opacity=".72" />
-      <circle cx="24" cy="37.5" r="1.9" fill="currentColor" />
+      <g stroke="currentColor" strokeLinecap="round" fill="none">
+        <path d="M7 33.5a17 20 0 0 1 34 0" strokeWidth="2" />
+        <path d="M11.5 34.5a12.5 15 0 0 1 25 0" strokeWidth="2" opacity=".85"
+              strokeDasharray="22 5" />
+        <path d="M16 35.5a8 10 0 0 1 16 0" strokeWidth="2" opacity=".7" />
+        <ellipse cx="24" cy="35.5" rx="3.4" ry="3.8" strokeWidth="2" opacity=".6" />
+        <path d="M7 33.5 6 39.5M41 33.5 42 39.5" strokeWidth="1.6" opacity=".45" />
+      </g>
     </svg>
   )
 }
@@ -267,7 +275,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
   }, [chatOpen])
 
   useEffect(() => {
-    document.title = 'Winnipeg Nights · Live radio & American true crime'
+    document.title = 'Winnipeg Nights · Live radio & North American true crime'
   }, [])
 
   useEffect(() => {

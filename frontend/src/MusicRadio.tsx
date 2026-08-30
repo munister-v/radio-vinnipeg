@@ -297,16 +297,17 @@ export default function MusicRadio() {
               <h3 className="mr-card-name">{s.name}</h3>
               <p className="mr-card-desc">{s.desc}</p>
               {isActive && error && <p className="mr-card-err">{error}</p>}
+              {/* Поки потік підключається, кнопка НЕ гасне і не міняє іконку:
+                  форма стрибала туди-сюди за секунду. Замість цього навколо
+                  кнопки крутиться тонке кільце, а сама вона лишається живою,
+                  щоб другий тап скасував підключення. */}
               <button
                 className={`mr-play ${isPlaying ? 'on' : ''} ${isLoading ? 'loading' : ''}`}
-                onClick={() => isPlaying ? stop() : play(s)}
-                disabled={isLoading}
-                aria-label={isPlaying ? 'Stop' : `Play ${s.name}`}
+                onClick={() => (isPlaying || isLoading) ? stop() : play(s)}
+                aria-busy={isLoading}
+                aria-label={isPlaying ? 'Stop' : isLoading ? 'Cancel' : `Play ${s.name}`}
               >
-                <span
-                  className={`mr-play-icon ${isLoading ? 'loading' : isPlaying ? 'pause' : 'play'}`}
-                  aria-hidden
-                />
+                <span className={`mr-play-icon ${isPlaying ? 'pause' : 'play'}`} aria-hidden />
               </button>
             </div>
           )

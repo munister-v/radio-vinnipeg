@@ -70,6 +70,11 @@ def run_migrations() -> None:
         if 'city' not in ucols:
             conn.execute("ALTER TABLE users ADD COLUMN city TEXT DEFAULT ''")
 
+        # Стрічка true crime: регіон джерела додано пізніше за саму таблицю.
+        tcols = {r['name'] for r in conn.execute('PRAGMA table_info(truecrime_items)').fetchall()}
+        if tcols and 'region' not in tcols:
+            conn.execute("ALTER TABLE truecrime_items ADD COLUMN region TEXT NOT NULL DEFAULT 'us'")
+
         conn.execute("UPDATE rooms SET title = REPLACE(title, 'Vinnipeg', 'Winnipeg')")
         _seed_rooms(conn)
 

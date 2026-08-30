@@ -34,18 +34,26 @@ PER_FEED_LIMIT = 12            # скільки свіжих записів бр
 KEEP_ITEMS = 240               # скільки записів тримати в БД
 USER_AGENT = 'WinnipegNights/1.0 (+https://radio.munister.com.ua)'
 
-# slug, назва, вид медіа, URL стрічки
+# slug, назва, вид медіа, регіон, URL стрічки.
+# Регіон — щоб канадське можна було відфільтрувати окремо: станція з Вінніпега,
+# і сусідські справи тут доречні не менше за американські.
 FEEDS = (
-    ('court-tv',    'Court TV',        'video',
+    ('court-tv',     'Court TV',              'video', 'us',
      'https://www.youtube.com/feeds/videos.xml?channel_id=UCo5E9pEhK_9kWG7-5HHcyRg'),
-    ('law-crime',   'Law&Crime',       'video',
+    ('law-crime',    'Law&Crime',             'video', 'us',
      'https://www.youtube.com/feeds/videos.xml?channel_id=UCz8K1occVvDTYDfFo7N5EZw'),
-    ('dateline',    'Dateline NBC',    'audio',
+    ('fifth-estate', 'The Fifth Estate',      'video', 'ca',
+     'https://www.youtube.com/feeds/videos.xml?channel_id=UCa-bX3gZC3YnCThlGM5d38Q'),
+    ('dateline',     'Dateline NBC',          'audio', 'us',
      'https://podcastfeeds.nbcnews.com/dateline-nbc'),
-    ('48-hours',    '48 Hours',        'audio',
+    ('48-hours',     '48 Hours',              'audio', 'us',
      'https://rss.art19.com/48-hours'),
-    ('crime-junkie', 'Crime Junkie',   'audio',
+    ('crime-junkie', 'Crime Junkie',          'audio', 'us',
      'https://feeds.simplecast.com/qm_9xx0g'),
+    ('cbc-uncover',  'CBC Uncover',           'audio', 'ca',
+     'https://www.cbc.ca/podcasting/includes/uncover.xml'),
+    ('cbc-sks',      'Someone Knows Something', 'audio', 'ca',
+     'https://www.cbc.ca/podcasting/includes/sks.xml'),
 )
 
 NS = {
@@ -105,7 +113,7 @@ def _fetch(url: str) -> bytes | None:
 
 # ── Парсери ─────────────────────────────────────────────────────────────────
 
-def _parse_youtube(root: ET.Element, slug: str, source: str) -> list[dict]:
+def _parse_youtube(root: ET.Element, slug: str, source: str, region: str) -> list[dict]:
     items: list[dict] = []
     for entry in root.findall('atom:entry', NS)[:PER_FEED_LIMIT]:
         vid = entry.findtext('yt:videoId', default='', namespaces=NS)
@@ -118,6 +126,7 @@ def _parse_youtube(root: ET.Element, slug: str, source: str) -> list[dict]:
             'source': source,
             'source_slug': slug,
             'media_kind': 'video',
+            'region': region,
             'title': _clean(entry.findtext('atom:title', default='', namespaces=NS), 200),
             'summary': _clean(group.findtext('media:description', default='', namespaces=NS)
                               if group is not None else ''),
@@ -132,7 +141,7 @@ def _parse_youtube(root: ET.Element, slug: str, source: str) -> list[dict]:
     return items
 
 
-def _parse_rss(root: ET.Element, slug: str, source: str) -> list[dict]:
+def _parse_rss(root: ET.Element, slug: str, source: str, region: str) -> list[dict]:
     channel = root.find('channel')
     if channel is None:
         return []
@@ -157,6 +166,7 @@ def _parse_rss(root: ET.Element, slug: str, source: str) -> list[dict]:
             'source': source,
             'source_slug': slug,
             'media_kind': 'audio',
+            'region': region,
             'title': _clean(item.findtext('title'), 200),
             'summary': _clean(item.findtext('description')
                               or item.findtext('content:encoded', namespaces=NS)),
@@ -170,14 +180,14 @@ def _parse_rss(root: ET.Element, slug: str, source: str) -> list[dict]:
     return items
 
 
-def _parse(raw: bytes, slug: str, source: str) -> list[dict]:
+def _parse(raw: bytes, slug: str, source: str, region: str) -> list[dict]:
     try:
         root = ET.fromstring(raw)
     except ET.ParseError:
         return []
     if root.tag.endswith('}feed'):        # Atom (YouTube)
-        return _parse_youtube(root, slug, source)
-    return _parse_rss(root, slug, source)
+        return _parse_youtube(root, slug, source, region)
+    return _parse_rss(root, slug, source, region)
 
 
 # ── Оновлення ───────────────────────────────────────────────────────────────
@@ -186,10 +196,10 @@ def refresh() -> int:
     """Тягне всі стрічки й записує нові елементи. Повертає їх кількість."""
     now = time.time()
     fetched: list[dict] = []
-    for slug, source, _kind, url in FEEDS:
+    for slug, source, _kind, region, url in FEEDS:
         raw = _fetch(url)
         if raw:
-            fetched.extend(_parse(raw, slug, source))
+            fetched.extend(_parse(raw, slug, source, region))
 
     if not fetched:
         # Мережа лягла — не чіпаємо кеш, лише зсуваємо мітку, щоб не
@@ -201,15 +211,15 @@ def refresh() -> int:
         for it in fetched:
             conn.execute(
                 """INSERT INTO truecrime_items
-                     (guid, source, source_slug, media_kind, title, summary, link,
+                     (guid, source, source_slug, media_kind, region, title, summary, link,
                       image, media_url, video_id, duration, published_at, fetched_at)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                    ON CONFLICT(guid) DO UPDATE SET
                      title=excluded.title, summary=excluded.summary,
                      image=excluded.image, link=excluded.link,
                      media_url=excluded.media_url, fetched_at=excluded.fetched_at""",
                 (it['guid'], it['source'], it['source_slug'], it['media_kind'],
-                 it['title'], it['summary'], it['link'], it['image'],
+                 it['region'], it['title'], it['summary'], it['link'], it['image'],
                  it['media_url'], it['video_id'], it['duration'],
                  it['published_at'], now),
             )
@@ -267,12 +277,19 @@ def ensure_fresh(force: bool = False) -> None:
     threading.Thread(target=worker, name='truecrime-refresh', daemon=True).start()
 
 
-def get_items(limit: int = 24, kind: str | None = None) -> list[dict]:
+def get_items(limit: int = 24, kind: str | None = None,
+              region: str | None = None) -> list[dict]:
     sql = 'SELECT * FROM truecrime_items'
+    where: list[str] = []
     params: list = []
     if kind in ('audio', 'video'):
-        sql += ' WHERE media_kind = %s'
+        where.append('media_kind = %s')
         params.append(kind)
+    if region in ('us', 'ca'):
+        where.append('region = %s')
+        params.append(region)
+    if where:
+        sql += ' WHERE ' + ' AND '.join(where)
     sql += ' ORDER BY published_at DESC LIMIT %s'
     params.append(max(1, min(limit, 60)))
     with get_connection() as conn:
