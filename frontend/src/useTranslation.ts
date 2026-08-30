@@ -24,10 +24,10 @@ import { transcribeChunk } from './api'
 
 export type TranscriptLine = { id: number; text: string; at: number }
 
-const TAKE_MS = 6000
 const MAX_LINES = 40
 // Бекенд тримає ліміт 24 запити за 60 секунд. Дубль на шість секунд дає до
-// десяти запитів за хвилину - є запас.
+// десяти запитів за хвилину - є запас. Найкоротший з доступних, чотири
+// секунди, дає п'ятнадцять - теж у межах.
 const MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
 // Поріг тиші. Рахуємо по хвилі, а не по розмірі файлу: розмір залежить від
 // кодека й бітрейта, а RMS - ні. Поріг низький навмисно: пропустити тиху
@@ -40,7 +40,7 @@ function pickMime(): string | null {
   return null
 }
 
-export function useTranslation(getStream: () => MediaStream | null, enabled: boolean) {
+export function useTranslation(getStream: () => MediaStream | null, enabled: boolean, takeMs = 6000) {
   const [lines, setLines] = useState<TranscriptLine[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -135,7 +135,7 @@ export function useTranslation(getStream: () => MediaStream | null, enabled: boo
         take()
       }
       try { rec.start() } catch { setError('Не вдалося почати запис для перекладу.'); return }
-      timer = window.setTimeout(() => { try { rec?.stop() } catch { /* ignore */ } }, TAKE_MS)
+      timer = window.setTimeout(() => { try { rec?.stop() } catch { /* ignore */ } }, takeMs)
     }
 
     take()
@@ -153,7 +153,7 @@ export function useTranslation(getStream: () => MediaStream | null, enabled: boo
       inFlightRef.current = false
       setBusy(false)
     }
-  }, [enabled, getStream, push])
+  }, [enabled, getStream, push, takeMs])
 
   const clear = useCallback(() => setLines([]), [])
 

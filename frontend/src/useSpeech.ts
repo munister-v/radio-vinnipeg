@@ -19,12 +19,20 @@ function supported(): boolean {
   return typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined'
 }
 
-function pickVoice(): SpeechSynthesisVoice | null {
-  if (!supported()) return null
-  const voices = window.speechSynthesis.getVoices()
-  if (!voices.length) return null
-  const en = voices.filter(v => /^en(-|_|$)/i.test(v.lang))
+export function englishVoices(): SpeechSynthesisVoice[] {
+  if (!supported()) return []
+  return window.speechSynthesis.getVoices().filter(v => /^en(-|_|$)/i.test(v.lang))
+}
+
+function pickVoice(preferURI: string): SpeechSynthesisVoice | null {
+  const en = englishVoices()
   if (!en.length) return null
+  // Явний вибір користувача важливіший за будь-який підбір, але голос міг
+  // зникнути разом із мовним пакетом - тоді мовчки повертаємось до підбору.
+  if (preferURI) {
+    const exact = en.find(v => v.voiceURI === preferURI)
+    if (exact) return exact
+  }
   // Локальний голос звучить рівніше і не залежить від мережі.
   return en.find(v => v.localService && /en-US/i.test(v.lang))
     ?? en.find(v => v.localService)
@@ -35,11 +43,18 @@ function pickVoice(): SpeechSynthesisVoice | null {
 type Opts = {
   /** Кличемо перед фразою і після неї - щоб приглушити кімнату на час озвучення. */
   onSpeakingChange?: (speaking: boolean) => void
+  /** voiceURI обраного голосу; порожній рядок - підібрати самому. */
+  voiceURI?: string
+  /** Швидкість мовлення, 0.8-1.4. */
+  rate?: number
 }
 
 export function useSpeech(enabled: boolean, opts?: Opts) {
   const [available, setAvailable] = useState(false)
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null)
+  const rateRef = useRef(opts?.rate ?? 1.05)
+  rateRef.current = opts?.rate ?? 1.05
   const queueRef = useRef<string[]>([])
   const speakingRef = useRef(false)
   const onChangeRef = useRef(opts?.onSpeakingChange)
@@ -49,13 +64,14 @@ export function useSpeech(enabled: boolean, opts?: Opts) {
   useEffect(() => {
     if (!supported()) { setAvailable(false); return }
     const load = () => {
-      voiceRef.current = pickVoice()
+      setVoices(englishVoices())
+      voiceRef.current = pickVoice(opts?.voiceURI ?? '')
       setAvailable(!!voiceRef.current)
     }
     load()
     window.speechSynthesis.addEventListener?.('voiceschanged', load)
     return () => window.speechSynthesis.removeEventListener?.('voiceschanged', load)
-  }, [])
+  }, [opts?.voiceURI])
 
   const pump = useCallback(() => {
     if (!supported() || speakingRef.current) return
@@ -64,7 +80,7 @@ export function useSpeech(enabled: boolean, opts?: Opts) {
     const u = new SpeechSynthesisUtterance(next)
     if (voiceRef.current) { u.voice = voiceRef.current; u.lang = voiceRef.current.lang }
     else u.lang = 'en-US'
-    u.rate = 1.05
+    u.rate = rateRef.current
     const done = () => {
       speakingRef.current = false
       onChangeRef.current?.(false)
@@ -103,5 +119,5 @@ export function useSpeech(enabled: boolean, opts?: Opts) {
   useEffect(() => { if (!enabled) stop() }, [enabled, stop])
   useEffect(() => stop, [stop])
 
-  return { say, stop, available }
+  return { say, stop, available, voices }
 }

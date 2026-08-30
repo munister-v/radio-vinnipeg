@@ -92,20 +92,32 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
       .catch(() => { if (alive) setTrAvailable(false) })
     return () => { alive = false }
   }, [])
-  const translation = useTranslation(getTranslationStream, trOn && joined)
+  const translation = useTranslation(getTranslationStream, trOn && joined, settings.trTakeMs)
   useEffect(() => { if (!joined) setTrOn(false) }, [joined])
 
   // Озвучення перекладу. Синтез робить браузер, тож це справа кожного слухача
   // окремо: хтось слухає голосом, хтось читає текстом.
-  const [ttsOn, setTtsOn] = useState(false)
+  const [cfgOpen, setCfgOpen] = useState(false)
+  const ttsOn = settings.trMode !== 'text'
   // Беремо say окремо: сам об'єкт хука створюється щоразу заново, і ефект
   // нижче перезапускався б на кожен рендер.
   const speech = useSpeech(ttsOn && trOn && joined, {
-    // Поки говорить синтез, кімнату приглушуємо: інакше два голоси накладаються.
-    onSpeakingChange: (sp) => duckRemote(sp ? 0.22 : 1),
+    voiceURI: settings.trVoiceURI,
+    rate: settings.trRate,
+    // У режимі «тільки переклад» кімната приглушена весь час, тож на фразу
+    // нічого перемикати не треба - інакше гучність смикалася б туди-сюди.
+    onSpeakingChange: settings.trMode === 'mix'
+      ? (sp) => duckRemote(sp ? settings.trDuck : 1)
+      : undefined,
   })
   const { say } = speech
-  useEffect(() => { if (!trOn || !joined) setTtsOn(false) }, [trOn, joined])
+  // Режим «тільки переклад»: оригінал притишений, поки переклад увімкнений.
+  useEffect(() => {
+    if (!(trOn && joined)) { duckRemote(1); return }
+    if (settings.trMode === 'voice') duckRemote(settings.trDuck)
+    else if (settings.trMode === 'text') duckRemote(1)
+    return () => duckRemote(1)
+  }, [trOn, joined, settings.trMode, settings.trDuck, duckRemote])
   // Озвучуємо тільки нові рядки, і тільки якщо озвучення увімкнули ДО них:
   // інакше при вмиканні кнопки хором пішла б уся стрічка з початку розмови.
   const spokenRef = useRef<number>(0)
@@ -335,17 +347,99 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                       {speech.available && (
                         <button
                           className={`fx-translate-tts ${ttsOn ? 'on' : ''}`}
-                          onClick={() => setTtsOn(v => !v)}
+                          onClick={() => settings.setTrMode(ttsOn ? 'text' : 'mix')}
                           aria-pressed={ttsOn}
                           title={ttsOn ? t('tr.voiceOn') : t('tr.voiceOff')}
                         >
                           <SpeakGlyph muted={!ttsOn} />{ttsOn ? t('tr.voiceOn') : t('tr.voiceOff')}
                         </button>
                       )}
+                      <button
+                        className={`fx-translate-cfg-btn ${cfgOpen ? 'on' : ''}`}
+                        onClick={() => setCfgOpen(v => !v)}
+                        aria-expanded={cfgOpen}
+                        title={t('tr.settings')}
+                      >{t('tr.settings')}</button>
                       {translation.lines.length > 0 && (
                         <button className="fx-translate-clear" onClick={translation.clear}>{t('tr.clear')}</button>
                       )}
                     </div>
+                    {cfgOpen && (
+                      <div className="fx-translate-cfg">
+                        <div className="fx-cfg-row">
+                          <span className="fx-cfg-label">{t('tr.cfgSound')}</span>
+                          <div className="fx-cfg-seg">
+                            {([['text', t('tr.modeText')], ['mix', t('tr.modeMix')], ['voice', t('tr.modeVoice')]] as const).map(([m, label]) => (
+                              <button
+                                key={m}
+                                className={settings.trMode === m ? 'on' : ''}
+                                onClick={() => settings.setTrMode(m)}
+                                aria-pressed={settings.trMode === m}
+                                disabled={m !== 'text' && !speech.available}
+                              >{label}</button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {settings.trMode !== 'text' && speech.voices.length > 1 && (
+                          <div className="fx-cfg-row">
+                            <span className="fx-cfg-label">{t('tr.cfgVoice')}</span>
+                            <select
+                              className="fx-cfg-select"
+                              value={settings.trVoiceURI}
+                              onChange={(e) => settings.setTrVoiceURI(e.target.value)}
+                            >
+                              <option value="">{t('tr.voiceAuto')}</option>
+                              {speech.voices.map(v => (
+                                <option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {settings.trMode !== 'text' && (
+                          <div className="fx-cfg-row">
+                            <span className="fx-cfg-label">{t('tr.cfgRate')}</span>
+                            <input
+                              className="fx-cfg-range" type="range" min={0.8} max={1.4} step={0.05}
+                              value={settings.trRate}
+                              onChange={(e) => settings.setTrRate(parseFloat(e.target.value))}
+                            />
+                            <span className="fx-cfg-val">{settings.trRate.toFixed(2)}×</span>
+                          </div>
+                        )}
+
+                        {settings.trMode !== 'text' && (
+                          <div className="fx-cfg-row">
+                            <span className="fx-cfg-label">
+                              {settings.trMode === 'voice' ? t('tr.cfgRoomAlways') : t('tr.cfgRoomWhile')}
+                            </span>
+                            <input
+                              className="fx-cfg-range" type="range" min={0} max={1} step={0.02}
+                              value={settings.trDuck}
+                              onChange={(e) => settings.setTrDuck(parseFloat(e.target.value))}
+                            />
+                            <span className="fx-cfg-val">{Math.round(settings.trDuck * 100)}%</span>
+                          </div>
+                        )}
+
+                        <div className="fx-cfg-row">
+                          <span className="fx-cfg-label">{t('tr.cfgTake')}</span>
+                          <div className="fx-cfg-seg">
+                            {[4000, 6000, 10000].map(ms => (
+                              <button
+                                key={ms}
+                                className={settings.trTakeMs === ms ? 'on' : ''}
+                                onClick={() => settings.setTrTakeMs(ms)}
+                                aria-pressed={settings.trTakeMs === ms}
+                              >{ms / 1000}s</button>
+                            ))}
+                          </div>
+                        </div>
+                        <p className="fx-cfg-note">{t('tr.cfgTakeNote')}</p>
+                      </div>
+                    )}
+
                     {translation.error ? (
                       <p className="fx-translate-empty">{translation.error}</p>
                     ) : translation.lines.length === 0 ? (
