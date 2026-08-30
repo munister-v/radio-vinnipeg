@@ -1,0 +1,862 @@
+/* ════════════════════════════════════════════════════════════════════════
+   WINNIPEG NIGHTS · MUSEUM DARK
+   Айдентика знята з museum.eprisjournal.com і перекладена в темну тему:
+   швейцарська сітка з волосяними лініями, крихітні мітки, серифний
+   вордмарк із широким трекінгом, гострі кути, таблиця цифр, багато повітря.
+   Файл підвантажується ОСТАННІМ (див. main.tsx) — виграє за порядком.
+   ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── папір і чорнило ── */
+  --paper-0:  #070707;   /* найглибший — шапка, підвал */
+  --paper:    #0d0d0d;   /* сторінка */
+  --tint:     #141414;   /* панель, підсвічений рядок */
+  --tint-2:   #1b1b1b;   /* активна панель */
+
+  --ink:      #f2f1ef;
+  --ink-2:    #9d9d97;
+  --ink-3:    #6b6b65;
+  --soft:     rgba(242, 241, 239, .72);
+
+  --hair:        rgba(242, 241, 239, .13);
+  --hair-strong: rgba(242, 241, 239, .26);
+  --signal:      #e2402f;
+
+  /* ── шрифти: сан для тексту, сериф для вордмарка й назв ── */
+  --sans:  "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --mono:  "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ── кегль: один ряд, як у музеї ── */
+  --t-xs: 11px; --t-sm: 13px; --t-md: 15px; --t-lg: 19px; --t-xl: 24px; --t-2xl: 30px;
+  --t-display: clamp(34px, 4.6vw, 62px);
+
+  /* ── відступи ── */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
+  --s6: 32px; --s7: 48px; --s8: 72px; --s9: 96px;
+
+  --edge: clamp(16px, 3vw, 40px);   /* крайня лінія сітки */
+  --gutter: 20px;                   /* відбивка тексту від лінії */
+  --pad: calc(var(--edge) + var(--gutter));
+  --ease: cubic-bezier(.2, 0, 0, 1);
+
+  /* ── сумісність зі старими іменами в App.css / forest.css ── */
+  --surface:   var(--paper-0);
+  --surface-2: var(--paper);
+  --surface-3: var(--tint);
+  --line:        var(--hair);
+  --line-strong: var(--hair-strong);
+  --gold: var(--ink);
+  --white: var(--tint);
+  --muted: var(--ink-3);
+  --display: var(--sans);
+  --font: var(--sans);
+
+  color-scheme: dark;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--t-md);
+  line-height: 1.45;
+  letter-spacing: -.004em;
+}
+
+/* Гострі кути всюди; кругле лишається тільки там, де це «пігулка». */
+.radio-shell :where(button, input, section, div, a, span, img, form, li, code) { border-radius: 0; }
+::selection { background: var(--ink); color: var(--paper-0); }
+:focus-visible { outline: 1px solid var(--ink); outline-offset: 4px; }
+
+/* ══ Волосяна сітка сторінки — підпис музею ═════════════════════════ */
+.radio-shell { position: relative; background: var(--paper); }
+.radio-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 40;                 /* лінії лежать ПОВЕРХ секцій: у них свій фон */
+  pointer-events: none;
+  background:
+    linear-gradient(var(--hair), var(--hair)) var(--edge) 0 / 1px 100% no-repeat,
+    linear-gradient(var(--hair), var(--hair)) 19.5% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--hair), var(--hair)) 51.5% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--hair), var(--hair)) calc(100% - var(--edge)) 0 / 1px 100% no-repeat;
+  opacity: .5;
+}
+/* Дітям shell НЕ задаємо position — .chat-layer лишається fixed;
+   лінії й так лежать вище (z-index: 40). */
+@media (max-width: 820px) { .radio-shell::before { display: none; } }
+
+/* ══ Шапка ═════════════════════════════════════════════════════════ */
+.radio-shell .topbar {
+  height: 56px;
+  background: rgba(7, 7, 7, .92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--hair);
+}
+.radio-shell .topbar-inner { padding: 0 var(--pad); gap: var(--s5); }
+
+.radio-shell .brand { gap: var(--s3); }
+.radio-shell .brand-mark,
+.radio-shell .brand:hover .brand-mark {
+  width: 26px; height: 26px;
+  background: transparent;
+  border: 1px solid var(--hair-strong);
+  color: var(--ink);
+  opacity: 1;
+}
+.radio-shell .brand-mark svg { width: 15px; height: 15px; }
+.radio-shell .brand:hover .brand-mark { border-color: var(--ink); }
+.radio-shell .brand-eyebrow { display: none; }
+/* Вордмарк: сериф, широкий трекінг, від'ємний word-spacing гасить
+   подвійний розрив між словами (той самий прийом, що в музеї). */
+.radio-shell .brand-name {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: .24em;
+  word-spacing: -.15em;
+  margin-right: -.24em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.radio-shell .topbar-nav { justify-content: flex-start; padding-left: var(--s7); gap: var(--s5); }
+.radio-shell .topbar-nav a,
+.radio-shell .topbar-nav button {
+  height: 56px;
+  padding: 0;
+  font-family: var(--sans);
+  font-size: var(--t-xs);
+  font-weight: 400;
+  letter-spacing: .02em;
+  text-transform: none;
+  color: var(--ink-2);
+}
+.radio-shell .topbar-nav a:hover,
+.radio-shell .topbar-nav button:hover { color: var(--ink); }
+
+.radio-shell .topbar-right { gap: var(--s4); }
+.radio-shell .lang-switch { border: 1px solid var(--hair); }
+.radio-shell .lang-switch button {
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .06em;
+  padding: 5px 9px;
+  color: var(--ink-3);
+}
+.radio-shell .lang-switch button + button { border-left: 1px solid var(--hair); }
+.radio-shell .lang-switch button:hover { background: transparent; color: var(--ink); }
+.radio-shell .lang-switch button.on { background: var(--ink); color: var(--paper-0); }
+
+.radio-shell .online-pill,
+.radio-shell .nick-chip,
+.radio-shell .conn-tray {
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .02em;
+  text-transform: none;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.radio-shell .nick-chip:hover { background: var(--tint); color: var(--ink); }
+.radio-shell .nick-edit-icon { color: var(--ink-3); }
+.radio-shell .online-pill .dot-live { background: var(--signal); }
+
+/* ══ Смуга кімнат — «покажчик залів» ═══════════════════════════════ */
+.radio-shell .rooms-bar {
+  background: var(--paper-0);
+  border-bottom: 1px solid var(--hair);
+  padding: 0 var(--pad);
+  gap: 0;
+}
+.radio-shell .room-link-group { border-right: 1px solid var(--hair); }
+.radio-shell .room-tab {
+  background: transparent;
+  border: 0;
+  padding: var(--s4) var(--s5) var(--s4) var(--s4);
+  color: var(--ink-2);
+  transition: color .18s var(--ease), background .18s var(--ease);
+}
+.radio-shell .room-tab:hover { background: var(--tint); color: var(--ink); }
+.radio-shell .room-tab.active { background: var(--tint); color: var(--ink); }
+.radio-shell .room-link-group.active { box-shadow: inset 0 -1px 0 var(--ink); }
+.radio-shell .room-tab-hash { color: var(--ink-3); font-family: var(--serif); }
+.radio-shell .room-tab-name {
+  font-family: var(--sans);
+  font-size: var(--t-sm);
+  font-weight: 400;
+  letter-spacing: -.01em;
+  text-transform: none;
+}
+.radio-shell .room-tab-meta {
+  font-size: var(--t-xs);
+  letter-spacing: .02em;
+  color: var(--ink-3);
+  text-transform: none;
+}
+.radio-shell .room-tab-live {
+  background: var(--signal); color: #fff;
+  font: 400 10px/1 var(--sans); letter-spacing: .06em;
+  padding: 3px 5px;
+}
+.radio-shell .room-link-btn { color: var(--ink-3); border-left: 1px solid var(--hair); }
+.radio-shell .room-link-btn:hover { color: var(--ink); background: var(--tint); }
+.radio-shell .room-tab-add { color: var(--ink-3); }
+
+/* ══ Шапка кімнати — перший екран у стилі музейного fold ═══════════ */
+.radio-shell .room-summary {
+  background: var(--paper);
+  border-bottom: 1px solid var(--hair);
+  padding: var(--s7) var(--pad) var(--s6);
+  align-items: flex-end;
+  gap: var(--s6);
+}
+.radio-shell .room-summary-kicker {
+  font: 400 var(--t-xs)/1.5 var(--sans);
+  letter-spacing: .02em;
+  color: var(--ink-3);
+  text-transform: none;
+}
+.radio-shell .room-summary h2 {
+  margin: var(--s3) 0 0;
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: var(--t-2xl);
+  line-height: 1.06;
+  letter-spacing: -.025em;
+  color: var(--ink);
+  text-transform: none;
+}
+.radio-shell .room-summary p {
+  margin: var(--s2) 0 0;
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+}
+.radio-shell .room-summary-actions { gap: var(--s2); align-items: center; }
+.radio-shell .room-summary-actions code {
+  font: 400 var(--t-xs)/1 var(--mono);
+  color: var(--ink-3);
+  background: transparent;
+  border: 0;
+  padding-right: var(--s2);
+}
+/* Пігулки — єдина кругла форма в макеті, як у музеї. */
+.radio-shell .room-summary-actions button {
+  border-radius: 40px;
+  border: 1px solid var(--hair-strong);
+  background: transparent;
+  color: var(--ink);
+  padding: var(--s2) var(--s4);
+  font: 400 var(--t-sm)/1 var(--sans);
+  letter-spacing: -.004em;
+  text-transform: none;
+  transition: background .18s var(--ease), color .18s var(--ease), border-color .18s var(--ease);
+}
+.radio-shell .room-summary-actions button:hover {
+  background: var(--ink); color: var(--paper-0); border-color: var(--ink);
+}
+.radio-shell .room-summary-actions button:last-child {
+  background: var(--ink); color: var(--paper-0); border-color: var(--ink);
+}
+.radio-shell .room-summary-actions button:last-child:hover { opacity: .82; }
+
+/* ══ Ефір ══════════════════════════════════════════════════════════ */
+.radio-shell .fx-stage { background: var(--paper); min-height: 0; }
+
+.radio-shell .fx-livebar {
+  height: 44px;
+  background: var(--paper-0);
+  border-bottom: 1px solid var(--hair);
+  border-top: 1px solid var(--hair);
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .02em;
+  text-transform: none;
+  padding-left: var(--edge);
+}
+.radio-shell .fx-lb-label { border-right: 1px solid var(--hair); color: var(--ink-2); gap: var(--s2); }
+.radio-shell .fx-chan { border-right: 1px solid var(--hair); color: var(--ink); text-transform: none; }
+.radio-shell .fx-chan:hover:not(:disabled) { background: var(--tint); }
+.radio-shell .fx-chan-n {
+  width: 16px; height: 16px;
+  background: transparent;
+  border: 1px solid var(--hair-strong);
+  color: var(--ink-2);
+  font: 400 10px/1 var(--sans);
+  font-variant-numeric: tabular-nums;
+}
+.radio-shell .fx-chan-loc,
+.radio-shell .fx-lb-tail { color: var(--ink-3); }
+.radio-shell .fx-lb-tail { border-left: 1px solid var(--hair); padding-right: var(--edge); }
+
+.radio-shell .fx-grid { grid-template-columns: 51.5% 1fr; }
+
+/* Сцена, як музейний fold: смуга-знімок зверху (знебарвлена, притоплена),
+   під нею — плаский титул на папері. Жодних скляних карток одна на одній. */
+.radio-shell .fx-feature {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border-right: 1px solid var(--hair);
+  background: var(--paper);
+  background-image: none;
+  min-height: clamp(420px, 52vh, 560px);
+}
+.radio-shell .fx-feature::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: clamp(200px, 30vh, 340px);
+  z-index: 0;
+  background-image: url('/slots/hero-battle.jpg');
+  background-size: cover;
+  background-position: center 28%;
+  filter: grayscale(1) contrast(.92) brightness(.46);
+}
+.radio-shell .fx-feature::after {
+  inset: 0 0 auto 0;
+  height: clamp(200px, 30vh, 340px);
+  z-index: 1;
+  opacity: 1;
+  background-image: linear-gradient(180deg, rgba(7,7,7,.30) 0%, rgba(7,7,7,.10) 45%, var(--paper) 100%);
+  background-size: auto;
+}
+
+.radio-shell .fx-moon { display: none; }
+.radio-shell .fx-preview-card { display: none; }   /* дубль титулу — прибрано */
+.radio-shell .fx-brand-lockup {
+  z-index: 5;
+  top: var(--s5);
+  left: var(--pad);
+  gap: var(--s3);
+}
+.radio-shell .fx-brand-seal {
+  background: transparent;
+  border: 1px solid rgba(242, 241, 239, .5);
+  color: var(--ink);
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .1em;
+}
+.radio-shell .fx-brand-copy { gap: 3px; text-transform: none; }
+.radio-shell .fx-brand-copy b {
+  font: 400 var(--t-xs)/1.4 var(--sans);
+  letter-spacing: .02em;
+  color: rgba(242, 241, 239, .9);
+}
+.radio-shell .fx-brand-copy small {
+  font: 400 var(--t-xs)/1.4 var(--sans);
+  letter-spacing: .02em;
+  color: rgba(242, 241, 239, .55);
+}
+
+/* Дек стає звичайним блоком у потоці — це і є перший екран. */
+.radio-shell .fx-deck,
+.radio-shell .fx-np {
+  position: static;
+  width: auto;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  padding: var(--s6) var(--pad) 0;
+}
+.radio-shell .fx-np { padding-bottom: var(--s6); }
+.radio-shell .fx-deck { padding-bottom: var(--s7); }
+.radio-shell .fx-deck-idle { align-items: flex-start; gap: var(--s5); }
+.radio-shell .fx-deck-text { gap: var(--s3); }
+.radio-shell .fx-deck-kicker,
+.radio-shell .fx-preview-kicker {
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .02em;
+  text-transform: none;
+  color: var(--ink-3);
+}
+.radio-shell .fx-deck-kicker i { background: var(--ink-3); }
+.radio-shell .fx-deck-kicker i.on { background: var(--signal); }
+/* Титул — той самий кегль і трекінг, що в музейному fold. */
+.radio-shell .fx-deck-title {
+  font: 400 var(--t-display)/1.04 var(--sans);
+  letter-spacing: -.026em;
+  text-transform: none;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.radio-shell .fx-deck-desc {
+  font: 400 var(--t-lg)/1.38 var(--sans);
+  letter-spacing: -.012em;
+  color: var(--soft);
+  max-width: 42ch;
+}
+.radio-shell .fx-play {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper-0);
+  margin-top: var(--s2);
+}
+.radio-shell .fx-play svg { width: 20px; height: 20px; }
+.radio-shell .fx-play:hover { background: transparent; color: var(--ink); }
+.radio-shell .fx-play-ring { border-color: rgba(242, 241, 239, .35); border-radius: 50%; }
+
+.radio-shell .fx-deck-live-title {
+  font: 400 var(--t-lg)/1.2 var(--sans);
+  letter-spacing: -.02em;
+  text-transform: none;
+  color: var(--ink);
+}
+.radio-shell .fx-deck-live-status {
+  font: 400 var(--t-xs)/1.4 var(--sans);
+  letter-spacing: .02em;
+  text-transform: none;
+  color: var(--ink-3);
+}
+.radio-shell .fx-gear { border: 1px solid var(--hair); border-radius: 50%; }
+.radio-shell .fx-gear:hover { background: var(--ink); color: var(--paper-0); }
+.radio-shell .fx-mic,
+.radio-shell .fx-leave,
+.radio-shell .fx-unlock,
+.radio-shell .fx-np-add {
+  border-radius: 40px;
+  border: 1px solid var(--hair-strong);
+  background: transparent;
+  color: var(--ink);
+  font: 400 var(--t-sm)/1 var(--sans);
+  letter-spacing: -.004em;
+  text-transform: none;
+}
+.radio-shell .fx-mic:hover,
+.radio-shell .fx-leave:hover,
+.radio-shell .fx-unlock:hover,
+.radio-shell .fx-np-add:hover { background: var(--ink); color: var(--paper-0); border-color: var(--ink); }
+.radio-shell .fx-mic.live { background: var(--signal); border-color: var(--signal); color: #fff; }
+.radio-shell .fx-wave i { background: var(--hair-strong); }
+.radio-shell .fx-wave.live i { background: var(--ink); }
+.radio-shell .fx-rack,
+.radio-shell .fx-np-form { border: 1px solid var(--hair); background: transparent; }
+.radio-shell .fx-rack-label,
+.radio-shell .fx-knob-name,
+.radio-shell .fx-vol-val,
+.radio-shell .fx-knob-val {
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .02em;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+}
+.radio-shell .fx-preset {
+  border-radius: 40px;
+  border: 1px solid var(--hair);
+  background: transparent;
+  color: var(--ink-2);
+  font: 400 var(--t-xs)/1 var(--sans);
+}
+.radio-shell .fx-preset.on { background: var(--ink); color: var(--paper-0); border-color: var(--ink); }
+.radio-shell .fx-np-label,
+.radio-shell .fx-np-title {
+  font: 400 var(--t-sm)/1.4 var(--sans);
+  letter-spacing: -.004em;
+  text-transform: none;
+  color: var(--ink-2);
+}
+
+/* ── Рейка слотів: музейний список залів замість фотоплиток ── */
+.radio-shell .fx-rail { background: var(--paper); }
+.radio-shell .fx-rail-head {
+  height: 44px;
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--hair);
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .02em;
+  text-transform: none;
+  color: var(--ink-2);
+}
+.radio-shell .fx-rail-head:hover { color: var(--ink); }
+.radio-shell .fx-tiles { grid-template-columns: 1fr; }
+.radio-shell .fx-tile {
+  min-height: 0;
+  padding: var(--s5) var(--gutter);
+  border-right: 0;
+  border-bottom: 1px solid var(--hair);
+  color: var(--ink);
+  justify-content: center;
+  gap: var(--s2);
+  transition: background .18s var(--ease);
+}
+.radio-shell .fx-tile::before,
+.radio-shell .fx-tile::after { display: none; }
+.radio-shell .fx-tile:hover { background: var(--tint); }
+.radio-shell .fx-tile.on { outline: 0; background: var(--tint); }
+.radio-shell .fx-tile.on::marker { content: none; }
+.radio-shell .fx-tile-top {
+  position: static;
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .02em;
+  text-transform: none;
+}
+.radio-shell .fx-tile-time { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.radio-shell .fx-tile-badge {
+  background: transparent;
+  border: 1px solid var(--hair-strong);
+  border-radius: 40px;
+  padding: 3px 8px;
+  color: var(--ink-2);
+  font-weight: 400;
+  letter-spacing: .04em;
+}
+.radio-shell .fx-tile.on .fx-tile-badge { border-color: var(--signal); color: var(--signal); }
+.radio-shell .fx-tile-name {
+  font-family: var(--sans);
+  font-size: var(--t-lg);
+  font-weight: 400;
+  line-height: 1.16;
+  letter-spacing: -.02em;
+  text-transform: none;
+  color: var(--ink);
+}
+.radio-shell .fx-tile-play { display: none; }
+.radio-shell .fx-pines { display: none; }
+
+/* ══ Music Radio ═══════════════════════════════════════════════════ */
+.radio-shell .mr-root {
+  --mr-bg: var(--paper-0);
+  --mr-panel: transparent;
+  --mr-panel-hover: var(--tint);
+  --mr-panel-active: var(--tint-2);
+  --mr-text: var(--ink);
+  --mr-muted: var(--ink-2);
+  --mr-faint: var(--ink-3);
+  --mr-line: var(--hair);
+  --mr-brass: var(--ink-2);
+  padding: var(--s8) var(--pad) var(--s8);
+  border-top: 1px solid var(--hair);
+}
+.radio-shell .mr-header { border-bottom: 1px solid var(--hair); padding-bottom: var(--s4); }
+.radio-shell .mr-eyebrow {
+  font: 400 var(--t-xs)/1.5 var(--sans);
+  letter-spacing: .02em;
+  text-transform: none;
+  color: var(--ink-3);
+  margin-bottom: var(--s2);
+}
+.radio-shell .mr-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: var(--t-xl);
+  line-height: 1.12;
+  letter-spacing: .005em;
+  color: var(--ink);
+}
+.radio-shell .mr-sub { font-size: var(--t-sm); color: var(--ink-2); margin-top: var(--s2); }
+.radio-shell .mr-now {
+  border: 1px solid var(--hair);
+  border-radius: 40px;
+  background: transparent;
+  padding: var(--s2) var(--s4);
+}
+.radio-shell .mr-now-name { color: var(--ink); font-weight: 400; letter-spacing: -.004em; }
+.radio-shell .mr-grid { gap: 0; border-top: 1px solid var(--hair); }
+.radio-shell .mr-card {
+  min-height: 0;
+  padding: var(--s5) var(--gutter) var(--s5) 0;
+  background: transparent;
+  border-bottom: 1px solid var(--hair);
+  border-right: 1px solid var(--hair);
+  transition: background .18s var(--ease);
+}
+.radio-shell .mr-card:hover { background: var(--tint); }
+.radio-shell .mr-card.active { background: var(--tint-2); }
+.radio-shell .mr-card { padding-left: var(--gutter); }
+.radio-shell .mr-tag {
+  border: 1px solid var(--hair);
+  border-radius: 40px;
+  background: transparent;
+  color: var(--ink-3);
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .04em;
+  padding: 3px 8px;
+}
+.radio-shell .mr-card-name {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: var(--t-lg);
+  line-height: 1.16;
+  letter-spacing: -.02em;
+  text-transform: none;
+  color: var(--ink);
+}
+.radio-shell .mr-card-desc { color: var(--ink-2); font-size: var(--t-sm); }
+.radio-shell .mr-play {
+  border-radius: 40px;
+  border: 1px solid var(--hair-strong);
+  background: transparent;
+  color: var(--ink);
+}
+.radio-shell .mr-play.on,
+.radio-shell .mr-play:hover { background: var(--ink); color: var(--paper-0); border-color: var(--ink); }
+.radio-shell .mr-credit { color: var(--ink-3); font-size: var(--t-xs); }
+.radio-shell .mr-wave i { background: var(--ink-2); }
+
+/* ══ Розклад — музейна «програма» ══════════════════════════════════ */
+.radio-shell .schedule-section {
+  background: var(--paper);
+  padding: var(--s8) var(--pad) var(--s8);
+  border-top: 1px solid var(--hair);
+}
+.radio-shell .schedule-eyebrow,
+.radio-shell .mr-eyebrow {
+  font: 400 var(--t-xs)/1.5 var(--sans);
+  letter-spacing: .02em;
+  text-transform: none;
+  color: var(--ink-3);
+}
+.radio-shell .schedule-head h2,
+.radio-shell .radio-manifesto h2,
+.radio-shell .station-clock-now h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: var(--t-xl);
+  line-height: 1.12;
+  letter-spacing: .005em;
+  text-transform: none;
+  color: var(--ink);
+}
+.radio-shell .schedule-head { border-bottom: 1px solid var(--ink); padding-bottom: var(--s4); }
+
+.radio-shell .station-clock {
+  border: 0;
+  border-bottom: 1px solid var(--hair);
+  background: transparent;
+  padding: var(--s5) 0;
+}
+.radio-shell .station-clock-now > span,
+.radio-shell .station-clock-next > span {
+  color: var(--ink-3);
+  font: 400 var(--t-xs)/1.5 var(--sans);
+  letter-spacing: .02em;
+  text-transform: none;
+}
+.radio-shell .station-progress { background: var(--hair); height: 1px; }
+.radio-shell .station-progress i { background: var(--ink); }
+
+.radio-shell .schedule-list { border-top: 0; }
+.radio-shell .schedule-row {
+  border-bottom: 1px solid var(--hair);
+  padding: var(--s5) 0;
+  align-items: baseline;
+}
+.radio-shell .schedule-time {
+  font: 400 var(--t-sm)/1.4 var(--sans);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+  color: var(--ink-2);
+}
+.radio-shell .schedule-body h3 {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: var(--t-xl);
+  line-height: 1.16;
+  letter-spacing: -.02em;
+  text-transform: none;
+  color: var(--ink);
+}
+.radio-shell .schedule-body p { color: var(--ink-2); font-size: var(--t-sm); margin-top: var(--s1); }
+
+/* ══ Маніфест ══════════════════════════════════════════════════════ */
+.radio-shell .radio-manifesto {
+  background: var(--paper-0);
+  padding: var(--s8) var(--pad) var(--s9);
+  border-top: 1px solid var(--hair);
+}
+.radio-shell .manifesto-copy p {
+  font-family: var(--serif);
+  font-size: var(--t-lg);
+  line-height: 1.45;
+  color: var(--ink);
+  max-width: 54ch;
+}
+.radio-shell .manifesto-copy dl div { border-top: 1px solid var(--hair); }
+.radio-shell .manifesto-copy dt {
+  font: 400 var(--t-xs)/1.5 var(--sans);
+  letter-spacing: .02em;
+  text-transform: none;
+  color: var(--ink-3);
+}
+.radio-shell .manifesto-copy dd { color: var(--soft); font-size: var(--t-sm); }
+
+/* ══ Чат ═══════════════════════════════════════════════════════════ */
+.radio-shell .chat-launcher {
+  border-radius: 40px;
+  background: var(--ink);
+  color: var(--paper-0);
+  border: 1px solid var(--ink);
+  box-shadow: none;
+}
+.radio-shell .chat-launcher:hover { background: var(--paper-0); color: var(--ink); transform: none; }
+.radio-shell .chat-launcher-icon { border-radius: 40px; }
+.radio-shell .chat-launcher b { border-radius: 40px; background: var(--signal); }
+.radio-shell .chat-launcher small,
+.radio-shell .chat-launcher > span:nth-child(2) strong {
+  font-weight: 400;
+  letter-spacing: -.004em;
+  text-transform: none;
+}
+
+.radio-shell .chat-drawer { background: var(--paper); border-right-color: var(--hair); }
+.radio-shell .chat-header {
+  background: var(--paper-0);
+  border-bottom-color: var(--hair);
+}
+.radio-shell .chat-channel-name {
+  font-family: var(--sans);
+  font-size: var(--t-sm);
+  font-weight: 400;
+  letter-spacing: -.01em;
+  text-transform: none;
+  color: var(--ink);
+}
+.radio-shell .chat-presence { border-bottom-color: var(--hair); }
+.radio-shell .messages { background-image: none; background: var(--paper); }
+.radio-shell .message-bubble {
+  border: 1px solid var(--hair);
+  background: var(--tint);
+  color: var(--ink);
+  font-size: var(--t-sm);
+}
+.radio-shell .message.mine .message-bubble {
+  background: var(--ink); color: var(--paper-0); border-color: var(--ink);
+}
+.radio-shell .message-author { font-weight: 400; font-size: var(--t-sm); }
+.radio-shell .message-time,
+.radio-shell .message-city,
+.radio-shell .edited-tag {
+  color: var(--ink-3);
+  font-size: var(--t-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+.radio-shell .messages-empty { border: 1px solid var(--hair); background: transparent; color: var(--ink-2); }
+.radio-shell .messages-empty strong { text-transform: none; font-weight: 400; }
+.radio-shell .date-separator { color: var(--ink-3); font-size: var(--t-xs); letter-spacing: .02em; }
+.radio-shell .reaction-pill,
+.radio-shell .qr-btn,
+.radio-shell .action-btn { border-radius: 40px; border: 1px solid var(--hair); background: transparent; }
+.radio-shell .reaction-pill.reacted { border-color: var(--ink); background: var(--tint-2); }
+.radio-shell .composer-field,
+.radio-shell .composer input,
+.radio-shell .composer textarea {
+  background: var(--tint);
+  border: 1px solid var(--hair);
+  color: var(--ink);
+}
+.radio-shell .composer-extra-btn { border-radius: 40px; border: 1px solid var(--hair); }
+.radio-shell .scroll-to-bottom { border-radius: 40px; border: 1px solid var(--hair-strong); background: var(--paper-0); }
+
+/* ══ Мобільна адаптація ════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .radio-shell .fx-grid { grid-template-columns: 1fr; }
+  .radio-shell .fx-feature { border-right: 0; border-bottom: 1px solid var(--hair); }
+  .radio-shell .topbar-nav { display: none; }
+  .radio-shell .room-summary { flex-direction: column; align-items: flex-start; }
+}
+
+/* ── Чат: дрібні деталі, які лишались із попереднього скіна ─────────── */
+.radio-shell .chat-header-actions button,
+.radio-shell .chat-clear-btn,
+.radio-shell .chat-notif-btn,
+.radio-shell .chat-shortcuts-btn {
+  border: 1px solid var(--hair);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  box-shadow: none;
+}
+.radio-shell .chat-header-actions button:hover,
+.radio-shell .chat-clear-btn:hover,
+.radio-shell .chat-notif-btn:hover,
+.radio-shell .chat-shortcuts-btn:hover { background: var(--tint); color: var(--ink); }
+.radio-shell .chat-presence > span {
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .02em;
+  text-transform: none;
+  color: var(--ink-3);
+}
+.radio-shell .chat-presence i { border-color: var(--paper); }
+.radio-shell .composer { background: var(--paper-0); border-top: 1px solid var(--hair); }
+.radio-shell .composer input { color: var(--ink); font-size: var(--t-md); }
+.radio-shell .composer input::placeholder { color: var(--ink-3); }
+.radio-shell .composer button,
+.radio-shell .chat-drawer .composer button[type="submit"] {
+  border: 0;
+  border-left: 1px solid var(--hair);
+  background: transparent;
+  color: var(--ink-2);
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .02em;
+  text-transform: none;
+}
+.radio-shell .composer button:hover:not(:disabled),
+.radio-shell .chat-drawer .composer button[type="submit"]:hover:not(:disabled) {
+  background: var(--ink); color: var(--paper-0);
+}
+.radio-shell .messages-empty h3,
+.radio-shell .messages-empty strong {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: .005em;
+  text-transform: none;
+}
+
+@media (max-width: 620px) {
+  /* Вордмарк із трекінгом .24em не влазить у 375px і наїжджав на EN/UA. */
+  .radio-shell .brand-name { font-size: 11px; letter-spacing: .12em; margin-right: -.12em; }
+  .radio-shell .brand-mark { width: 22px; height: 22px; }
+  .radio-shell .topbar-inner { padding: 0 var(--edge); gap: var(--s3); }
+  .radio-shell .topbar-right { gap: var(--s2); padding-left: var(--s2); }
+  .radio-shell .room-summary,
+  .radio-shell .schedule-section,
+  .radio-shell .radio-manifesto,
+  .radio-shell .mr-root { padding-left: var(--edge); padding-right: var(--edge); }
+  .radio-shell .fx-deck,
+  .radio-shell .fx-np { padding-left: var(--edge); padding-right: var(--edge); }
+  .radio-shell .fx-brand-lockup { left: var(--edge); }
+  .radio-shell .fx-feature::before,
+  .radio-shell .fx-feature::after { height: clamp(180px, 24vh, 240px); }
+}
+
+@media (max-width: 900px) {
+  /* Нижній док: та сама волосяна лінія й пігулка, що й на решті сторінки. */
+  .radio-shell .mobile-air-dock {
+    background: rgba(7, 7, 7, .94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid var(--hair);
+  }
+  .radio-shell .mobile-air-dock a span {
+    font: 400 var(--t-xs)/1 var(--sans);
+    letter-spacing: .02em;
+    text-transform: none;
+    color: var(--ink-3);
+  }
+  .radio-shell .mobile-air-dock a strong {
+    font: 400 var(--t-md)/1.2 var(--sans);
+    letter-spacing: -.01em;
+    color: var(--ink);
+  }
+  .radio-shell .mobile-air-dock button {
+    border-radius: 40px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper-0);
+    font: 400 var(--t-sm)/1 var(--sans);
+    letter-spacing: -.004em;
+    text-transform: none;
+    padding: var(--s2) var(--s4);
+    margin: 0 var(--edge) 0 var(--s3);
+    height: auto;
+    align-self: center;
+  }
+}
