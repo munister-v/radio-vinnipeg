@@ -312,15 +312,20 @@ export async function fetchTranslationHealth(): Promise<TranslationHealth> {
 export type TranscriptChunk = { text: string; language: string | null; duration: number }
 
 /**
- * Повертає null, якщо сервер зайнятий іншим шматком (429) - це нормальний хід
- * подій, розпізнавання однопотокове. Помилку кидаємо лише на справжніх збоях.
+ * Повертає null тільки на 429: розпізнавання однопотокове, і «зайнято» - це
+ * нормальний хід подій, мовчки пропускаємо дубль.
+ *
+ * 503 раніше теж ковтали мовчки, і саме це сховало справжню поломку: сервер
+ * відповідав 503 на КОЖЕН шматок (їх слали без заголовка контейнера), а
+ * назовні це виглядало як «переклад просто нічого не пише». Тепер збій
+ * розпізнавання видно в панелі.
  */
 export async function transcribeChunk(blob: Blob, signal?: AbortSignal): Promise<TranscriptChunk | null> {
   const token = getToken()
   const headers: Record<string, string> = { 'Content-Type': blob.type || 'audio/webm' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch('/api/translation/transcribe', { method: 'POST', headers, body: blob, signal })
-  if (res.status === 429 || res.status === 503) return null
+  if (res.status === 429) return null
   const body = await res.json().catch(() => ({}))
   if (!res.ok || body.ok === false) throw new Error(body.error || `Переклад не вдався (${res.status})`)
   return body.data as TranscriptChunk

@@ -122,6 +122,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   // Спільна шина віддалених голосів: усе, що чує слухач, зводиться в один
   // потік. Потрібна перекладу - MediaRecorder не вміє писати кілька джерел.
   const translationBusRef = useRef<MediaStreamAudioDestinationNode | null>(null)
+  const micBusSrcRef = useRef<MediaStreamAudioSourceNode | null>(null)
   // Аудіо-елементи, чий play() браузер заблокував (autoplay policy) — ретраїмо на жесті.
   const blockedAudiosRef = useRef<Set<HTMLAudioElement>>(new Set())
   const [audioBlocked, setAudioBlocked] = useState(false)
@@ -242,6 +243,13 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     } catch { /* непідтримувано */ }
   }, [])
 
+  // Шина існує від моменту, коли є AudioContext, а не з першого чужого треку:
+  // ведучий у кімнаті сам-один теж має бачити переклад своєї мови.
+  const ensureTranslationBus = useCallback((ctx: AudioContext): MediaStreamAudioDestinationNode => {
+    if (!translationBusRef.current) translationBusRef.current = ctx.createMediaStreamDestination()
+    return translationBusRef.current
+  }, [])
+
   const detachAnalyser = useCallback((key: number) => {
     const a = analysersRef.current.get(key)
     if (!a) return
@@ -262,15 +270,14 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       source.connect(analyser)
       // Той самий источник іде і в шину перекладу. Гілка паралельна аналізатору
       // і нікуди не грає: destination шини - окремий потік, не колонки.
-      if (!translationBusRef.current) translationBusRef.current = ctx.createMediaStreamDestination()
-      try { source.connect(translationBusRef.current) } catch { /* ignore */ }
+      try { source.connect(ensureTranslationBus(ctx)) } catch { /* ignore */ }
       analysersRef.current.set(key, {
         analyser,
         source,
         data: new Uint8Array(new ArrayBuffer(analyser.fftSize)),
       })
     } catch { /* ignore */ }
-  }, [ensureAudioCtx, detachAnalyser])
+  }, [ensureAudioCtx, detachAnalyser, ensureTranslationBus])
 
   const speakTick = useCallback(() => {
     if (document.visibilityState === 'hidden') return
@@ -390,6 +397,8 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       for (const t of rawStreamRef.current.getTracks()) t.stop()
       rawStreamRef.current = null
     }
+    try { micBusSrcRef.current?.disconnect() } catch { /* ignore */ }
+    micBusSrcRef.current = null
     if (localStreamRef.current) {
       for (const t of localStreamRef.current.getTracks()) t.stop()
       localStreamRef.current = null
@@ -930,6 +939,17 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     } catch { micFxRef.current = null }
 
     localStreamRef.current = stream
+    // Власний мікрофон теж іде в шину перекладу. Мьют/PTT перемикають
+    // track.enabled, тобто вимкнений мікрофон подає тишу, а не рветься.
+    try {
+      const ctx = audioCtxRef.current
+      if (ctx) {
+        try { micBusSrcRef.current?.disconnect() } catch { /* ignore */ }
+        const micSrc = ctx.createMediaStreamSource(stream)
+        micSrc.connect(ensureTranslationBus(ctx))
+        micBusSrcRef.current = micSrc
+      }
+    } catch { /* ignore */ }
     const track = stream.getAudioTracks()[0] ?? null
     if (track) {
       track.enabled = false // вмикаємо за потребою (PTT/мьют)
@@ -950,7 +970,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       }
     }
     return track
-  }, [applyMicToTransceiver, ensureAudioCtx])
+  }, [applyMicToTransceiver, ensureAudioCtx, ensureTranslationBus])
 
   const setTransmitting = useCallback(async (on: boolean) => {
     const cid = callIdRef.current
@@ -1089,7 +1109,11 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
 
   // Потік для перекладу з'являється тільки коли в кімнаті вже є чий-небудь
   // голос: до першого ontrack шини ще немає.
-  const getTranslationStream = useCallback((): MediaStream | null => translationBusRef.current?.stream ?? null, [])
+  const getTranslationStream = useCallback((): MediaStream | null => {
+    const ctx = audioCtxRef.current
+    if (!ctx) return null
+    return ensureTranslationBus(ctx).stream
+  }, [ensureTranslationBus])
 
   return { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, getTranslationStream }
 }

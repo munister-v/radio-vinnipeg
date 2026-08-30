@@ -1,25 +1,38 @@
 /**
  * Переклад ефіру англійською.
  *
- * Голоси співрозмовників зводяться в useVoice в одну шину, звідси беремо її
- * потік і пишемо короткими шматками. Кожен шматок окремим запитом іде на
- * /api/translation/transcribe, де faster-whisper віддає англійський текст.
+ * Голоси в кімнаті (чужі й власний мікрофон) зводяться в useVoice в одну
+ * шину. Звідси беремо її потік, пишемо короткими дублями і кожен дубль
+ * окремим запитом шлемо на /api/translation/transcribe, де faster-whisper
+ * віддає англійський текст.
  *
- * Чому шматками, а не одним довгим записом: розпізнавання на сервері
- * однопотокове і тримає замок, тож довгий запис дав би переклад лише в кінці
- * розмови. Шість секунд - компроміс між затримкою і тим, щоб фраза не рвалася
- * посередині.
+ * Чому дублями по кілька секунд, а не одним записом: розпізнавання на
+ * сервері однопотокове і тримає замок, тож довгий запис дав би переклад лише
+ * в кінці розмови.
+ *
+ * ВАЖЛИВО про нарізку. Перша редакція викликала rec.start(CHUNK_MS) і брала
+ * шматки з ondataavailable. Так робити не можна: timeslice ріже ОДИН
+ * безперервний запис на фрагменти, і заголовок контейнера має лише перший
+ * фрагмент. Другий і далі - хвости без заголовка, ffmpeg на боці whisper їх
+ * не відкриває, сервер віддає 503, клієнт мовчки їх пропускає. Назовні це
+ * виглядало як «переклад не працює»: у кращому разі один рядок і тиша.
+ * Тому кожен дубль - окремий MediaRecorder від start() до stop(), тобто
+ * самостійний повноцінний файл.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { transcribeChunk } from './api'
 
 export type TranscriptLine = { id: number; text: string; at: number }
 
-const CHUNK_MS = 6000
+const TAKE_MS = 6000
 const MAX_LINES = 40
-// На бекенді ліміт 24 запити за 60 секунд. Шматок на шість секунд дає десять
-// запитів за хвилину, тобто вдвічі менше стелі - є запас на повтори.
+// Бекенд тримає ліміт 24 запити за 60 секунд. Дубль на шість секунд дає до
+// десяти запитів за хвилину - є запас.
 const MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
+// Поріг тиші. Рахуємо по хвилі, а не по розмірі файлу: розмір залежить від
+// кодека й бітрейта, а RMS - ні. Поріг низький навмисно: пропустити тиху
+// фразу гірше, ніж зайвий раз розпізнати тишу.
+const SILENCE_RMS = 0.006
 
 function pickMime(): string | null {
   if (typeof MediaRecorder === 'undefined') return null
@@ -31,8 +44,6 @@ export function useTranslation(getStream: () => MediaStream | null, enabled: boo
   const [lines, setLines] = useState<TranscriptLine[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const recorderRef = useRef<MediaRecorder | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
   const idRef = useRef(0)
   const inFlightRef = useRef(false)
 
@@ -42,71 +53,107 @@ export function useTranslation(getStream: () => MediaStream | null, enabled: boo
     setLines(prev => [...prev, { id: ++idRef.current, text: clean, at: Date.now() }].slice(-MAX_LINES))
   }, [])
 
-  const stop = useCallback(() => {
-    try { recorderRef.current?.stop() } catch { /* ignore */ }
-    recorderRef.current = null
-    abortRef.current?.abort()
-    abortRef.current = null
-    inFlightRef.current = false
-    setBusy(false)
-  }, [])
-
   useEffect(() => {
-    if (!enabled) { stop(); return }
+    if (!enabled) return
 
     const mime = pickMime()
     if (!mime) { setError('Браузер не вміє записувати звук для перекладу.'); return }
 
     let cancelled = false
     let timer: number | undefined
+    let rec: MediaRecorder | null = null
+    let ctx: AudioContext | null = null
+    let analyser: AnalyserNode | null = null
+    let data: Uint8Array<ArrayBuffer> | null = null
+    let peak = 0
+    let meter: number | undefined
+    const ctrl = new AbortController()
 
-    const start = () => {
-      const stream = getStream()
-      // Шини ще немає, поки в кімнаті ніхто не говорив: чекаємо і пробуємо знову.
-      if (!stream || !stream.getAudioTracks().length) {
-        timer = window.setTimeout(start, 1200)
-        return
+    // Окремий вимірювач гучності на тій самій шині. Потрібен, щоб не гнати на
+    // однопотокове розпізнавання шість секунд тиші кожні шість секунд: машина
+    // одноядерна. Якщо вимірювач не піднявся - шлемо все підряд.
+    const startMeter = (stream: MediaStream) => {
+      try {
+        const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+        if (!Ctx) return
+        ctx = new Ctx()
+        ctx.resume?.().catch(() => {})
+        const src = ctx.createMediaStreamSource(stream)
+        analyser = ctx.createAnalyser()
+        analyser.fftSize = 512
+        src.connect(analyser)
+        data = new Uint8Array(new ArrayBuffer(analyser.fftSize))
+        meter = window.setInterval(() => {
+          if (!analyser || !data) return
+          analyser.getByteTimeDomainData(data)
+          let sum = 0
+          for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v }
+          const rms = Math.sqrt(sum / data.length)
+          if (rms > peak) peak = rms
+        }, 120)
+      } catch { analyser = null }
+    }
+
+    const send = async (blob: Blob) => {
+      if (cancelled || inFlightRef.current) return
+      inFlightRef.current = true
+      setBusy(true)
+      try {
+        const out = await transcribeChunk(blob, ctrl.signal)
+        if (!cancelled && out?.text) push(out.text)
+        if (!cancelled && out) setError(null)
+      } catch (err) {
+        if (!cancelled && (err as Error).name !== 'AbortError') setError((err as Error).message)
+      } finally {
+        inFlightRef.current = false
+        if (!cancelled) setBusy(false)
       }
-      setError(null)
-      let rec: MediaRecorder
+    }
+
+    // Один дубль: почали запис, через TAKE_MS зупинили, зібрали цілий файл,
+    // відправили і одразу почали наступний.
+    const take = () => {
+      if (cancelled) return
+      const stream = getStream()
+      if (!stream || !stream.getAudioTracks().length) { timer = window.setTimeout(take, 1200); return }
+      if (!analyser) startMeter(stream)
+      peak = 0
+      const parts: Blob[] = []
       try {
         rec = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 32000 })
       } catch {
         setError('Не вдалося почати запис для перекладу.')
         return
       }
-      recorderRef.current = rec
-
-      rec.ondataavailable = async (e) => {
-        if (cancelled || !e.data || e.data.size < 2000) return
-        // Поки попередній шматок ще в дорозі, наступний пропускаємо: інакше
-        // черга росте швидше, ніж сервер встигає розпізнавати.
-        if (inFlightRef.current) return
-        inFlightRef.current = true
-        setBusy(true)
-        const ctrl = new AbortController()
-        abortRef.current = ctrl
-        try {
-          const out = await transcribeChunk(e.data, ctrl.signal)
-          if (!cancelled && out?.text) push(out.text)
-        } catch (err) {
-          if (!cancelled && (err as Error).name !== 'AbortError') setError((err as Error).message)
-        } finally {
-          inFlightRef.current = false
-          if (!cancelled) setBusy(false)
-        }
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) parts.push(e.data) }
+      rec.onstop = () => {
+        const loud = !analyser || peak >= SILENCE_RMS
+        const blob = new Blob(parts, { type: mime })
+        // Поки попередній дубль ще в дорозі, цей пропускаємо: інакше черга
+        // росте швидше, ніж сервер встигає розпізнавати.
+        if (loud && blob.size > 1500 && !inFlightRef.current) void send(blob)
+        take()
       }
-      // timeslice сам ріже запис на шматки потрібної довжини.
-      try { rec.start(CHUNK_MS) } catch { setError('Не вдалося почати запис для перекладу.') }
+      try { rec.start() } catch { setError('Не вдалося почати запис для перекладу.'); return }
+      timer = window.setTimeout(() => { try { rec?.stop() } catch { /* ignore */ } }, TAKE_MS)
     }
 
-    start()
+    take()
+
     return () => {
       cancelled = true
       if (timer) window.clearTimeout(timer)
-      stop()
+      if (meter) window.clearInterval(meter)
+      ctrl.abort()
+      try { rec?.stop() } catch { /* ignore */ }
+      rec = null
+      try { ctx?.close() } catch { /* ignore */ }
+      ctx = null
+      analyser = null
+      inFlightRef.current = false
+      setBusy(false)
     }
-  }, [enabled, getStream, push, stop])
+  }, [enabled, getStream, push])
 
   const clear = useCallback(() => setLines([]), [])
 
