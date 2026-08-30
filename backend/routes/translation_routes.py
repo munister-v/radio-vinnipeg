@@ -79,8 +79,16 @@ def transcribe():
         with tempfile.NamedTemporaryFile(prefix='whisper-', suffix=suffix, delete=False) as handle:
             handle.write(audio)
             path = Path(handle.name)
+        # beam_size=5 замість жадібного пошуку. На коротких репліках це майже
+        # безкоштовно: основний час з'їдає прохід енкодера, і він однаковий за
+        # будь-якого beam. Заміряно на цьому ж сервері, 5.46с звуку, модель base:
+        #   beam 1 - 4.13с (0.76x реального часу)
+        #   beam 3 - 4.27с (0.78x)
+        #   beam 5 - 4.27с (0.78x), речення розбите правильно, без збігу в кому
+        # Тобто три відсотки часу за помітно чистіший текст.
         segments, info = _get_model().transcribe(
-            str(path), task='translate', beam_size=1, best_of=1, temperature=0,
+            str(path), task='translate',
+            beam_size=int(os.getenv('WHISPER_BEAM', '5')), temperature=0,
             vad_filter=True, condition_on_previous_text=False,
             no_speech_threshold=0.5,
         )
