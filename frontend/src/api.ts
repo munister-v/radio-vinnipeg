@@ -258,3 +258,33 @@ export async function pollCallSignals(callId: number, afterId: number) {
 }
 
 export { ApiError }
+
+// ── True crime: стрічка, що оновлюється сама на бекенді ─────────────────────
+
+export type CrimeItem = {
+  id: number
+  guid: string
+  source: string
+  source_slug: string
+  media_kind: 'audio' | 'video'
+  title: string
+  summary: string | null
+  link: string | null
+  image: string | null
+  media_url: string | null
+  video_id: string | null
+  duration: string | null
+  published_at: number
+}
+
+export type CrimeFeed = {
+  items: CrimeItem[]
+  updated_at: number
+  sources: { slug: string; name: string; kind: string }[]
+}
+
+export async function fetchTrueCrime(limit = 24, kind?: 'audio' | 'video') {
+  const q = new URLSearchParams({ limit: String(limit) })
+  if (kind) q.set('kind', kind)
+  return request<CrimeFeed>(`/truecrime?${q.toString()}`)
+}

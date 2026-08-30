@@ -109,3 +109,35 @@ CREATE TABLE IF NOT EXISTS room_now_playing (
     updated_by   INTEGER REFERENCES users(id) ON DELETE SET NULL,
     updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Стрічка американського true crime, що оновлюється сама.
+-- Джерела — публічні RSS: подкасти (аудіо + обкладинка епізоду) і
+-- YouTube-канали (відео + прев'ю). Ми зберігаємо лише метадані й
+-- посилання на оригінал; медіа лежить у видавця.
+--   guid        — стабільний ідентифікатор запису у стрічці (дедуплікація)
+--   media_kind  — 'audio' | 'video'
+--   published_at — epoch-секунди публікації
+CREATE TABLE IF NOT EXISTS truecrime_items (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    guid         TEXT NOT NULL UNIQUE,
+    source       TEXT NOT NULL,
+    source_slug  TEXT NOT NULL,
+    media_kind   TEXT NOT NULL,
+    title        TEXT NOT NULL,
+    summary      TEXT,
+    link         TEXT,
+    image        TEXT,
+    media_url    TEXT,
+    video_id     TEXT,
+    duration     TEXT,
+    published_at REAL NOT NULL DEFAULT 0,
+    fetched_at   REAL NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_truecrime_pub ON truecrime_items(published_at DESC);
+
+-- Службові пари ключ/значення (напр., час останнього оновлення стрічки).
+CREATE TABLE IF NOT EXISTS app_state (
+    key        TEXT PRIMARY KEY,
+    value      TEXT,
+    updated_at REAL NOT NULL DEFAULT 0
+);

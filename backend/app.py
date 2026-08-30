@@ -12,6 +12,8 @@ from .routes.auth_routes import auth_bp
 from .routes.call_routes import call_bp
 from .routes.chat_routes import chat_bp
 from .routes.room_routes import room_bp
+from .routes.truecrime_routes import truecrime_bp
+from .services import truecrime
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / 'frontend' / 'dist'
 
@@ -29,6 +31,10 @@ def create_app() -> Flask:
     app.register_blueprint(call_bp)
     app.register_blueprint(chat_bp)
     app.register_blueprint(room_bp)
+    app.register_blueprint(truecrime_bp)
+
+    # Перше наповнення стрічки true crime — у фоні, старт не блокується.
+    truecrime.ensure_fresh()
 
     @app.get('/api/health')
     def health():

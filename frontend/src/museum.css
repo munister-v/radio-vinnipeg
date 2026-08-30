@@ -860,3 +860,204 @@ body {
     align-self: center;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   AMERICAN TRUE CRIME — стрічка, що оновлюється сама
+   Та сама музейна сітка: волосяні лінії, крихітні мітки, гострі кути.
+   ══════════════════════════════════════════════════════════════════════ */
+.radio-shell .tc-root {
+  background: var(--paper-0);
+  border-top: 1px solid var(--hair);
+  padding: var(--s8) var(--pad) var(--s8);
+}
+.radio-shell .tc-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s6);
+  flex-wrap: wrap;
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--ink);
+}
+.radio-shell .tc-eyebrow {
+  display: block;
+  font: 400 var(--t-xs)/1.5 var(--sans);
+  letter-spacing: .02em;
+  color: var(--ink-3);
+}
+.radio-shell .tc-title {
+  margin: var(--s2) 0 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: var(--t-xl);
+  line-height: 1.12;
+  letter-spacing: .005em;
+  color: var(--ink);
+}
+.radio-shell .tc-sub {
+  margin: var(--s2) 0 0;
+  max-width: 54ch;
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+.radio-shell .tc-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  flex-wrap: wrap;
+}
+.radio-shell .tc-filters { display: inline-flex; gap: var(--s2); }
+.radio-shell .tc-filter {
+  border: 1px solid var(--hair);
+  border-radius: 40px;
+  background: transparent;
+  color: var(--ink-2);
+  padding: var(--s2) var(--s4);
+  font: 400 var(--t-sm)/1 var(--sans);
+  letter-spacing: -.004em;
+  cursor: pointer;
+  transition: background .18s var(--ease), color .18s var(--ease), border-color .18s var(--ease);
+}
+.radio-shell .tc-filter:hover { color: var(--ink); border-color: var(--hair-strong); }
+.radio-shell .tc-filter.on { background: var(--ink); color: var(--paper-0); border-color: var(--ink); }
+.radio-shell .tc-updated {
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .02em;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.radio-shell .tc-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0;
+}
+.radio-shell .tc-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--s5) var(--gutter) var(--s5) 0;
+  border-bottom: 1px solid var(--hair);
+  border-right: 1px solid var(--hair);
+  padding-left: var(--gutter);
+  transition: background .18s var(--ease);
+}
+.radio-shell .tc-card:hover { background: var(--tint); }
+.radio-shell .tc-card.playing { background: var(--tint-2); }
+
+/* Кадр: 16:9 під відео, знебарвлений у спокої — колір вмикається на ховері,
+   щоб сітка карток лишалась тихою, як у музеї. */
+.radio-shell .tc-shot {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--tint);
+  border: 1px solid var(--hair);
+  overflow: hidden;
+}
+.radio-shell .tc-shot-btn {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.radio-shell .tc-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: grayscale(1) contrast(.94) brightness(.72);
+  transition: filter .25s var(--ease), transform .35s var(--ease);
+}
+.radio-shell .tc-card:hover .tc-shot img { filter: grayscale(0) brightness(.9); transform: scale(1.02); }
+.radio-shell .tc-shot-cue {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  border: 1px solid rgba(242, 241, 239, .7);
+  border-radius: 50%;
+  background: rgba(7, 7, 7, .55);
+  color: var(--ink);
+  font-size: 13px;
+  transition: background .18s var(--ease), color .18s var(--ease);
+}
+.radio-shell .tc-card:hover .tc-shot-cue { background: var(--ink); color: var(--paper-0); }
+.radio-shell .tc-frame { display: block; width: 100%; height: 100%; border: 0; }
+
+.radio-shell .tc-body { display: flex; flex-direction: column; gap: var(--s2); padding-top: var(--s4); }
+.radio-shell .tc-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  font: 400 var(--t-xs)/1.4 var(--sans);
+  letter-spacing: .02em;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.radio-shell .tc-source { color: var(--ink-2); }
+.radio-shell .tc-date { margin-left: auto; }
+.radio-shell .tc-name {
+  margin: 0;
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: var(--t-lg);
+  line-height: 1.16;
+  letter-spacing: -.02em;
+  color: var(--ink);
+}
+.radio-shell .tc-sum {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: 1.5;
+  color: var(--ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.radio-shell .tc-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-top: var(--s2);
+}
+.radio-shell .tc-btn {
+  border: 1px solid var(--hair-strong);
+  border-radius: 40px;
+  background: transparent;
+  color: var(--ink);
+  padding: var(--s2) var(--s4);
+  font: 400 var(--t-sm)/1 var(--sans);
+  letter-spacing: -.004em;
+  cursor: pointer;
+  transition: background .18s var(--ease), color .18s var(--ease);
+}
+.radio-shell .tc-btn:hover { background: var(--ink); color: var(--paper-0); border-color: var(--ink); }
+.radio-shell .tc-link {
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .02em;
+  color: var(--ink-3);
+  text-decoration: none;
+}
+.radio-shell .tc-link:hover { color: var(--ink); }
+.radio-shell .tc-empty,
+.radio-shell .tc-credit {
+  margin: var(--s6) 0 0;
+  font-size: var(--t-xs);
+  letter-spacing: .02em;
+  color: var(--ink-3);
+}
+
+@media (max-width: 620px) {
+  .radio-shell .tc-root { padding-left: var(--edge); padding-right: var(--edge); }
+  .radio-shell .tc-grid { grid-template-columns: 1fr; }
+  .radio-shell .tc-card { padding-right: 0; border-right: 0; }
+}
