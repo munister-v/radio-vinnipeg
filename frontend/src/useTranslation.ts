@@ -66,7 +66,14 @@ export function useTranslation(
   const push = useCallback((text: string) => {
     const clean = text.trim()
     if (!clean) return
-    setLines(prev => [...prev, { id: ++idRef.current, text: clean, at: Date.now() }].slice(-MAX_LINES))
+    setLines(prev => {
+      // Whisper любить повторити щойно сказане, коли наступна репліка почалась
+      // тим самим словом або коли в дублі майже не було нової мови. Однаковий
+      // рядок поспіль - завжди артефакт, а не двічі сказана фраза.
+      const last = prev[prev.length - 1]
+      if (last && last.text.toLowerCase() === clean.toLowerCase()) return prev
+      return [...prev, { id: ++idRef.current, text: clean, at: Date.now() }].slice(-MAX_LINES)
+    })
   }, [])
 
   useEffect(() => {

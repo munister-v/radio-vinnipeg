@@ -98,6 +98,7 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
   // Озвучення перекладу. Синтез робить браузер, тож це справа кожного слухача
   // окремо: хтось слухає голосом, хтось читає текстом.
   const [cfgOpen, setCfgOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
   const ttsOn = settings.trMode !== 'text'
   // Беремо say окремо: сам об'єкт хука створюється щоразу заново, і ефект
   // нижче перезапускався б на кожен рендер.
@@ -111,6 +112,15 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
       : undefined,
   })
   const { say } = speech
+  // Стрічка прокручується сама, але тільки якщо людина не відгорнула її вгору
+  // читати попереднє: інакше кожна нова репліка смикала б її з-під пальця.
+  const linesRef = useRef<HTMLOListElement | null>(null)
+  const stickRef = useRef(true)
+  useEffect(() => {
+    const el = linesRef.current
+    if (!el || !stickRef.current) return
+    el.scrollTop = el.scrollHeight
+  }, [translation.lines, translation.busy])
   // Режим «тільки переклад»: оригінал притишений, поки переклад увімкнений.
   useEffect(() => {
     if (!(trOn && joined)) { duckRemote(1); return }
@@ -340,7 +350,7 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                 </div>
 
                 {trOn && (
-                  <div className="fx-translate" aria-live="polite">
+                  <div className="fx-translate">
                     <div className="fx-translate-top">
                       <span className="fx-translate-title">{t('tr.title')}</span>
                       <span
@@ -364,6 +374,20 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                         aria-expanded={cfgOpen}
                         title={t('tr.settings')}
                       >{t('tr.settings')}</button>
+                      {translation.lines.length > 0 && (
+                        <button
+                          className="fx-translate-clear"
+                          onClick={() => {
+                            const text = translation.lines
+                              .map(l => `${new Date(l.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}  ${l.text}`)
+                              .join('\n')
+                            navigator.clipboard?.writeText(text).then(
+                              () => { setCopied(true); window.setTimeout(() => setCopied(false), 1600) },
+                              () => { /* ignore */ },
+                            )
+                          }}
+                        >{copied ? t('tr.copied') : t('tr.copy')}</button>
+                      )}
                       {translation.lines.length > 0 && (
                         <button className="fx-translate-clear" onClick={translation.clear}>{t('tr.clear')}</button>
                       )}
@@ -453,8 +477,27 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                           : translation.busy ? t('tr.listening') : t('tr.waiting')}
                       </p>
                     ) : (
-                      <ol className="fx-translate-lines">
-                        {translation.lines.map(l => <li key={l.id}>{l.text}</li>)}
+                      <ol
+                        className="fx-translate-lines"
+                        ref={linesRef}
+                        onScroll={(e) => {
+                          const el = e.currentTarget
+                          stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24
+                        }}
+                      >
+                        {translation.lines.map((l, i) => (
+                          <li key={l.id} className={i === translation.lines.length - 1 ? 'last' : ''}>
+                            <time dateTime={new Date(l.at).toISOString()}>
+                              {new Date(l.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </time>
+                            <span>{l.text}</span>
+                          </li>
+                        ))}
+                        {/* Поки репліка розпізнається, тримаємо для неї місце:
+                            інакше здається, ніби переклад завмер. */}
+                        {translation.busy && (
+                          <li className="pending" aria-hidden><span><i /><i /><i /></span></li>
+                        )}
                       </ol>
                     )}
                     <p className="fx-translate-hint">
