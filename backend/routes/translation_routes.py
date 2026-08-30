@@ -89,13 +89,26 @@ def transcribe():
     audio = request.get_data(cache=False, as_text=False)
     if not audio or len(audio) > _MAX_BYTES:
         return api_error('Порожній або завеликий аудіофрагмент.', 413)
+    # Ключ спільної роботи - кімната ПЛЮС мовець. У розмові кількох людей
+    # реплики різних людей розпізнаються паралельними запитами, і зводити їх
+    # до одного ключа означало б, що репліку другого викине як дублікат
+    # першого.
     room = (request.args.get('room') or '').strip()[:64]
+    speaker = (request.args.get('speaker') or '').strip()[:32]
+    if room and speaker:
+        room = f'{room}#{speaker}'
 
     # Відомий: хтось уже рахує цю ж мову або щойно порахував.
     if room:
         with _ROOM_LOCK:
-            job = _ROOM_JOBS.get(room)
             now = time.time()
+            # Кімнати й люди приходять і йдуть; без прибирання словник ріс би
+            # весь час роботи сервісу.
+            if len(_ROOM_JOBS) > 64:
+                for k, v in list(_ROOM_JOBS.items()):
+                    if v['event'].is_set() and now - v['done_at'] > 300:
+                        _ROOM_JOBS.pop(k, None)
+            job = _ROOM_JOBS.get(room)
             if job is not None and job['event'].is_set() and now - job['done_at'] > _JOB_FRESH_S:
                 job = None
             if job is None:

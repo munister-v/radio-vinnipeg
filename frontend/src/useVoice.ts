@@ -73,6 +73,8 @@ type PeerEntry = {
 type AnalyserEntry = {
   analyser: AnalyserNode
   source: MediaStreamAudioSourceNode
+  /** Окремий вихід цього співрозмовника для перекладу (не грає в колонки). */
+  trDest?: MediaStreamAudioDestinationNode
   data: Uint8Array<ArrayBuffer>
 }
 
@@ -121,9 +123,6 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const rawStreamRef = useRef<MediaStream | null>(null)
   // Спільна шина віддалених голосів: усе, що чує слухач, зводиться в один
   // потік. Потрібна перекладу - MediaRecorder не вміє писати кілька джерел.
-  const translationBusRef = useRef<MediaStreamAudioDestinationNode | null>(null)
-  const trAnalyserRef = useRef<AnalyserNode | null>(null)
-  const trDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
   // Аудіо-елементи, чий play() браузер заблокував (autoplay policy) — ретраїмо на жесті.
   const blockedAudiosRef = useRef<Set<HTMLAudioElement>>(new Set())
   const [audioBlocked, setAudioBlocked] = useState(false)
@@ -137,6 +136,9 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   // але розпізнає <audio>.play() як відтворення і тримає її живою.
   const noSleepElRef = useRef<HTMLAudioElement | null>(null)
   const analysersRef = useRef<Map<number, AnalyserEntry>>(new Map())
+  // Заповнюється нижче: attach/detach викликаються раніше за оголошення
+  // syncTrPeers, тому ходимо через ref, а не напряму.
+  const syncTrPeersRef = useRef<(() => void) | null>(null)
   const speakingRef = useRef<Map<number, boolean>>(new Map())
   const speakTimerRef = useRef<number | null>(null)
   // Моніторинг якості зв'язку.
@@ -257,20 +259,15 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     } catch { /* непідтримувано */ }
   }, [])
 
-  // Шина існує від моменту, коли є AudioContext, а не з першого чужого треку:
-  // ведучий у кімнаті сам-один теж має бачити переклад своєї мови.
-  const ensureTranslationBus = useCallback((ctx: AudioContext): MediaStreamAudioDestinationNode => {
-    if (!translationBusRef.current) translationBusRef.current = ctx.createMediaStreamDestination()
-    return translationBusRef.current
-  }, [])
-
   const detachAnalyser = useCallback((key: number) => {
     const a = analysersRef.current.get(key)
     if (!a) return
     try { a.source.disconnect() } catch { /* ignore */ }
     try { a.analyser.disconnect() } catch { /* ignore */ }
+    try { a.trDest?.disconnect() } catch { /* ignore */ }
     analysersRef.current.delete(key)
     speakingRef.current.delete(key)
+    syncTrPeersRef.current?.()
   }, [])
 
   const attachAnalyser = useCallback((key: number, stream: MediaStream) => {
@@ -282,16 +279,24 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       const analyser = ctx.createAnalyser()
       analyser.fftSize = 512
       source.connect(analyser)
-      // Той самий источник іде і в шину перекладу. Гілка паралельна аналізатору
-      // і нікуди не грає: destination шини - окремий потік, не колонки.
-      try { source.connect(ensureTranslationBus(ctx)) } catch { /* ignore */ }
+      // Кожен співрозмовник отримує СВІЙ вихід для перекладу, а не спільну
+      // шину. У розмові втрьох спільна шина давала кашу: модель отримувала
+      // накладені голоси, розпізнавала їх як одну мову, і в стрічці не було
+      // видно, хто що сказав. Окремі потоки заодно рятують від перебивань.
+      let trDest: MediaStreamAudioDestinationNode | undefined
+      try {
+        trDest = ctx.createMediaStreamDestination()
+        source.connect(trDest)
+      } catch { trDest = undefined }
       analysersRef.current.set(key, {
         analyser,
         source,
+        trDest,
         data: new Uint8Array(new ArrayBuffer(analyser.fftSize)),
       })
+      syncTrPeersRef.current?.()
     } catch { /* ignore */ }
-  }, [ensureAudioCtx, detachAnalyser, ensureTranslationBus])
+  }, [ensureAudioCtx, detachAnalyser])
 
   const speakTick = useCallback(() => {
     if (document.visibilityState === 'hidden') return
@@ -1116,35 +1121,32 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
 
   // Потік для перекладу з'являється тільки коли в кімнаті вже є чий-небудь
   // голос: до першого ontrack шини ще немає.
-  const getTranslationStream = useCallback((): MediaStream | null => {
-    const ctx = audioCtxRef.current
-    if (!ctx) return null
-    return ensureTranslationBus(ctx).stream
-  }, [ensureTranslationBus])
+  // Список співрозмовників, чию мову зараз можна перекладати. Ідентичність
+  // масиву міняється лише коли хтось зайшов чи вийшов - інакше запис
+  // перезапускався б на кожен рендер.
+  const [trPeers, setTrPeers] = useState<number[]>([])
+  const trPeersRef = useRef<string>('')
+  const syncTrPeers = useCallback(() => {
+    const ids = [...analysersRef.current.keys()].filter((k) => analysersRef.current.get(k)?.trDest).sort((a, b) => a - b)
+    const key = ids.join(',')
+    if (key === trPeersRef.current) return
+    trPeersRef.current = key
+    setTrPeers(ids)
+  }, [])
+  syncTrPeersRef.current = syncTrPeers
 
-  // Рівень на шині перекладу міряємо тим самим AudioContext, що й усе інше.
-  // Окремий new AudioContext заради вимірювача - зайвий аудіограф поруч із
-  // відкритим мікрофоном; краще не мати його взагалі.
-  const getTranslationLevel = useCallback((): number => {
-    const ctx = audioCtxRef.current
-    if (!ctx) return 0
-    if (!trAnalyserRef.current) {
-      try {
-        const an = ctx.createAnalyser()
-        an.fftSize = 512
-        ensureTranslationBus(ctx).connect(an)
-        trAnalyserRef.current = an
-        trDataRef.current = new Uint8Array(new ArrayBuffer(an.fftSize))
-      } catch { return 0 }
-    }
-    const an = trAnalyserRef.current
-    const data = trDataRef.current
-    if (!an || !data) return 0
-    an.getByteTimeDomainData(data)
+  const getPeerStream = useCallback((id: number): MediaStream | null => {
+    return analysersRef.current.get(id)?.trDest?.stream ?? null
+  }, [])
+
+  const getPeerLevel = useCallback((id: number): number => {
+    const a = analysersRef.current.get(id)
+    if (!a) return 0
+    a.analyser.getByteTimeDomainData(a.data)
     let sum = 0
-    for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v }
-    return Math.sqrt(sum / data.length)
-  }, [ensureTranslationBus])
+    for (let i = 0; i < a.data.length; i++) { const v = (a.data[i] - 128) / 128; sum += v * v }
+    return Math.sqrt(sum / a.data.length)
+  }, [])
 
-  return { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, getTranslationStream, getTranslationLevel, duckRemote }
+  return { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, trPeers, getPeerStream, getPeerLevel, duckRemote }
 }

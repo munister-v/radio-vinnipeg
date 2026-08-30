@@ -320,13 +320,17 @@ export type TranscriptChunk = { text: string; language: string | null; duration:
  * назовні це виглядало як «переклад просто нічого не пише». Тепер збій
  * розпізнавання видно в панелі.
  */
-export async function transcribeChunk(blob: Blob, room: string, signal?: AbortSignal): Promise<TranscriptChunk | null> {
+export async function transcribeChunk(blob: Blob, room: string, speaker: number, signal?: AbortSignal): Promise<TranscriptChunk | null> {
   const token = getToken()
   const headers: Record<string, string> = { 'Content-Type': blob.type || 'audio/webm' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   // Кімната потрібна серверу, щоб не рахувати ту саму мову окремо для кожного
   // слухача: усі в кімнаті чують одне й те саме.
-  const url = room ? `/api/translation/transcribe?room=${encodeURIComponent(room)}` : '/api/translation/transcribe'
+  // Кімната і мовець потрібні серверу, щоб не рахувати ту саму репліку окремо
+  // для кожного слухача: усі в кімнаті чують тих самих людей.
+  const url = room
+    ? `/api/translation/transcribe?room=${encodeURIComponent(room)}&speaker=${speaker}`
+    : '/api/translation/transcribe'
   const res = await fetch(url, { method: 'POST', headers, body: blob, signal })
   if (res.status === 429) return null
   const body = await res.json().catch(() => ({}))

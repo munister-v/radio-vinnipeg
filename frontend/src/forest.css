@@ -423,6 +423,12 @@
 /* Останній рядок - те, що зараз в ефірі: більший і чорний. Попередні світліші,
    щоб око само трималося за низ стрічки. */
 .fx-translate-lines li span { color: var(--ink-2); }
+/* Ім'я мовця кольором його точки в списку учасників - щоб око зв'язувало
+   рядок з людиною без читання. */
+.fx-translate-lines li span b {
+  font: 700 10px/1 var(--font); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 7px; white-space: nowrap;
+}
 .fx-translate-lines li.last span { color: var(--ink); font-size: 15px; font-weight: 600; }
 
 /* Місце під репліку, яка зараз розпізнається. Без нього здається, що переклад
