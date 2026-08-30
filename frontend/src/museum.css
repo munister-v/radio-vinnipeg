@@ -581,7 +581,22 @@ body {
   text-transform: none;
   color: var(--ink);
 }
-.radio-shell .schedule-head { border-bottom: 1px solid var(--ink); padding-bottom: var(--s4); }
+/* Всередині секції розкладу кожен блок ніс власні відступи ще з Apple-макета:
+   у шапки clamp(64px,8vw,100px) зверху й clamp(24px,5vw,80px) з боків, у
+   списку — ті самі боки. Разом із відступом самої секції це давало порожню
+   смугу над «Now. Next.» і зсув на 64px: заголовок і рядки стояли не на тій
+   вертикалі, що решта сторінки. Відступи тепер тільки в секції. */
+.radio-shell .schedule-head,
+.radio-shell .schedule-list {
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+.radio-shell .schedule-head {
+  padding-top: 0;
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--ink);
+}
 
 .radio-shell .station-clock {
   border: 0;
