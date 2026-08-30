@@ -266,31 +266,6 @@ body {
 /* ══ Ефір ══════════════════════════════════════════════════════════ */
 .radio-shell .fx-stage { background: var(--paper); min-height: 0; }
 
-.radio-shell .fx-livebar {
-  height: 44px;
-  background: var(--paper-0);
-  border-bottom: 1px solid var(--hair);
-  border-top: 1px solid var(--hair);
-  font: 400 var(--t-xs)/1 var(--sans);
-  letter-spacing: .02em;
-  text-transform: none;
-  padding-left: var(--edge);
-}
-.radio-shell .fx-lb-label { border-right: 1px solid var(--hair); color: var(--ink-2); gap: var(--s2); }
-.radio-shell .fx-chan { border-right: 1px solid var(--hair); color: var(--ink); text-transform: none; }
-.radio-shell .fx-chan:hover:not(:disabled) { background: var(--tint); }
-.radio-shell .fx-chan-n {
-  width: 16px; height: 16px;
-  background: transparent;
-  border: 1px solid var(--hair-strong);
-  color: var(--ink-2);
-  font: 400 10px/1 var(--sans);
-  font-variant-numeric: tabular-nums;
-}
-.radio-shell .fx-chan-loc,
-.radio-shell .fx-lb-tail { color: var(--ink-3); }
-.radio-shell .fx-lb-tail { border-left: 1px solid var(--hair); padding-right: var(--edge); }
-
 .radio-shell .fx-grid { grid-template-columns: 51.5% 1fr; }
 
 /* Сцена, як музейний fold: смуга-знімок зверху (знебарвлена, притоплена),
@@ -324,32 +299,6 @@ body {
   background-size: auto;
 }
 
-.radio-shell .fx-moon { display: none; }
-.radio-shell .fx-preview-card { display: none; }   /* дубль титулу — прибрано */
-.radio-shell .fx-brand-lockup {
-  z-index: 5;
-  top: var(--s5);
-  left: var(--pad);
-  gap: var(--s3);
-}
-.radio-shell .fx-brand-seal {
-  background: transparent;
-  border: 1px solid rgba(242, 241, 239, .5);
-  color: var(--ink);
-  font: 400 var(--t-xs)/1 var(--sans);
-  letter-spacing: .1em;
-}
-.radio-shell .fx-brand-copy { gap: 3px; text-transform: none; }
-.radio-shell .fx-brand-copy b {
-  font: 400 var(--t-xs)/1.4 var(--sans);
-  letter-spacing: .02em;
-  color: rgba(242, 241, 239, .9);
-}
-.radio-shell .fx-brand-copy small {
-  font: 400 var(--t-xs)/1.4 var(--sans);
-  letter-spacing: .02em;
-  color: rgba(242, 241, 239, .55);
-}
 
 /* Дек стає звичайним блоком у потоці — це і є перший екран. */
 .radio-shell .fx-deck,
@@ -367,8 +316,7 @@ body {
 .radio-shell .fx-deck { padding-bottom: var(--s7); }
 .radio-shell .fx-deck-idle { align-items: flex-start; gap: var(--s5); }
 .radio-shell .fx-deck-text { gap: var(--s3); }
-.radio-shell .fx-deck-kicker,
-.radio-shell .fx-preview-kicker {
+.radio-shell .fx-deck-kicker {
   font: 400 var(--t-xs)/1 var(--sans);
   letter-spacing: .02em;
   text-transform: none;
@@ -518,7 +466,6 @@ body {
   color: var(--ink);
 }
 .radio-shell .fx-tile-play { display: none; }
-.radio-shell .fx-pines { display: none; }
 
 /* ══ Music Radio ═══════════════════════════════════════════════════ */
 .radio-shell .mr-root {
@@ -832,7 +779,6 @@ body {
   .radio-shell .mr-root { padding-left: var(--edge); padding-right: var(--edge); }
   .radio-shell .fx-deck,
   .radio-shell .fx-np { padding-left: var(--edge); padding-right: var(--edge); }
-  .radio-shell .fx-brand-lockup { left: var(--edge); }
   .radio-shell .fx-feature::before,
   .radio-shell .fx-feature::after { height: clamp(180px, 24vh, 240px); }
 }
@@ -1147,10 +1093,27 @@ body {
   transition: background .18s var(--ease), color .18s var(--ease);
 }
 .radio-shell .fx-np-form button:hover { background: var(--ink); color: var(--paper-0); }
+/* «+ YouTube» — звичайна пігулка за розміром напису, а не смуга на всю
+   ширину: разом із полем нижче це виглядало як дві незв'язані коробки. */
 .radio-shell .fx-np-add {
-  width: 100%;
-  justify-content: center;
-  text-align: center;
+  width: auto;
+  align-self: flex-start;
+  padding: var(--s2) var(--s4);
+}
+.radio-shell .fx-np {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s3);
+}
+.radio-shell .fx-np-form { max-width: 460px; }
+.radio-shell .fx-np-form button:disabled {
+  color: var(--ink-3);
+  cursor: default;
+}
+.radio-shell .fx-np-form button:disabled:hover {
+  background: transparent;
+  color: var(--ink-3);
 }
 
 /* ── Прапорець країни в стрічці ─────────────────────────────────────── */
@@ -1171,19 +1134,7 @@ body {
 }
 
 /* Печатка в шапці ефіру: тепер це підпис «Case file», а не дві літери. */
-.radio-shell .fx-brand-seal {
-  width: auto;
-  height: auto;
-  padding: var(--s2) var(--s3);
-  border-radius: 0;
-  font: 400 var(--t-xs)/1 var(--sans);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
 @media (max-width: 620px) {
-  .radio-shell .fx-brand-seal { width: auto; height: auto; font-size: var(--t-xs); }
-  .radio-shell .fx-brand-copy small { display: block; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════

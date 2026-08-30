@@ -21,40 +21,6 @@ function fxSame(a: FxParams, b: FxParams): boolean {
   return FX_KNOBS.every(({ key }) => Math.abs(a[key] - b[key]) < 0.001)
 }
 
-/* Deterministic pine-forest silhouette — three depth layers */
-function pinePath(count: number, minH: number, maxH: number, seed: number): string {
-  const W = 1440, H = 400
-  const step = W / count
-  const hs = Array.from({ length: count }, (_, i) => {
-    const n = (Math.sin(seed + i * 2.618) + Math.sin(seed * 1.73 + i * 1.414)) * 0.5
-    return minH + (n * 0.5 + 0.5) * (maxH - minH)
-  })
-  let d = `M0,${H}`
-  hs.forEach((h, i) => {
-    const prev = i > 0 ? hs[i - 1] : h
-    const valX = (i * step).toFixed(1)
-    const valY = (H - Math.min(h, prev) * 0.72).toFixed(1)
-    const pkX  = (i * step + step * 0.5).toFixed(1)
-    const pkY  = (H - h).toFixed(1)
-    d += ` L${valX},${valY} L${pkX},${pkY}`
-  })
-  return d + ` L${W},${H} Z`
-}
-
-function PineTrees() {
-  const far  = pinePath(52, 28, 68,  1.1)
-  const mid  = pinePath(34, 72, 148, 3.7)
-  const near = pinePath(22, 140, 230, 6.2)
-  return (
-    <div className="fx-pines" aria-hidden>
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 400" preserveAspectRatio="xMidYMax slice">
-        <path d={far}  fill="rgba(48, 53, 66, 0.65)" />
-        <path d={mid}  fill="rgba(22, 25, 32, 0.92)" />
-        <path d={near} fill="rgba(6, 7, 10, 0.99)" />
-      </svg>
-    </div>
-  )
-}
 
 function PlayGlyph() {
   return <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M8 5.4l12 6.6-12 6.6V5.4Z" /></svg>
@@ -128,10 +94,6 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
   const speakers = members.filter((m) => m.speaking)
   const someoneSpeaking = speakers.length > 0 || (joined && micOn && speaking)
   const active = joined || members.length > 0
-  const roomTitle = room
-    .split('-')
-    .map((part) => part ? part[0].toUpperCase() + part.slice(1) : part)
-    .join(' ')
 
   // Авто-підключення як тихий слухач, коли хтось у кімнаті.
   // Слухач отримує аудіо через WebRTC без кліку — «увімкнулось радіо».
@@ -177,57 +139,10 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
 
   return (
     <section className="fx-stage" id="air">
-      {/* ════ Dual-channel LIVE NOW bar — NTS signature ════ */}
-      <div className="fx-livebar">
-        <span className="fx-lb-label">
-          <span className={`fx-lb-dot ${active ? 'on' : ''}`} aria-hidden />
-          Live now
-        </span>
-
-        {/* Channel 1 — the open broadcast */}
-        <button className="fx-chan" onClick={joined ? undefined : join} disabled={connecting}>
-          <span className="fx-chan-n">1</span>
-          <PlayGlyph />
-          <span className="fx-chan-title">
-            {active ? 'Winnipeg Nights · on air' : 'Winnipeg Nights · open mic'}
-          </span>
-          <span className="fx-chan-loc">Winnipeg</span>
-        </button>
-
-        {/* Channel 2 — scheduled programme */}
-        <a className="fx-chan fx-chan-2" href="#schedule">
-          <span className="fx-chan-n">2</span>
-          <span className="fx-chan-title">{t(`slot.${activeSlot}.label`)}</span>
-          <span className="fx-chan-loc">Winnipeg</span>
-        </a>
-
-        <span className="fx-lb-tail">{total} {peopleWord(total, lang)}</span>
-      </div>
-
       {/* ════ Two-column grid: featured cell + tile rail ════ */}
       <div className="fx-grid">
         {/* ── Featured live cell (the "artwork") ── */}
         <div className="fx-feature">
-          <div className="fx-moon" aria-hidden />
-          <PineTrees />
-          <div className="fx-brand-lockup" aria-hidden>
-            <span className="fx-brand-seal">Case file</span>
-            <span className="fx-brand-copy">
-              <b>Winnipeg Nights</b>
-              <small>Live radio / American &amp; Canadian true crime</small>
-            </span>
-          </div>
-
-          <div className="fx-preview-card">
-            <span className="fx-preview-kicker"><i className={active ? 'on' : ''} /> Radio preview</span>
-            <h2>Winnipeg Nights</h2>
-            <p>Forest-dark broadcast, live guest rooms and late-night music from the browser.</p>
-            <dl>
-              <div><dt>Room</dt><dd>{roomTitle}</dd></div>
-              <div><dt>Voices</dt><dd>{total}</dd></div>
-              <div><dt>Status</dt><dd>{active ? 'On air' : 'Standby'}</dd></div>
-            </dl>
-          </div>
 
           <div className="fx-deck">
             {!joined ? (
@@ -374,7 +289,7 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                   </>
                 ) : (
                   <button className="fx-np-add" onClick={() => setNpOpen((v) => !v)}>
-                    + YouTube
+                    {npOpen ? 'Cancel' : '+ YouTube'}
                   </button>
                 )}
                 {npOpen && (
@@ -384,8 +299,8 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                     const res = await setNowPlaying(room, { video_id: npInput.trim(), is_playing: true, position_sec: 0 }).catch(() => null)
                     if (res) { setNp(res); setNpOpen(false); setNpInput('') }
                   }}>
-                    <input className="fx-np-input" value={npInput} onChange={(e) => setNpInput(e.target.value)} placeholder="YouTube URL or video ID" autoFocus />
-                    <button type="submit">▶</button>
+                    <input className="fx-np-input" value={npInput} onChange={(e) => setNpInput(e.target.value)} placeholder="YouTube link or video ID" autoFocus />
+                    <button type="submit" disabled={!npInput.trim()}>Play</button>
                   </form>
                 )}
               </div>
