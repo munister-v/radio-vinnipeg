@@ -17,6 +17,10 @@ Group=root
 WorkingDirectory=/opt/radio-vinnipeg
 Environment="PATH=/opt/radio-vinnipeg/.venv/bin"
 EnvironmentFile=/opt/radio-vinnipeg/.env
+# Модель розпізнавання кешується всередині проєкту, а не в /root/.cache:
+# сервіс ходить під root, і кеш HF інакше розповзається по системі.
+Environment="HF_HOME=/opt/radio-vinnipeg/.cache/huggingface"
+Environment="XDG_CACHE_HOME=/opt/radio-vinnipeg/.cache"
 ExecStart=/opt/radio-vinnipeg/.venv/bin/gunicorn -c deploy/gunicorn.conf.py backend.app:app
 ExecReload=/bin/kill -s HUP $MAINPID
 

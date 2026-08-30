@@ -294,3 +294,34 @@ export async function fetchTrueCrime(
   if (region) q.set('region', region)
   return request<CrimeFeed>(`/truecrime?${q.toString()}`)
 }
+
+// ── Переклад ефіру англійською ───────────────────────────────────────────────
+// Бекенд крутить faster-whisper у режимі task=translate: на вхід шматок звуку
+// будь-якою мовою, на вихід англійський текст. Тіло запиту - самі байти, а не
+// JSON, тому загальний request() тут не годиться.
+
+export type TranslationHealth = { enabled: boolean; model: string }
+
+export async function fetchTranslationHealth(): Promise<TranslationHealth> {
+  const res = await fetch('/api/translation/health')
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok || body.ok === false) throw new Error('Переклад недоступний.')
+  return body.data as TranslationHealth
+}
+
+export type TranscriptChunk = { text: string; language: string | null; duration: number }
+
+/**
+ * Повертає null, якщо сервер зайнятий іншим шматком (429) - це нормальний хід
+ * подій, розпізнавання однопотокове. Помилку кидаємо лише на справжніх збоях.
+ */
+export async function transcribeChunk(blob: Blob, signal?: AbortSignal): Promise<TranscriptChunk | null> {
+  const token = getToken()
+  const headers: Record<string, string> = { 'Content-Type': blob.type || 'audio/webm' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch('/api/translation/transcribe', { method: 'POST', headers, body: blob, signal })
+  if (res.status === 429 || res.status === 503) return null
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok || body.ok === false) throw new Error(body.error || `Переклад не вдався (${res.status})`)
+  return body.data as TranscriptChunk
+}

@@ -119,6 +119,9 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   const micFxRef = useRef<MicFx | null>(null)
   // Сирий стрім із пристрою тримаємо окремо: його треки треба зупиняти при виході.
   const rawStreamRef = useRef<MediaStream | null>(null)
+  // Спільна шина віддалених голосів: усе, що чує слухач, зводиться в один
+  // потік. Потрібна перекладу - MediaRecorder не вміє писати кілька джерел.
+  const translationBusRef = useRef<MediaStreamAudioDestinationNode | null>(null)
   // Аудіо-елементи, чий play() браузер заблокував (autoplay policy) — ретраїмо на жесті.
   const blockedAudiosRef = useRef<Set<HTMLAudioElement>>(new Set())
   const [audioBlocked, setAudioBlocked] = useState(false)
@@ -257,6 +260,10 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       const analyser = ctx.createAnalyser()
       analyser.fftSize = 512
       source.connect(analyser)
+      // Той самий источник іде і в шину перекладу. Гілка паралельна аналізатору
+      // і нікуди не грає: destination шини - окремий потік, не колонки.
+      if (!translationBusRef.current) translationBusRef.current = ctx.createMediaStreamDestination()
+      try { source.connect(translationBusRef.current) } catch { /* ignore */ }
       analysersRef.current.set(key, {
         analyser,
         source,
@@ -1080,5 +1087,9 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     }
   }, [stopTimers, stopKeepAlive, cleanupAll, releaseWakeLock, teardownMediaSession])
 
-  return { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic }
+  // Потік для перекладу з'являється тільки коли в кімнаті вже є чий-небудь
+  // голос: до першого ontrack шини ще немає.
+  const getTranslationStream = useCallback((): MediaStream | null => translationBusRef.current?.stream ?? null, [])
+
+  return { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, getTranslationStream }
 }
