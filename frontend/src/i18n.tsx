@@ -4,12 +4,10 @@ export type Lang = 'en' | 'uk'
 
 const STORAGE_KEY = 'rv-lang'
 
-// Англійська — мова за замовчуванням; українська доступна перемикачем.
+// Сайт англомовний: перемикача мов у шапці немає, мова зафіксована.
+// Український словник лишається у файлі й робочий — щоб повернути вибір,
+// достатньо повернути перемикач і читання STORAGE_KEY тут.
 function detectInitial(): Lang {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved === 'en' || saved === 'uk') return saved
-  } catch { /* ignore */ }
   return 'en'
 }
 

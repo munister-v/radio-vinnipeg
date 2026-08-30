@@ -1375,3 +1375,63 @@ body {
   .radio-shell .promo-actions { gap: var(--s3); }
   .radio-shell .promo-btn { width: 100%; text-align: center; }
 }
+
+/* ── Шапка після розвантаження: лише знак, навігація, статус ────────────
+   Назву станції з шапки прибрано (вона й так стоїть на першому екрані),
+   тож знак може бути більшим, а меню отримало все вільне місце.        */
+.radio-shell .brand-mark,
+.radio-shell .brand:hover .brand-mark {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  transition: opacity .18s var(--ease);
+}
+.radio-shell .brand-mark svg { width: 32px; height: 32px; }
+.radio-shell .brand:hover .brand-mark { opacity: .7; }
+.radio-shell .brand { gap: 0; padding-right: 0; }
+/* Назва лишається в розмітці для читалок і пошуку, але не показується. */
+.radio-shell .brand-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.radio-shell .topbar-nav {
+  justify-content: flex-start;
+  padding-left: var(--s6);
+  gap: var(--s5);
+}
+
+/* Нікнейм тепер живе в чаті, поруч із лічильником присутніх. */
+.radio-shell .chat-presence .nick-chip {
+  margin-left: auto;
+  margin-right: var(--s3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  border: 1px solid var(--hair);
+  border-radius: 40px;
+  background: transparent;
+  padding: var(--s1) var(--s3);
+  max-width: 190px;
+}
+.radio-shell .chat-presence .nick-chip .dot {
+  width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto;
+}
+.radio-shell .chat-presence .nick-chip span:nth-child(2) {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.radio-shell .chat-presence .nick-edit { margin-left: auto; margin-right: var(--s3); }
+.radio-shell .chat-presence .nick-edit input {
+  border: 1px solid var(--hair-strong);
+  border-radius: 40px;
+  background: transparent;
+  color: var(--ink);
+  padding: var(--s1) var(--s3);
+  font: 400 var(--t-xs)/1.4 var(--sans);
+  max-width: 190px;
+}

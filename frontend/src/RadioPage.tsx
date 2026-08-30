@@ -114,21 +114,19 @@ const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥']
 
 // Winnipeg Nights mark: compact monogram, signal arcs and night horizon.
 /**
- * Знак станції: відбиток пальця — найпряміша true-crime емблема, і вона
- * лишається читабельною на 15 px, бо це лише кілька концентричних дуг.
- * Рамку малює CSS (.brand-mark), тож у самій графіці її немає.
+ * Знак станції: відбиток пальця, який водночас читається як канавка
+ * платівки. Три розірвані кільця плюс ядро: тримається і на 220 px,
+ * і на 28 px у вкладці. Рамку не малюємо, знак стоїть сам.
  */
 function BrandEmblem({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 48 48" fill="none" aria-hidden>
-      <g stroke="currentColor" strokeLinecap="round" fill="none">
-        <path d="M7 33.5a17 20 0 0 1 34 0" strokeWidth="2" />
-        <path d="M11.5 34.5a12.5 15 0 0 1 25 0" strokeWidth="2" opacity=".85"
-              strokeDasharray="22 5" />
-        <path d="M16 35.5a8 10 0 0 1 16 0" strokeWidth="2" opacity=".7" />
-        <ellipse cx="24" cy="35.5" rx="3.4" ry="3.8" strokeWidth="2" opacity=".6" />
-        <path d="M7 33.5 6 39.5M41 33.5 42 39.5" strokeWidth="1.6" opacity=".45" />
+      <g stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" fill="none">
+        <circle cx="24" cy="24" r="20" strokeDasharray="100 26" transform="rotate(35 24 24)" />
+        <circle cx="24" cy="24" r="14" strokeDasharray="66 22" transform="rotate(165 24 24)" />
+        <circle cx="24" cy="24" r="8.5" strokeDasharray="40 14" transform="rotate(285 24 24)" />
       </g>
+      <circle cx="24" cy="24" r="2.8" fill="currentColor" />
     </svg>
   )
 }
@@ -231,7 +229,7 @@ function StationClock() {
 }
 
 export default function RadioPage({ user, onUserChange }: Props) {
-  const { t, lang, setLang } = useI18n()
+  const { t, lang } = useI18n()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [online, setOnline] = useState<{ nickname: string; color: string; city?: string }[]>([])
   const [typers, setTypers] = useState<Typer[]>([])
@@ -569,19 +567,17 @@ export default function RadioPage({ user, onUserChange }: Props) {
     <div className={`radio-shell${chatOpen ? ' chat-is-open' : ''}`}>
       <header className="topbar">
         <div className="topbar-inner">
+          {/* Назву прибрано: у шапці лишається сам знак, решту місця
+              віддано навігації. Текст лишається для читалок і пошуку. */}
           <a className="brand" href="#air" aria-label={t('top.toAir')}>
-            <span className="brand-mark" aria-hidden><BrandEmblem className="brand-emblem" /></span>
-            <div className="brand-titles">
-              <span className="brand-eyebrow">{t('top.brandEyebrow')}</span>
-              <span className="brand-name">Winnipeg Nights</span>
-            </div>
+            <span className="brand-mark"><BrandEmblem className="brand-emblem" /></span>
+            <span className="brand-sr">Winnipeg Nights</span>
           </a>
           <nav className="topbar-nav" aria-label="Winnipeg Nights">
             <a href="#air">{t('nav.air')}</a>
             <a href="#broadcast">{t('nav.broadcast')}</a>
             <a href="#cases">{t('nav.cases')}</a>
             <a href="#schedule">{t('nav.schedule')}</a>
-            <a href="#about">{t('nav.about')}</a>
             <button type="button" onClick={openChat}>{t('nav.chat')}</button>
           </nav>
           <div className="topbar-right">
@@ -601,35 +597,6 @@ export default function RadioPage({ user, onUserChange }: Props) {
                   <b>{voiceStats.lossPercent}<small>%</small></b>
                 </span>
               </div>
-            )}
-            <div className="lang-switch" role="group" aria-label="Language">
-              <button type="button" className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')} aria-pressed={lang === 'en'}>EN</button>
-              <button type="button" className={lang === 'uk' ? 'on' : ''} onClick={() => setLang('uk')} aria-pressed={lang === 'uk'}>UA</button>
-            </div>
-            <span className="online-pill"><span className="dot-live" />{t('top.online', { n: online.length })}</span>
-            {editingNick ? (
-              <form className="nick-edit" onSubmit={handleRename}>
-                <input
-                  value={nickDraft}
-                  onChange={(e) => setNickDraft(e.target.value)}
-                  maxLength={24}
-                  autoFocus
-                  onBlur={handleRename}
-                />
-              </form>
-            ) : (
-              <button
-                className="nick-chip"
-                onClick={() => {
-                  setNickDraft(user.nickname)
-                  setEditingNick(true)
-                }}
-                title={t('top.changeNick')}
-              >
-                <span className="dot" style={{ background: user.color }} />
-                <span>{user.nickname}</span>
-                <span className="nick-edit-icon" aria-hidden>↗</span>
-              </button>
             )}
           </div>
         </div>
@@ -758,6 +725,32 @@ export default function RadioPage({ user, onUserChange }: Props) {
           </header>
           <div className="chat-presence">
             <span><i />{t('chat.presence', { n: online.length })}</span>
+            {/* Ім'я редагується там, де ним користуються: у чаті.
+                У шапці воно лише займало місце. */}
+            {editingNick ? (
+              <form className="nick-edit" onSubmit={handleRename}>
+                <input
+                  value={nickDraft}
+                  onChange={(e) => setNickDraft(e.target.value)}
+                  maxLength={24}
+                  autoFocus
+                  onBlur={handleRename}
+                />
+              </form>
+            ) : (
+              <button
+                className="nick-chip"
+                onClick={() => {
+                  setNickDraft(user.nickname)
+                  setEditingNick(true)
+                }}
+                title={t('top.changeNick')}
+              >
+                <span className="dot" style={{ background: user.color }} />
+                <span>{user.nickname}</span>
+                <span className="nick-edit-icon" aria-hidden>↗</span>
+              </button>
+            )}
             <div>
               {online.slice(0, 5).map((u, i) => (
                 <span className="presence-dot" key={`${u.nickname}-${i}`} style={{ background: u.color }} title={[u.nickname, u.city].filter(Boolean).join(' · ')} />

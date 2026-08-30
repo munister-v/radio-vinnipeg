@@ -1,13 +1,13 @@
 {
   "name": "Winnipeg Nights",
   "short_name": "Winnipeg",
-  "description": "Winnipeg Nights — open live broadcast with group voice conversation and chat.",
+  "description": "Open live broadcast with group voice conversation, chat and a North American true crime feed.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#efe7d3",
-  "theme_color": "#efe7d3",
+  "background_color": "#0d0d0d",
+  "theme_color": "#0d0d0d",
   "orientation": "any",
-  "categories": ["entertainment", "music"],
+  "categories": ["entertainment", "news", "music"],
   "icons": [
     {
       "src": "/favicon.svg",
