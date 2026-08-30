@@ -1174,3 +1174,204 @@ body {
   .radio-shell .fx-brand-seal { width: auto; height: auto; font-size: var(--t-xs); }
   .radio-shell .fx-brand-copy small { display: block; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   АНОНС ЕФІРУ — портрет ведучого + дата в музейній сітці
+   Портрет лишається КОЛЬОРОВИМ: це єдиний кольоровий знімок на сторінці,
+   решту скін знебарвлює, тож обличчя працює акцентом.
+   ══════════════════════════════════════════════════════════════════════ */
+.radio-shell .promo {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(var(--s5), 4vw, var(--s8));
+  background: var(--paper);
+  border-top: 1px solid var(--hair);
+  padding: var(--s8) var(--pad);
+}
+
+.radio-shell .promo-portrait {
+  position: relative;
+  width: 100%;
+  max-width: 220px;
+}
+.radio-shell .promo-portrait img {
+  display: block;
+  width: 100%;
+  /* height: auto ОБОВ'ЯЗКОВО: в <img> є атрибут height="400", і поки
+     висота не auto, aspect-ratio не працює — портрет ставав овалом. */
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid var(--hair-strong);
+  filter: none;                     /* кольоровий — свідомо */
+}
+.radio-shell .promo-status {
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  border: 1px solid var(--hair-strong);
+  border-radius: 40px;
+  background: var(--paper);
+  color: var(--ink-2);
+  padding: var(--s2) var(--s4);
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+}
+.radio-shell .promo-status.on {
+  border-color: var(--signal);
+  color: #fff;
+  background: var(--signal);
+}
+
+.radio-shell .promo-eyebrow {
+  display: block;
+  font: 400 var(--t-xs)/1.5 var(--sans);
+  letter-spacing: .02em;
+  color: var(--ink-3);
+}
+.radio-shell .promo-title {
+  margin: var(--s3) 0 0;
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: clamp(26px, 3.2vw, 42px);
+  line-height: 1.08;
+  letter-spacing: -.026em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.radio-shell .promo-lead {
+  margin: var(--s4) 0 0;
+  max-width: 62ch;
+  font-family: var(--serif);
+  font-size: var(--t-lg);
+  line-height: 1.45;
+  color: var(--soft);
+}
+
+.radio-shell .promo-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0;
+  margin: var(--s6) 0 0;
+}
+.radio-shell .promo-facts div {
+  padding: var(--s3) var(--s4) var(--s3) 0;
+  border-top: 1px solid var(--hair);
+}
+.radio-shell .promo-facts dt {
+  font: 400 var(--t-xs)/1.5 var(--sans);
+  letter-spacing: .02em;
+  color: var(--ink-3);
+}
+.radio-shell .promo-facts dd {
+  margin: var(--s1) 0 0;
+  font-size: var(--t-sm);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.radio-shell .promo-facts dd small { color: var(--ink-3); }
+
+.radio-shell .promo-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  flex-wrap: wrap;
+  margin-top: var(--s6);
+}
+.radio-shell .promo-btn {
+  border: 1px solid var(--ink);
+  border-radius: 40px;
+  background: var(--ink);
+  color: var(--paper-0);
+  padding: var(--s3) var(--s5);
+  font: 400 var(--t-sm)/1 var(--sans);
+  letter-spacing: -.004em;
+  text-decoration: none;
+  transition: opacity .18s var(--ease);
+}
+.radio-shell .promo-btn:hover { opacity: .82; }
+.radio-shell .promo-link {
+  font: 400 var(--t-sm)/1 var(--sans);
+  color: var(--ink-3);
+  text-decoration: none;
+  border-bottom: 1px solid var(--hair);
+  padding-bottom: 2px;
+}
+.radio-shell .promo-link:hover { color: var(--ink); border-color: var(--ink); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   АДАПТИВНІСТЬ — прохід по ширинах 1440 / 1100 / 900 / 760 / 620 / 390
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* App.css ховає навігацію вже з 1100px — на планшеті користувач лишався
+   зовсім без меню, а розділів тепер п'ять. Повертаємо її від 620px. */
+@media (min-width: 620px) and (max-width: 1100px) {
+  .radio-shell .topbar-nav {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: var(--s4);
+    padding-left: var(--s5);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .radio-shell .topbar-nav::-webkit-scrollbar { display: none; }
+  .radio-shell .topbar-inner { gap: var(--s3); }
+  .radio-shell .topbar-right { gap: var(--s3); padding-left: var(--s3); }
+}
+
+/* Планшет: анонс у два стовпці тримається до 760px, далі портрет зверху. */
+@media (max-width: 900px) {
+  .radio-shell .promo { padding: var(--s7) var(--pad); gap: var(--s5); }
+  .radio-shell .promo-lead { font-size: var(--t-md); }
+}
+@media (max-width: 760px) {
+  .radio-shell .promo {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+  .radio-shell .promo-portrait { width: 140px; max-width: 140px; }
+  .radio-shell .promo-status { left: 0; transform: none; }
+  .radio-shell .promo-title { font-size: clamp(24px, 6vw, 32px); }
+  .radio-shell .promo-facts { margin-top: var(--s5); }
+  .radio-shell .promo-actions { margin-top: var(--s5); }
+}
+
+@media (max-width: 620px) {
+  .radio-shell .promo { padding-left: var(--edge); padding-right: var(--edge); }
+  /* Лічильник слухачів дублює цифру в смузі ефіру — на вузькому екрані
+     він лише обрізався трьома крапками. */
+  .radio-shell .online-pill { display: none; }
+  /* Фільтри стрічки: краще горизонтальна стрічка, ніж три рядки чипів. */
+  .radio-shell .tc-meta { width: 100%; justify-content: space-between; }
+  .radio-shell .tc-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    padding-bottom: var(--s2);
+    scrollbar-width: none;
+  }
+  .radio-shell .tc-filters::-webkit-scrollbar { display: none; }
+  .radio-shell .tc-filter { white-space: nowrap; }
+  .radio-shell .tc-head { align-items: flex-start; flex-direction: column; gap: var(--s4); }
+  .radio-shell .tc-updated { order: -1; }
+}
+
+@media (max-width: 460px) {
+  /* Вордмарк трохи стискається, щоб нікнейм не різало до «Lis…». */
+  .radio-shell .brand-name { font-size: 10px; letter-spacing: .1em; margin-right: -.1em; }
+  /* Нікнейм не стискаємо — місце віддає вордмарк, він і так упізнаваний. */
+  .radio-shell .nick-chip { flex: 0 0 auto; max-width: 152px; overflow: hidden; }
+  .radio-shell .brand { min-width: 0; overflow: hidden; }
+  .radio-shell .brand-titles { min-width: 0; overflow: hidden; }
+  .radio-shell .nick-chip span:nth-child(2) {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .radio-shell .promo-actions { gap: var(--s3); }
+  .radio-shell .promo-btn { width: 100%; text-align: center; }
+}

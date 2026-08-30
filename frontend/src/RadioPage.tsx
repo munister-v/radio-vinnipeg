@@ -21,6 +21,7 @@ import { type VoiceStats } from './VoicePanel'
 import ForestStage from './ForestStage'
 import MusicRadio from './MusicRadio'
 import TrueCrime from './TrueCrime'
+import Announcement from './Announcement'
 import EmojiPicker from './EmojiPicker'
 import GifPicker from './GifPicker'
 import { useI18n, type Lang } from './i18n'
@@ -577,6 +578,7 @@ export default function RadioPage({ user, onUserChange }: Props) {
           </a>
           <nav className="topbar-nav" aria-label="Winnipeg Nights">
             <a href="#air">{t('nav.air')}</a>
+            <a href="#broadcast">{t('nav.broadcast')}</a>
             <a href="#cases">{t('nav.cases')}</a>
             <a href="#schedule">{t('nav.schedule')}</a>
             <a href="#about">{t('nav.about')}</a>
@@ -635,6 +637,8 @@ export default function RadioPage({ user, onUserChange }: Props) {
 
       <main>
         <ForestStage user={user} onStats={setVoiceStats} room={currentRoom} />
+
+        <Announcement />
 
         <TrueCrime />
 
