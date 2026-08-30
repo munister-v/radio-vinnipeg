@@ -29,10 +29,13 @@ from ..database import get_connection
 
 
 REFRESH_TTL = 30 * 60          # кеш живе 30 хвилин
-FETCH_TIMEOUT = 20             # сек на одну стрічку
+FETCH_TIMEOUT = 30             # сек на одну стрічку (стрічка CBC — 800+ КБ)
 PER_FEED_LIMIT = 12            # скільки свіжих записів брати з кожного джерела
 KEEP_ITEMS = 240               # скільки записів тримати в БД
-USER_AGENT = 'WinnipegNights/1.0 (+https://radio.munister.com.ua)'
+# CBC мовчки душить нестандартні User-Agent: із власним рядком читання
+# стрічки висіло до таймауту, з браузерним — 0,3 с. Тому звичайний браузерний.
+USER_AGENT = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+              'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36')
 
 # slug, назва, вид медіа, регіон, URL стрічки.
 # Регіон — щоб канадське можна було відфільтрувати окремо: станція з Вінніпега,
@@ -102,7 +105,7 @@ def _ts(raw: str | None) -> float:
 def _fetch(url: str) -> bytes | None:
     req = urllib.request.Request(url, headers={
         'User-Agent': USER_AGENT,
-        'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml',
+        'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
     })
     try:
         with urllib.request.urlopen(req, timeout=FETCH_TIMEOUT) as resp:
@@ -217,7 +220,8 @@ def refresh() -> int:
                    ON CONFLICT(guid) DO UPDATE SET
                      title=excluded.title, summary=excluded.summary,
                      image=excluded.image, link=excluded.link,
-                     media_url=excluded.media_url, fetched_at=excluded.fetched_at""",
+                     media_url=excluded.media_url, region=excluded.region,
+                     fetched_at=excluded.fetched_at""",
                 (it['guid'], it['source'], it['source_slug'], it['media_kind'],
                  it['region'], it['title'], it['summary'], it['link'], it['image'],
                  it['media_url'], it['video_id'], it['duration'],
