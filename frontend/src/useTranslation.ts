@@ -54,6 +54,7 @@ export function useTranslation(
   getStream: () => MediaStream | null,
   getLevel: () => number,
   enabled: boolean,
+  room: string,
   maxTakeMs = 6000,
 ) {
   const [lines, setLines] = useState<TranscriptLine[]>([])
@@ -101,7 +102,7 @@ export function useTranslation(
       inFlightRef.current = true
       setBusy(true)
       try {
-        const out = await transcribeChunk(blob, ctrl.signal)
+        const out = await transcribeChunk(blob, room, ctrl.signal)
         if (!cancelled && out?.text) push(out.text)
         if (!cancelled && out) setError(null)
       } catch (err) {
@@ -184,7 +185,7 @@ export function useTranslation(
       setBusy(false)
       setHearing(false)
     }
-  }, [enabled, getStream, getLevel, push, maxTakeMs])
+  }, [enabled, getStream, getLevel, push, room, maxTakeMs])
 
   const clear = useCallback(() => setLines([]), [])
 

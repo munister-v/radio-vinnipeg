@@ -92,7 +92,7 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
       .catch(() => { if (alive) setTrAvailable(false) })
     return () => { alive = false }
   }, [])
-  const translation = useTranslation(getTranslationStream, getTranslationLevel, trOn && joined, settings.trTakeMs)
+  const translation = useTranslation(getTranslationStream, getTranslationLevel, trOn && joined, room, settings.trTakeMs)
   useEffect(() => { if (!joined) setTrOn(false) }, [joined])
 
   // Озвучення перекладу. Синтез робить браузер, тож це справа кожного слухача
