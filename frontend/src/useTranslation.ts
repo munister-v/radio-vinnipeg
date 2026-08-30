@@ -30,9 +30,10 @@ const MAX_LINES = 40
 // секунди, дає п'ятнадцять - теж у межах.
 const MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
 // Поріг тиші. Рахуємо по хвилі, а не по розмірі файлу: розмір залежить від
-// кодека й бітрейта, а RMS - ні. Поріг низький навмисно: пропустити тиху
-// фразу гірше, ніж зайвий раз розпізнати тишу.
-const SILENCE_RMS = 0.006
+// кодека й бітрейта, а RMS - ні. Піднятий з 0.006: на тиші Whisper не мовчить,
+// а вигадує текст, і вигадку слухач не відрізнить від справжніх слів. Тобто
+// зайвий дубль тиші коштує дорожче, ніж пропущена дуже тиха репліка.
+const SILENCE_RMS = 0.02
 
 function pickMime(): string | null {
   if (typeof MediaRecorder === 'undefined') return null
@@ -40,7 +41,12 @@ function pickMime(): string | null {
   return null
 }
 
-export function useTranslation(getStream: () => MediaStream | null, enabled: boolean, takeMs = 6000) {
+export function useTranslation(
+  getStream: () => MediaStream | null,
+  getLevel: () => number,
+  enabled: boolean,
+  takeMs = 6000,
+) {
   const [lines, setLines] = useState<TranscriptLine[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -62,37 +68,17 @@ export function useTranslation(getStream: () => MediaStream | null, enabled: boo
     let cancelled = false
     let timer: number | undefined
     let rec: MediaRecorder | null = null
-    let ctx: AudioContext | null = null
-    let analyser: AnalyserNode | null = null
-    let data: Uint8Array<ArrayBuffer> | null = null
     let peak = 0
     let meter: number | undefined
     const ctrl = new AbortController()
 
-    // Окремий вимірювач гучності на тій самій шині. Потрібен, щоб не гнати на
-    // однопотокове розпізнавання шість секунд тиші кожні шість секунд: машина
-    // одноядерна. Якщо вимірювач не піднявся - шлемо все підряд.
-    const startMeter = (stream: MediaStream) => {
-      try {
-        const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-        if (!Ctx) return
-        ctx = new Ctx()
-        ctx.resume?.().catch(() => {})
-        const src = ctx.createMediaStreamSource(stream)
-        analyser = ctx.createAnalyser()
-        analyser.fftSize = 512
-        src.connect(analyser)
-        data = new Uint8Array(new ArrayBuffer(analyser.fftSize))
-        meter = window.setInterval(() => {
-          if (!analyser || !data) return
-          analyser.getByteTimeDomainData(data)
-          let sum = 0
-          for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v }
-          const rms = Math.sqrt(sum / data.length)
-          if (rms > peak) peak = rms
-        }, 120)
-      } catch { analyser = null }
-    }
+    // Гучність міряємо аналізатором з useVoice, на тому самому AudioContext.
+    // Свій окремий new AudioContext тут стояти НЕ повинен: зайвий аудіограф
+    // поруч із відкритим мікрофоном - зайвий ризик на порожньому місці.
+    meter = window.setInterval(() => {
+      const rms = getLevel()
+      if (rms > peak) peak = rms
+    }, 120)
 
     const send = async (blob: Blob) => {
       if (cancelled || inFlightRef.current) return
@@ -116,7 +102,6 @@ export function useTranslation(getStream: () => MediaStream | null, enabled: boo
       if (cancelled) return
       const stream = getStream()
       if (!stream || !stream.getAudioTracks().length) { timer = window.setTimeout(take, 1200); return }
-      if (!analyser) startMeter(stream)
       peak = 0
       const parts: Blob[] = []
       try {
@@ -127,7 +112,7 @@ export function useTranslation(getStream: () => MediaStream | null, enabled: boo
       }
       rec.ondataavailable = (e) => { if (e.data && e.data.size) parts.push(e.data) }
       rec.onstop = () => {
-        const loud = !analyser || peak >= SILENCE_RMS
+        const loud = peak >= SILENCE_RMS
         const blob = new Blob(parts, { type: mime })
         // Поки попередній дубль ще в дорозі, цей пропускаємо: інакше черга
         // росте швидше, ніж сервер встигає розпізнавати.
@@ -147,13 +132,10 @@ export function useTranslation(getStream: () => MediaStream | null, enabled: boo
       ctrl.abort()
       try { rec?.stop() } catch { /* ignore */ }
       rec = null
-      try { ctx?.close() } catch { /* ignore */ }
-      ctx = null
-      analyser = null
       inFlightRef.current = false
       setBusy(false)
     }
-  }, [enabled, getStream, push, takeMs])
+  }, [enabled, getStream, getLevel, push, takeMs])
 
   const clear = useCallback(() => setLines([]), [])
 

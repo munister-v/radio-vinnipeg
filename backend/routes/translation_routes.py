@@ -18,6 +18,29 @@ _MAX_BYTES = 2 * 1024 * 1024
 _ALLOWED_TYPES = {'audio/webm': '.webm', 'audio/ogg': '.ogg', 'audio/mp4': '.mp4', 'audio/wav': '.wav', 'audio/x-wav': '.wav'}
 
 
+# Фрази, які модель видає на тиші й на шумі. Порівнюємо за нормалізованим
+# виглядом, без розділових знаків і регістру.
+_HALLUCINATIONS = {
+    'thank you', 'thanks for watching', 'thank you for watching',
+    'please subscribe', 'subscribe to my channel', 'bye', 'bye bye',
+    'you', 'so', 'okay', 'oh', 'mm', 'mhm', 'uh', 'um',
+    "i'm not going to say anything", 'i am not going to say anything',
+    'silence', 'music', 'applause', 'no', 'yes',
+    'subtitles by the amaraorg community', 'amaraorg',
+}
+
+
+def _is_hallucination(text: str) -> bool:
+    flat = ''.join(ch for ch in text.lower() if ch.isalnum() or ch.isspace())
+    flat = ' '.join(flat.split())
+    if not flat:
+        return True
+    if flat in _HALLUCINATIONS:
+        return True
+    # Одне-два слова на шестисекундному дублі майже завжди сміття моделі.
+    return len(flat) <= 3
+
+
 def _get_model():
     global _MODEL
     if _MODEL is None:
@@ -59,8 +82,25 @@ def transcribe():
         segments, info = _get_model().transcribe(
             str(path), task='translate', beam_size=1, best_of=1, temperature=0,
             vad_filter=True, condition_on_previous_text=False,
+            no_speech_threshold=0.5,
         )
-        text = ' '.join(s.text.strip() for s in segments if s.text.strip()).strip()
+        # Whisper на тиші вигадує текст: у порожній кімнаті модель видала
+        # «I'm not going to say anything.» - це не помилка запису, а відома
+        # властивість моделі. Відсіюємо двома ситами: власною оцінкою моделі
+        # (no_speech_prob) і списком фраз, які вона повторює на порожньому
+        # звуці. Пропустити тиху репліку не так шкідливо, як писати вигадку:
+        # слухач не має способу відрізнити її від справжніх слів.
+        kept = []
+        for seg in segments:
+            body = (seg.text or '').strip()
+            if not body:
+                continue
+            if float(getattr(seg, 'no_speech_prob', 0.0) or 0.0) > 0.5:
+                continue
+            if _is_hallucination(body):
+                continue
+            kept.append(body)
+        text = ' '.join(kept).strip()
         return jsonify({'ok': True, 'data': {'text': text, 'language': getattr(info, 'language', None), 'duration': round(float(getattr(info, 'duration', 0) or 0), 2)}})
     except Exception as exc:
         print(f'[translation] inference error: {exc}', flush=True)

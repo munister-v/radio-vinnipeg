@@ -78,7 +78,7 @@ function GearGlyph() {
 export default function ForestStage({ user, onStats, room = 'lounge' }: { user: User; onStats?: (s: VoiceStats) => void; room?: string }) {
   const { t, lang } = useI18n()
   const settings = useSettings()
-  const { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, getTranslationStream, duckRemote } =
+  const { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, getTranslationStream, getTranslationLevel, duckRemote } =
     useVoice(user.id, { volume: settings.volume, micDeviceId: settings.micDeviceId, room, fx: settings.fx })
 
   // Переклад ефіру англійською. Кнопка з'являється, тільки якщо бекенд
@@ -92,7 +92,7 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
       .catch(() => { if (alive) setTrAvailable(false) })
     return () => { alive = false }
   }, [])
-  const translation = useTranslation(getTranslationStream, trOn && joined, settings.trTakeMs)
+  const translation = useTranslation(getTranslationStream, getTranslationLevel, trOn && joined, settings.trTakeMs)
   useEffect(() => { if (!joined) setTrOn(false) }, [joined])
 
   // Озвучення перекладу. Синтез робить браузер, тож це справа кожного слухача
@@ -443,7 +443,11 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                     {translation.error ? (
                       <p className="fx-translate-empty">{translation.error}</p>
                     ) : translation.lines.length === 0 ? (
-                      <p className="fx-translate-empty">{translation.busy ? t('tr.listening') : t('tr.waiting')}</p>
+                      <p className="fx-translate-empty">
+                        {members.length === 0
+                          ? t('tr.alone')
+                          : translation.busy ? t('tr.listening') : t('tr.waiting')}
+                      </p>
                     ) : (
                       <ol className="fx-translate-lines">
                         {translation.lines.map(l => <li key={l.id}>{l.text}</li>)}

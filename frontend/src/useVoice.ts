@@ -122,7 +122,8 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
   // Спільна шина віддалених голосів: усе, що чує слухач, зводиться в один
   // потік. Потрібна перекладу - MediaRecorder не вміє писати кілька джерел.
   const translationBusRef = useRef<MediaStreamAudioDestinationNode | null>(null)
-  const micBusSrcRef = useRef<MediaStreamAudioSourceNode | null>(null)
+  const trAnalyserRef = useRef<AnalyserNode | null>(null)
+  const trDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
   // Аудіо-елементи, чий play() браузер заблокував (autoplay policy) — ретраїмо на жесті.
   const blockedAudiosRef = useRef<Set<HTMLAudioElement>>(new Set())
   const [audioBlocked, setAudioBlocked] = useState(false)
@@ -410,8 +411,6 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       for (const t of rawStreamRef.current.getTracks()) t.stop()
       rawStreamRef.current = null
     }
-    try { micBusSrcRef.current?.disconnect() } catch { /* ignore */ }
-    micBusSrcRef.current = null
     if (localStreamRef.current) {
       for (const t of localStreamRef.current.getTracks()) t.stop()
       localStreamRef.current = null
@@ -952,17 +951,12 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     } catch { micFxRef.current = null }
 
     localStreamRef.current = stream
-    // Власний мікрофон теж іде в шину перекладу. Мьют/PTT перемикають
-    // track.enabled, тобто вимкнений мікрофон подає тишу, а не рветься.
-    try {
-      const ctx = audioCtxRef.current
-      if (ctx) {
-        try { micBusSrcRef.current?.disconnect() } catch { /* ignore */ }
-        const micSrc = ctx.createMediaStreamSource(stream)
-        micSrc.connect(ensureTranslationBus(ctx))
-        micBusSrcRef.current = micSrc
-      }
-    } catch { /* ignore */ }
+    // Власний мікрофон у шину перекладу НЕ йде, і це навмисно. Спершу я його
+    // туди підключив - здавалося, що ведучий сам-один теж має бачити переклад.
+    // Насправді виходило коло: сказав фразу, через шість секунд вона
+    // повернулася англійською з власних колонок, а при відкритому мікрофоні
+    // ще й знову потрапила в розпізнавання. Перекладати треба чужу мову:
+    // свою людина і так розуміє, а слухач отримає її як віддалений голос.
     const track = stream.getAudioTracks()[0] ?? null
     if (track) {
       track.enabled = false // вмикаємо за потребою (PTT/мьют)
@@ -983,7 +977,7 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
       }
     }
     return track
-  }, [applyMicToTransceiver, ensureAudioCtx, ensureTranslationBus])
+  }, [applyMicToTransceiver, ensureAudioCtx])
 
   const setTransmitting = useCallback(async (on: boolean) => {
     const cid = callIdRef.current
@@ -1128,5 +1122,29 @@ export function useVoice(myUserId: number | null, opts?: { volume?: number; micD
     return ensureTranslationBus(ctx).stream
   }, [ensureTranslationBus])
 
-  return { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, getTranslationStream, duckRemote }
+  // Рівень на шині перекладу міряємо тим самим AudioContext, що й усе інше.
+  // Окремий new AudioContext заради вимірювача - зайвий аудіограф поруч із
+  // відкритим мікрофоном; краще не мати його взагалі.
+  const getTranslationLevel = useCallback((): number => {
+    const ctx = audioCtxRef.current
+    if (!ctx) return 0
+    if (!trAnalyserRef.current) {
+      try {
+        const an = ctx.createAnalyser()
+        an.fftSize = 512
+        ensureTranslationBus(ctx).connect(an)
+        trAnalyserRef.current = an
+        trDataRef.current = new Uint8Array(new ArrayBuffer(an.fftSize))
+      } catch { return 0 }
+    }
+    const an = trAnalyserRef.current
+    const data = trDataRef.current
+    if (!an || !data) return 0
+    an.getByteTimeDomainData(data)
+    let sum = 0
+    for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v }
+    return Math.sqrt(sum / data.length)
+  }, [ensureTranslationBus])
+
+  return { members, joined, micOn, connecting, error, speaking, quality, connStats, audioBlocked, unlockAudio, join, leave, toggleMic, getTranslationStream, getTranslationLevel, duckRemote }
 }
