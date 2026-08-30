@@ -377,6 +377,10 @@
   background: var(--line-strong); transition: background .2s;
 }
 .fx-translate-dot.on { background: var(--signal); }
+/* Два різні стани: «чую мову» - поки людина говорить, «on» - поки репліка
+   розпізнається. Разом вони показують, де саме стоїть черга. */
+.fx-translate-dot.hear { background: var(--ink); }
+.fx-translate-dot.hear.on { background: var(--signal); }
 .fx-translate-tts {
   display: inline-flex; align-items: center; gap: 5px;
   margin-left: auto;

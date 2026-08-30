@@ -343,7 +343,11 @@ export default function ForestStage({ user, onStats, room = 'lounge' }: { user: 
                   <div className="fx-translate" aria-live="polite">
                     <div className="fx-translate-top">
                       <span className="fx-translate-title">{t('tr.title')}</span>
-                      <span className={`fx-translate-dot ${translation.busy ? 'on' : ''}`} aria-hidden />
+                      <span
+                        className={`fx-translate-dot ${translation.hearing ? 'hear' : ''} ${translation.busy ? 'on' : ''}`}
+                        title={translation.hearing ? t('tr.hearing') : undefined}
+                        aria-hidden
+                      />
                       {speech.available && (
                         <button
                           className={`fx-translate-tts ${ttsOn ? 'on' : ''}`}
