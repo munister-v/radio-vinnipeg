@@ -1397,3 +1397,104 @@ body {
   font: 400 var(--t-xs)/1.4 var(--sans);
   max-width: 190px;
 }
+
+/* ── Анонс: порядок ефіру і джерела ─────────────────────────────────── */
+.radio-shell .promo-sub {
+  display: block;
+  font: 400 var(--t-xs)/1.5 var(--sans);
+  letter-spacing: .02em;
+  color: var(--ink-3);
+}
+
+.radio-shell .promo-order { margin-top: var(--s7); }
+.radio-shell .promo-order ol {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  border-top: 1px solid var(--hair);
+}
+.radio-shell .promo-order li {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: var(--s4);
+  align-items: baseline;
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--hair);
+}
+.radio-shell .promo-order time {
+  font: 400 var(--t-sm)/1.4 var(--sans);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+  color: var(--ink-3);
+}
+.radio-shell .promo-seg { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.radio-shell .promo-seg b {
+  font-weight: 400;
+  font-size: var(--t-md);
+  letter-spacing: -.01em;
+  color: var(--ink);
+}
+.radio-shell .promo-seg i {
+  font-style: normal;
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+
+/* Джерела: монограма замість чужої емблеми — див. коментар у Announcement.tsx */
+.radio-shell .promo-sources { margin-top: var(--s7); }
+.radio-shell .promo-sources-note {
+  margin: var(--s2) 0 0;
+  max-width: 60ch;
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+.radio-shell .promo-sources ul {
+  list-style: none;
+  margin: var(--s4) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--hair);
+}
+.radio-shell .promo-sources li { border-bottom: 1px solid var(--hair); min-width: 0; }
+.radio-shell .promo-sources a {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s4);
+  padding: var(--s4) var(--s4) var(--s4) 0;
+  text-decoration: none;
+  color: inherit;
+  transition: background .18s var(--ease);
+}
+.radio-shell .promo-sources a:hover { background: var(--tint); }
+.radio-shell .promo-src-tag {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--hair-strong);
+  font: 400 var(--t-xs)/1 var(--sans);
+  letter-spacing: .08em;
+  color: var(--ink);
+}
+.radio-shell .promo-src-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.radio-shell .promo-src-copy b {
+  font-weight: 400;
+  font-size: var(--t-sm);
+  letter-spacing: -.01em;
+  color: var(--ink);
+}
+.radio-shell .promo-src-copy i {
+  font-style: normal;
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+.radio-shell .promo-sources a:hover .promo-src-tag { background: var(--ink); color: var(--paper-0); border-color: var(--ink); }
+
+@media (max-width: 620px) {
+  .radio-shell .promo-order li { grid-template-columns: 58px minmax(0, 1fr); gap: var(--s3); }
+  .radio-shell .promo-sources ul { grid-template-columns: 1fr; }
+}

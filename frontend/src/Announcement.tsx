@@ -15,6 +15,42 @@ import { useI18n } from './i18n'
 const AIR_AT = new Date('2026-09-06T21:00:00-05:00')
 const HOST_PHOTO = '/host-munister.jpg'
 
+// Порядок ефіру. Хвилини рахуються від початку, час рисується сам,
+// щоб при зміні AIR_AT не правити чотири рядки вручну.
+const RUNNING_ORDER = [
+  { at: 0,   key: 'claim' },
+  { at: 25,  key: 'files' },
+  { at: 60,  key: 'court' },
+  { at: 95,  key: 'mic' },
+]
+
+// На чиїх матеріалах будується ефір. Ставимо монограму й назву, а не
+// офіційні емблеми: герби ATF, FBI і RCMP — знаки відомств, чужий сайт
+// із ними виглядає як «за підтримки», якої немає.
+const SOURCES = [
+  { tag: 'NFPA', name: 'National Fire Protection Association',
+    note: 'NFPA 921, the fire and explosion investigation guide',
+    href: 'https://www.nfpa.org/codes-and-standards/nfpa-921-standard-development/921' },
+  { tag: 'ATF', name: 'Bureau of Alcohol, Tobacco, Firearms and Explosives',
+    note: 'Fire Research Laboratory: how burn patterns are actually read',
+    href: 'https://www.atf.gov/laboratories/fire-research-laboratory' },
+  { tag: 'NIST', name: 'National Institute of Standards and Technology',
+    note: 'Fire Research Division, reconstructions of real fires',
+    href: 'https://www.nist.gov/el/fire-research-division-73300' },
+  { tag: 'FBI', name: 'FBI Records: The Vault',
+    note: 'Declassified case files on the investigations we cover',
+    href: 'https://vault.fbi.gov/' },
+  { tag: 'RCMP', name: 'Royal Canadian Mounted Police',
+    note: 'The Canadian side: prairie cases and how they were worked',
+    href: 'https://www.rcmp-grc.gc.ca/en' },
+  { tag: 'IP', name: 'Innocence Project',
+    note: 'Arson convictions overturned when the fire science collapsed',
+    href: 'https://innocenceproject.org/' },
+  { tag: 'CSI', name: 'Committee for Skeptical Inquiry',
+    note: 'What was left of pyrokinesis and spontaneous combustion claims',
+    href: 'https://skepticalinquirer.org/' },
+]
+
 function icsFile(title: string, description: string): string {
   const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
   const end = new Date(AIR_AT.getTime() + 2 * 60 * 60 * 1000)
@@ -65,6 +101,10 @@ export default function Announcement() {
   const timeLabel = AIR_AT.toLocaleTimeString(locale, {
     hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Winnipeg',
   })
+  const slotTime = (minutes: number) =>
+    new Date(AIR_AT.getTime() + minutes * 60_000).toLocaleTimeString(locale, {
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Winnipeg',
+    })
 
   return (
     <section className="promo" id="broadcast" aria-labelledby="promo-title">
@@ -81,8 +121,42 @@ export default function Announcement() {
         <dl className="promo-facts">
           <div><dt>{t('promo.dateLabel')}</dt><dd>{dateLabel}</dd></div>
           <div><dt>{t('promo.timeLabel')}</dt><dd>{timeLabel} <small>CDT · Winnipeg</small></dd></div>
+          <div><dt>{t('promo.runLabel')}</dt><dd>{t('promo.run')}</dd></div>
           <div><dt>{t('promo.hostLabel')}</dt><dd>{t('promo.host')}</dd></div>
         </dl>
+
+        <div className="promo-order">
+          <span className="promo-sub">{t('promo.orderTitle')}</span>
+          <ol>
+            {RUNNING_ORDER.map((seg) => (
+              <li key={seg.key}>
+                <time>{slotTime(seg.at)}</time>
+                <span className="promo-seg">
+                  <b>{t(`promo.seg.${seg.key}.name`)}</b>
+                  <i>{t(`promo.seg.${seg.key}.note`)}</i>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="promo-sources">
+          <span className="promo-sub">{t('promo.sourcesTitle')}</span>
+          <p className="promo-sources-note">{t('promo.sourcesNote')}</p>
+          <ul>
+            {SOURCES.map((src) => (
+              <li key={src.tag}>
+                <a href={src.href} target="_blank" rel="noopener noreferrer">
+                  <span className="promo-src-tag" aria-hidden>{src.tag}</span>
+                  <span className="promo-src-copy">
+                    <b>{src.name}</b>
+                    <i>{src.note}</i>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
 
         <div className="promo-actions">
           <a className="promo-btn" href="#air">{t('promo.join')}</a>
