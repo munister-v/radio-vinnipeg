@@ -24,29 +24,31 @@ const RUNNING_ORDER = [
   { at: 95,  key: 'mic' },
 ]
 
-// На чиїх матеріалах будується ефір. Ставимо монограму й назву, а не
-// офіційні емблеми: герби ATF, FBI і RCMP — знаки відомств, чужий сайт
-// із ними виглядає як «за підтримки», якої немає.
+// На чиїх матеріалах будується ефір. Лого взяті з сайтів самих установ
+// (ATF — з Commons, PD-USGov, бо atf.gov ріже завантаження), зведені до
+// висоти 96 px і лежать у /sources. Білі версії NIST, Innocence Project
+// і Skeptical Inquirer перефарбовані в чорнило: вони розраховані на темні
+// шапки своїх сайтів, а тут лежать на світлій плитці.
 const SOURCES = [
-  { tag: 'NFPA', name: 'National Fire Protection Association',
+  { tag: 'NFPA', logo: 'nfpa.png', name: 'National Fire Protection Association',
     note: 'NFPA 921, the fire and explosion investigation guide',
     href: 'https://www.nfpa.org/codes-and-standards/nfpa-921-standard-development/921' },
-  { tag: 'ATF', name: 'Bureau of Alcohol, Tobacco, Firearms and Explosives',
+  { tag: 'ATF', logo: 'atf.png', name: 'Bureau of Alcohol, Tobacco, Firearms and Explosives',
     note: 'Fire Research Laboratory: how burn patterns are actually read',
     href: 'https://www.atf.gov/laboratories/fire-research-laboratory' },
-  { tag: 'NIST', name: 'National Institute of Standards and Technology',
+  { tag: 'NIST', logo: 'nist.png', name: 'National Institute of Standards and Technology',
     note: 'Fire Research Division, reconstructions of real fires',
     href: 'https://www.nist.gov/el/fire-research-division-73300' },
-  { tag: 'FBI', name: 'FBI Records: The Vault',
+  { tag: 'FBI', logo: 'fbi.png', name: 'FBI Records: The Vault',
     note: 'Declassified case files on the investigations we cover',
     href: 'https://vault.fbi.gov/' },
-  { tag: 'RCMP', name: 'Royal Canadian Mounted Police',
+  { tag: 'RCMP', logo: 'rcmp.png', name: 'Royal Canadian Mounted Police',
     note: 'The Canadian side: prairie cases and how they were worked',
     href: 'https://www.rcmp-grc.gc.ca/en' },
-  { tag: 'IP', name: 'Innocence Project',
+  { tag: 'IP', logo: 'ip.png', name: 'Innocence Project',
     note: 'Arson convictions overturned when the fire science collapsed',
     href: 'https://innocenceproject.org/' },
-  { tag: 'CSI', name: 'Committee for Skeptical Inquiry',
+  { tag: 'CSI', logo: 'si.png', name: 'Committee for Skeptical Inquiry',
     note: 'What was left of pyrokinesis and spontaneous combustion claims',
     href: 'https://skepticalinquirer.org/' },
 ]
@@ -147,7 +149,9 @@ export default function Announcement() {
             {SOURCES.map((src) => (
               <li key={src.tag}>
                 <a href={src.href} target="_blank" rel="noopener noreferrer">
-                  <span className="promo-src-tag" aria-hidden>{src.tag}</span>
+                  <span className="promo-src-logo">
+                    <img src={`/sources/${src.logo}`} alt={src.name} loading="lazy" />
+                  </span>
                   <span className="promo-src-copy">
                     <b>{src.name}</b>
                     <i>{src.note}</i>

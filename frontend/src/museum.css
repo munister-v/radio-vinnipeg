@@ -1453,7 +1453,7 @@ body {
   margin: var(--s4) 0 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 0;
   border-top: 1px solid var(--hair);
 }
@@ -1468,16 +1468,25 @@ body {
   transition: background .18s var(--ease);
 }
 .radio-shell .promo-sources a:hover { background: var(--tint); }
-.radio-shell .promo-src-tag {
+/* Стіна лого: справжні знаки установ лежать на світлій плитці — інакше
+   темні емблеми (RCMP, NFPA, Innocence Project) на чорному не видно. */
+.radio-shell .promo-src-logo {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 54px;
-  height: 54px;
-  border: 1px solid var(--hair-strong);
-  font: 400 var(--t-xs)/1 var(--sans);
-  letter-spacing: .08em;
-  color: var(--ink);
+  width: 104px;
+  height: 60px;
+  padding: 8px 10px;
+  background: #f4f3f1;
+  border: 1px solid var(--hair);
+}
+.radio-shell .promo-src-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
 }
 .radio-shell .promo-src-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .radio-shell .promo-src-copy b {
@@ -1492,7 +1501,7 @@ body {
   line-height: 1.5;
   color: var(--ink-3);
 }
-.radio-shell .promo-sources a:hover .promo-src-tag { background: var(--ink); color: var(--paper-0); border-color: var(--ink); }
+.radio-shell .promo-sources a:hover .promo-src-logo { border-color: var(--hair-strong); }
 
 @media (max-width: 620px) {
   .radio-shell .promo-order li { grid-template-columns: 58px minmax(0, 1fr); gap: var(--s3); }
