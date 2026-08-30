@@ -10,7 +10,7 @@ const STATIONS = [
   {
     id: 'u80s',
     name: 'Underground 80s',
-    desc: 'Post-punk, new wave, synth-pop — the underground side of the 80s',
+    desc: 'Post-punk, new wave and synth-pop: the underground side of the 80s',
     url: 'https://ice4.somafm.com/u80s-128-mp3',
     tag: '80s',
     color: '#c6a15c',
@@ -19,7 +19,7 @@ const STATIONS = [
   {
     id: 'rp-main',
     name: 'Paradise Mix',
-    desc: 'Classic rock, pop, world and deep cuts — Doors / Sting territory',
+    desc: 'Classic rock, pop, world and deep cuts: Doors / Sting territory',
     url: 'https://stream.radioparadise.com/aac-320',
     tag: 'classic',
     color: '#d65d3f',
@@ -91,7 +91,7 @@ const STATIONS = [
   {
     id: 'secretagent',
     name: 'Secret Agent',
-    desc: 'Suave spy jazz, lounge and bossa — retro movie vibes',
+    desc: 'Suave spy jazz, lounge and bossa: retro movie vibes',
     url: 'https://ice4.somafm.com/secretagent-128-mp3',
     tag: '60s–70s',
     color: '#8a7bbf',
@@ -214,7 +214,7 @@ export default function MusicRadio() {
     })
     audio.play()
       .then(markPlaying)
-      .catch(() => { setLoading(false); setError('Playback blocked — tap again') })
+      .catch(() => { setLoading(false); setError('Playback blocked, tap again') })
 
     if ('mediaSession' in navigator) {
       try {
@@ -268,7 +268,7 @@ export default function MusicRadio() {
         <div className="mr-header-text">
           <span className="mr-eyebrow">Free Public Radio</span>
           <h2 className="mr-title">Music Radio</h2>
-          <p className="mr-sub">70s, 80s &amp; 90s pop, rock and soul — streaming live, no ads</p>
+          <p className="mr-sub">70s, 80s &amp; 90s pop, rock and soul, streaming live and without ads</p>
         </div>
         {playing && active && (
           <div className="mr-now">
@@ -328,7 +328,7 @@ export default function MusicRadio() {
       )}
 
       <p className="mr-credit">
-        Streams provided by <a href="https://somafm.com" target="_blank" rel="noopener">SomaFM</a> and <a href="https://radioparadise.com" target="_blank" rel="noopener">Radio Paradise</a> — independent, listener-supported, non-commercial.
+        Streams provided by <a href="https://somafm.com" target="_blank" rel="noopener">SomaFM</a> and <a href="https://radioparadise.com" target="_blank" rel="noopener">Radio Paradise</a>: independent, listener-supported, non-commercial.
       </p>
     </section>
   )
