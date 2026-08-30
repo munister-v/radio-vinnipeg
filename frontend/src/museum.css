@@ -595,8 +595,18 @@ body {
   background: transparent;
   color: var(--ink);
 }
+/* :hover:not(:disabled) у music-radio.css важить 0,3,0 і перебивав скін:
+   на кліку кнопка встигала блимнути фірмовим кольором станції (золото,
+   помаранч) і підстрибнути на scale(1.06), і аж потім ставала білою. */
 .radio-shell .mr-play.on,
-.radio-shell .mr-play:hover { background: var(--ink); color: var(--paper-0); border-color: var(--ink); }
+.radio-shell .mr-play:hover,
+.radio-shell .mr-play:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--paper-0);
+  border-color: var(--ink);
+  transform: none;
+}
+.radio-shell .mr-play:active:not(:disabled) { transform: none; }
 .radio-shell .mr-credit { color: var(--ink-3); font-size: var(--t-xs); }
 .radio-shell .mr-wave i { background: var(--ink-2); }
 
@@ -1088,8 +1098,9 @@ body {
 @keyframes mr-pulse { 50% { opacity: .45; } }
 .radio-shell .mr-play-icon { transition: opacity .18s var(--ease); }
 
-/* Смужки еквалайзера в картці — без стрибка висоти на старті. */
-.radio-shell .mr-wave i { transition: height .18s var(--ease), opacity .18s var(--ease); }
+/* Тільки прозорість: transition на height воював із keyframe-анімацією
+   еквалайзера, і смужки смикались на старті відтворення. */
+.radio-shell .mr-wave i { transition: opacity .18s var(--ease); }
 
 @media (prefers-reduced-motion: reduce) {
   .radio-shell .mr-play.loading::after,
